@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLIMEFRONT - Enhanced Edition</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="vignette"></div>
+    <div id="damage-overlay"></div>
+    <div id="event-alert" class="event-alert">
+        <div class="event-alert-title"></div>
+        <div class="event-alert-subtitle">PREPÁRATE...</div>
+    </div>
+    <div id="event-badge" class="hud-box" style="display:none; position:absolute; top:20px; right:20px; border-left-color:#8e44ad; z-index:11;"></div>
+    <div id="ui-layer">
+        <div class="stats-top">
+            <div class="hud-box">
+                <div id="health-container">
+                    <div id="health-inner"></div>
+                    <span id="health-text">100 / 100</span>
+                </div>
+            </div>
+            <div class="hud-box stats-info">
+                <div class="hud-text" id="money-display">CASH: $0</div>
+                <div class="hud-text wave-text" id="wave-display">WAVE: 1</div>
+            </div>
+            <div class="hud-box ammo-box">
+                <div id="ammo-icon">🔫</div>
+                <div id="ammo-hud">--</div>
+            </div>
+        </div>
+
+        <div id="shop-menu">
+            <div class="shop-header">
+                <h2>🚁 REABASTECIMIENTO TÁCTICO</h2>
+                <p>Asegura tu equipo antes de la siguiente oleada</p>
+            </div>
+            <div class="shop-grid" id="shop-items"></div>
+            <div class="shop-actions">
+                <button class="shop-btn heal-btn" onclick="game.buyHealth()">💉 SANAR SLIME ($200)</button>
+                <button class="shop-btn ammo-btn" onclick="game.buyAmmo()">📦 MUNICIÓN FULL ($150)</button>
+            </div>
+            <button class="depart-btn" onclick="game.startNextWave()">⚠️ DESPLEGAR ⚠️</button>
+        </div>
+
+        <div id="hotbar"></div>
+
+        <div id="mobile-controls">
+            <div id="aim-zone"></div>
+            <div id="joystick-zone"><div id="joystick-knob"></div></div>
+            <button id="mobile-dash-btn">DASH</button>
+            <button id="mobile-reload-btn">R</button>
+        </div>
+    </div>
+
+    <div id="lobby-screen" class="menu-screen">
+        <div class="menu-panel">
+            <h1 class="menu-title">SLIMEFRONT</h1>
+            <p class="menu-subtitle">Enhanced Edition</p>
+            <button class="menu-btn primary" onclick="game.startFromLobby()">JUGAR</button>
+            <button class="menu-btn" onclick="game.openSettings('lobby')">AJUSTES</button>
+        </div>
+    </div>
+
+    <div id="esc-menu" class="menu-screen" style="display:none;">
+        <div class="menu-panel">
+            <h1 class="menu-title">PAUSA</h1>
+            <button class="menu-btn primary" onclick="game.closeEscMenu()">CONTINUAR</button>
+            <button class="menu-btn" onclick="game.openSettings('esc')">AJUSTES</button>
+            <button class="menu-btn danger" onclick="game.goToMainMenu()">VOLVER AL MENÚ</button>
+        </div>
+    </div>
+
+    <div id="gameover-screen" class="menu-screen" style="display:none;">
+        <div class="menu-panel">
+            <h1 class="menu-title">MISIÓN FALLIDA</h1>
+            <div class="gameover-stats">
+                <div class="hud-text">OLEADAS SOBREVIVIDAS: <span id="go-waves">0</span></div>
+                <div class="hud-text">TIEMPO SOBREVIVIDO: <span id="go-time">00:00</span></div>
+                <div class="hud-text" id="go-record" style="color:#f1c40f;"></div>
+            </div>
+            <button class="menu-btn primary" onclick="game.goToMainMenu()">VOLVER AL MENÚ</button>
+        </div>
+    </div>
+
+    <div id="settings-panel" class="menu-screen" style="display:none;">
+        <div class="menu-panel">
+            <h1 class="menu-title">AJUSTES</h1>
+
+            <div class="settings-group">
+                <label class="settings-label">Gráficos</label>
+                <div class="settings-options" id="graphics-options">
+                    <button class="option-btn" data-value="LOW" onclick="game.setGraphics('LOW')">BAJO</button>
+                    <button class="option-btn" data-value="MEDIUM" onclick="game.setGraphics('MEDIUM')">MEDIO</button>
+                    <button class="option-btn" data-value="PRO" onclick="game.setGraphics('PRO')">PRO</button>
+                </div>
+                <p class="settings-hint" id="graphics-hint"></p>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Volumen de efectos (<span id="sfx-vol-value">100</span>)</label>
+                <input type="range" min="0" max="100" id="sfx-vol-slider" oninput="game.setSfxVolume(this.value)">
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Volumen de música (<span id="music-vol-value">100</span>)</label>
+                <input type="range" min="0" max="100" id="music-vol-slider" oninput="game.setMusicVolume(this.value)">
+            </div>
+
+            <button class="menu-btn primary" onclick="game.closeSettings()">VOLVER</button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+    
+    <script src="main.js"></script>
+    <script src="ui.js"></script>
+    <script src="effects.js"></script>
+    <script src="events.js"></script>
+    <script src="world.js"></script>
+    <script src="player.js"></script>
+    <script src="enemies.js"></script>
+    <script src="mobile.js"></script>
+</body>
+</html>
