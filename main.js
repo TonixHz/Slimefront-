@@ -17,6 +17,8 @@ const game = {
 
     init() {
         this.started = true;
+        this.playerDamageMult = Progression.getBonus('damage'); // bonus de progresión: +X% daño global del jugador
+        this.reloadReductUp = Progression.getBonus('reload'); // bonus de progresión: -X% tiempo de recarga
         this.player = new Player();
         this.camera = new Camera();
         const gfx = GRAPHICS_PRESETS[Settings.graphics] || GRAPHICS_PRESETS.PRO;
@@ -152,13 +154,15 @@ const game = {
 
             if(p.isEnemy) {
                 if(Math.hypot(p.x - this.player.x, p.y - this.player.y) < this.player.radius) {
-                    this.player.takeDamage(p.damage); p.active = false;
+                    if (p.explosive) { this.explode(p.x, p.y, p.explosionRadius, p.damage); }
+                    else { this.player.takeDamage(p.damage); }
+                    p.active = false;
                 }
             } else {
                 for(let j = this.enemies.length - 1; j >= 0; j--) {
                     let e = this.enemies[j];
                     if(!e.invulnerable && !p.hitEnemies.has(e) && Math.hypot(p.x - e.x, p.y - e.y) < e.radius) {
-                        this.hitEnemy(e, p.damage); // la lógica de muerte/recompensa vive acá ahora
+                        this.hitEnemy(e, p.damage, p.x, p.y); // la lógica de muerte/recompensa vive acá ahora
                         p.hitEnemies.add(e);
                         if (p.knockback) { // Shotgun: empuja al enemigo lejos del impacto
                             let ka = Math.atan2(e.y - p.y, e.x - p.x);
@@ -212,7 +216,7 @@ const game = {
 
         const hotbar = document.getElementById('hotbar');
         if(hotbar.children.length === 0) {
-            for(let i=0; i<5; i++) hotbar.innerHTML += `<div class="slot" id="slot-${i}" onclick="game.player.activeSlot=${i}"><span class="slot-key">${i+1}</span><span class="name"></span><span class="slot-ammo"></span></div>`;
+            for(let i=0; i<5; i++) hotbar.innerHTML += `<div class="slot" id="slot-${i}" onclick="game.player.activeSlot=${i}"><span class="slot-key">${i+1}</span><span class="slot-cat"></span><span class="name"></span><span class="slot-ammo"></span></div>`;
         }
         for(let i=0; i<5; i++) {
             let s = this.player.inventory[i];
@@ -220,6 +224,9 @@ const game = {
             el.className = this.player.activeSlot === i ? "slot active" : "slot";
             el.querySelector('.name').innerText = s ? s.name : "";
             el.querySelector('.slot-ammo').innerText = s ? (s.ammo === Infinity ? "" : s.ammo) : "";
+            const catEl = el.querySelector('.slot-cat');
+            if (s && CATEGORY_META[s.cat]) { catEl.innerText = CATEGORY_META[s.cat].icon; catEl.style.color = CATEGORY_META[s.cat].color; }
+            else catEl.innerText = "";
         }
 
         if(this.isWaveActive && this.enemies.length === 0) {
@@ -252,11 +259,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 <h1 class="menu-title">SLIMEFRONT</h1>
                 <p class="menu-subtitle">Enhanced Edition</p>
                 <button class="menu-btn primary" onclick="game.startFromLobby()">▶ JUGAR</button>
+                <button class="menu-btn" onclick="game.openUpgrades()">⭐ MEJORAS</button>
                 <button class="menu-btn" onclick="game.openSettings('lobby')">⚙ AJUSTES</button>
                 <button class="menu-btn" onclick="game.toggleControls(true)">📖 CONTROLES</button>
                 <div style="margin-top:20px; font-size:18px;">
                     <div>RÉCORD: ${Settings.bestWave} OLEADAS</div>
-                    <div class="version-tag">v0.8</div>
+                    <div>PUNTOS DE MEJORA: ${Progression.points}</div>
+                    <div class="version-tag">v0.9</div>
                 </div>
             </div>
         `;

@@ -19,7 +19,7 @@ canvas { display: block; }
 #damage-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, transparent 30%, rgba(200,0,0,0.4) 100%); opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 6; }
 
 /* HUD Modernizado */
-.stats-top { position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; }
+.stats-top { position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; transform-origin: top left; }
 .hud-box { background: rgba(15, 20, 15, 0.85); border: 2px solid #2d3436; padding: 10px 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); backdrop-filter: blur(4px); border-left: 4px solid #2ecc71; }
 #health-container { width: 300px; height: 24px; background: rgba(30,0,0,0.8); border: 2px solid #555; border-radius: 4px; position: relative; overflow: hidden; }
 #health-inner { width: 100%; height: 100%; background: linear-gradient(90deg, #e74c3c, #c0392b); transition: width 0.2s ease-out; }
@@ -33,6 +33,15 @@ canvas { display: block; }
 #ammo-hud { color: #f1c40f; font-size: 40px; font-weight: 700; line-height: 1; text-shadow: 2px 2px 5px rgba(0,0,0,0.8); }
 #ammo-icon { font-size: 30px; filter: grayscale(100%) brightness(200%); }
 
+/* Escalado de HUD (Ajustes > Tamaño de HUD) */
+body[data-hud-size="1"] .stats-top { transform: scale(0.72); }
+body[data-hud-size="1"] #hotbar { transform: translateX(-50%) scale(0.72); transform-origin: bottom center; }
+body[data-hud-size="1"] #ammo-hud { }
+body[data-hud-size="2"] .stats-top { transform: scale(0.86); }
+body[data-hud-size="2"] #hotbar { transform: translateX(-50%) scale(0.86); transform-origin: bottom center; }
+body[data-hud-size="3"] .stats-top { transform: scale(1); }
+body[data-hud-size="3"] #hotbar { transform: translateX(-50%) scale(1); transform-origin: bottom center; }
+
 /* Hotbar */
 #hotbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: all; }
 .slot { width: 70px; height: 70px; background: rgba(20, 25, 20, 0.9); border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; color: #aaa; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
@@ -40,9 +49,10 @@ canvas { display: block; }
 .slot-key { position: absolute; top: 5px; left: 8px; font-size: 16px; font-weight: bold; opacity: 0.8; color: #fff; }
 .name { font-size: 18px; margin-top: 10px; text-transform: uppercase; text-shadow: 1px 1px 2px black; }
 .slot-ammo { font-size: 16px; color: #f1c40f; font-weight: bold; position: absolute; bottom: 5px; right: 8px; }
+.slot-cat { position: absolute; top: 4px; right: 6px; font-size: 14px; }
 
 /* Tienda Militar */
-#shop-menu { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(135deg, #111a11 0%, #080c08 100%); padding: 30px; border: 2px solid #333; pointer-events: all; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 0 0 4px #2ecc71; width: 600px; }
+#shop-menu { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(135deg, #111a11 0%, #080c08 100%); padding: 30px; border: 2px solid #333; pointer-events: all; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 0 0 4px #2ecc71; width: 640px; }
 .shop-header h2 { color: #2ecc71; margin: 0 0 5px 0; font-size: 35px; text-transform: uppercase; letter-spacing: 2px; }
 .shop-header p { color: #888; margin: 0 0 20px 0; font-size: 18px; border-bottom: 1px solid #333; padding-bottom: 15px; }
 .shop-grid { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; margin-bottom: 20px; padding-right: 6px; }
@@ -51,9 +61,13 @@ canvas { display: block; }
 .shop-grid::-webkit-scrollbar-thumb { background: #2ecc71; border-radius: 4px; }
 
 .weapon-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(255,255,255,0.04); border: 1px solid #333; border-radius: 6px; padding: 8px 14px; }
-.weapon-row-name { font-size: 20px; letter-spacing: 1px; flex: 1; }
-.weapon-row-status { font-size: 16px; color: #f1c40f; text-transform: uppercase; letter-spacing: 1px; }
+.weapon-row-cat { font-size: 22px; flex-shrink: 0; }
+.weapon-row-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.weapon-row-name { font-size: 20px; letter-spacing: 1px; }
+.weapon-row-desc { font-size: 14px; color: #888; letter-spacing: 0.5px; text-transform: none; }
+.weapon-row-status { font-size: 16px; color: #f1c40f; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
 .weapon-row-status.owned { color: #2ecc71; font-weight: 700; }
+.weapon-row-status.locked { color: #7f8c8d; font-size: 14px; }
 .buy-btn, .sell-btn { border: none; border-radius: 4px; padding: 6px 14px; font-family: 'Teko', sans-serif; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: 0.2s; }
 .buy-btn { background: #f1c40f; color: #1a1a1a; }
 .buy-btn:hover { background: #ffe066; transform: scale(1.05); }
@@ -70,7 +84,7 @@ canvas { display: block; }
 
 /* Menú / UI Principal */
 .menu-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5,8,5,0.96); z-index: 100; display: flex; align-items: center; justify-content: center; pointer-events: all; }
-.menu-panel { background: linear-gradient(135deg, #111a11 0%, #080c08 100%); border: 2px solid #333; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 0 0 4px #2ecc71; padding: 40px 50px; width: 420px; text-align: center; }
+.menu-panel { background: linear-gradient(135deg, #111a11 0%, #080c08 100%); border: 2px solid #333; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 0 0 4px #2ecc71; padding: 40px 50px; width: 420px; text-align: center; max-height: 85vh; overflow-y: auto; }
 .menu-title { font-size: 54px; color: #2ecc71; margin: 0; letter-spacing: 4px; text-shadow: 3px 3px #000; animation: breathe 3s infinite ease-in-out; }
 .menu-subtitle { color: #888; margin: 0 0 30px 0; font-size: 20px; letter-spacing: 2px; }
 .menu-btn { display: block; width: 100%; padding: 14px; margin-top: 14px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid #444; border-radius: 6px; font-family: 'Teko', sans-serif; font-size: 26px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: 0.2s; }
@@ -95,6 +109,10 @@ canvas { display: block; }
 .control-item { display: flex; justify-content: space-between; padding: 5px 0; font-size: 18px; }
 .control-key { color: #2ecc71; font-weight: bold; }
 .version-tag { color: #555; font-size: 14px; margin-top: 10px; }
+
+/* Panel de Mejoras (progresión persistente) */
+.upgrade-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(255,255,255,0.04); border: 1px solid #333; border-radius: 6px; padding: 8px 14px; margin-bottom: 8px; }
+.upgrade-name { font-size: 18px; letter-spacing: 0.5px; }
 
 /* Alerta de Evento Dinámico */
 .event-alert { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 60; display: none; align-items: center; justify-content: center; flex-direction: column; pointer-events: none; }

@@ -152,9 +152,16 @@ game.getNearbyProps = function(x, y) {
 };
 
 const WEAPON_COSTS = {
+    G18: 300, KNIFE: 150,
     REVOLVER: 500, MACHETE: 400, UZI: 600, CROSSBOW: 700, SHOTGUN: 1000, AK47: 1800, MINIGUN: 2500, SNIPER: 2200,
     MP5: 900, P90: 1300, SAWEDOFF: 1100, AA12: 2000, M4A1: 1600, FAMAS: 1500, SCAR: 2100, WINCHESTER: 1400,
     AWP: 3200, M249: 2600, RPG: 3500, FLAMETHROWER: 2400, CHAINSAW: 1700
+};
+
+// Gate de armas pesadas/avanzadas por wave (aparecen listadas pero bloqueadas antes de esa wave)
+const WEAPON_UNLOCK_WAVE = {
+    SAWEDOFF: 5, WINCHESTER: 6, FLAMETHROWER: 8, CHAINSAW: 8, SNIPER: 8,
+    SCAR: 10, AA12: 10, M249: 12, MINIGUN: 12, AWP: 15, RPG: 15
 };
 
 game.startNextWave = function() {
@@ -181,9 +188,11 @@ game._launchWave = function() {
     for(let i=0; i<count; i++) {
         let a = Math.random() * Math.PI * 2;
         let d = 800 + Math.random() * 600;
-        let type = this.wave > 6 && Math.random() > 0.85 ? 'GHOST' : (this.wave > 4 && Math.random() > 0.85 ? 'INVISIBLE' : (this.wave > 3 && Math.random() > 0.85 ? 'KAMIKAZE' : (this.wave > 3 && Math.random() > 0.8 ? 'TANK' : (this.wave > 2 && Math.random() > 0.7 ? 'RANGED' : (this.wave > 1 && Math.random() > 0.8 ? 'FAST' : 'BASIC')))));
+        let type = this.wave > 8 && Math.random() > 0.88 ? 'MORTAR' : (this.wave > 6 && Math.random() > 0.87 ? 'SHIELD' : (this.wave > 6 && Math.random() > 0.85 ? 'GHOST' : (this.wave > 4 && Math.random() > 0.85 ? 'INVISIBLE' : (this.wave > 3 && Math.random() > 0.85 ? 'KAMIKAZE' : (this.wave > 3 && Math.random() > 0.8 ? 'TANK' : (this.wave > 2 && Math.random() > 0.7 ? 'RANGED' : (this.wave > 1 && Math.random() > 0.8 ? 'FAST' : 'BASIC')))))));
+        // Variante élite en waves altas: mismo tipo básico, más stats y anillo distintivo
+        let elite = this.wave > 10 && Math.random() < 0.12 && ['BASIC', 'FAST', 'TANK', 'RANGED'].includes(type);
         let pos = this.findClearSpawn(this.player.x + Math.cos(a)*d, this.player.y + Math.sin(a)*d);
-        this.enemies.push(new Enemy(pos.x, pos.y, type));
+        this.enemies.push(new Enemy(pos.x, pos.y, type, elite));
     }
 
     // Configurar si aparecerá un jefe en base a la wave
@@ -230,6 +239,8 @@ game.buyHealth = function() {
 game.buyWeapon = function(k) {
     const w = WEAPONS_DB[k];
     const cost = WEAPON_COSTS[k];
+    const unlockWave = WEAPON_UNLOCK_WAVE[k] || 1;
+    if (this.wave < unlockWave) return;
     if(this.player.money >= cost) {
         let slot = this.player.inventory.findIndex(s => s === null);
         if(slot !== -1) {

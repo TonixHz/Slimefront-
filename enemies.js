@@ -3,7 +3,7 @@ class Projectile {
         this.x = x; this.y = y;
         this.vx = Math.cos(angle) * weapon.speed * (game.projectileSpeedMult || 1);
         this.vy = Math.sin(angle) * weapon.speed * (game.projectileSpeedMult || 1);
-        this.damage = weapon.damage;
+        this.damage = weapon.damage * (isEnemy ? 1 : (1 + (game.playerDamageMult || 0))); // bonus de progresión: +daño global del jugador
         this.radius = isEnemy ? 6 : 4;
         this.color = isEnemy ? '#ff4d4d' : weapon.color;
         this.active = true; this.isEnemy = isEnemy;
@@ -43,10 +43,11 @@ class Projectile {
 }
 
 class Enemy {
-    constructor(x, y, type) {
+    constructor(x, y, type, elite = false) {
         this.x = x; this.y = y; this.type = type;
         this.flash = 0; this.tick = Math.random() * 100;
         this.isDying = false;
+        this.elite = elite;
         
         const m = 1 + (game.wave * 0.25);
         if(type === 'TANK') { this.maxHp = 300 * m; this.speed = 1.1; this.radius = 35; this.color = '#2c3e50'; } 
@@ -55,6 +56,8 @@ class Enemy {
         else if(type === 'INVISIBLE') { this.maxHp = 60 * m; this.speed = 2.4; this.radius = 22; this.color = '#16a085'; this.invisAlpha = 0; this.onscreenVisibleTimer = 0; this.wasOnScreen = false; }
         else if(type === 'KAMIKAZE') { this.maxHp = 25 * m; this.speed = 2.4 * 1.3; this.radius = 20; this.color = '#e74c3c'; this.baseColor = this.color; this.kamikazeState = 'CHASE'; this.kamikazeTimer = 0; this.explodeScale = 1; }
         else if(type === 'GHOST') { this.maxHp = 90 * m; this.speed = 2.0; this.radius = 22; this.color = '#9b59b6'; this.ghostState = 'GHOST'; this.ghostTimer = 0; this.ghostAlpha = 0.18; this.invulnerable = true; }
+        else if(type === 'SHIELD') { this.maxHp = 130 * m; this.speed = 1.4; this.radius = 26; this.color = '#34495e'; this.shieldReduction = 0.75; }
+        else if(type === 'MORTAR') { this.maxHp = 70 * m; this.speed = 1.6; this.radius = 24; this.color = '#d35400'; this.lastShot = 0; }
         else if(type === 'BOSS') { 
             this.bossWave = game.wave;
             if (this.bossWave >= 30) {
@@ -69,6 +72,8 @@ class Enemy {
             this.dashTargetAngle = 0; this.shootCount = 0;
         } 
         else { this.maxHp = 70 * m; this.speed = 2.4; this.radius = 22; this.color = '#27ae60'; }
+        // Variante Élite (waves altas): más vida y tamaño, mismo sprite con anillo distintivo
+        if (this.elite) { this.maxHp *= 1.6; this.radius *= 1.15; this.eliteDmgMult = 1.3; }
         // Modificadores de eventos dinámicos (Mutación agranda/fortalece, etc. Ver events.js)
         this.speed *= (game.enemySpeedMult || 1);
         if (game.enemySizeMult) this.radius *= game.enemySizeMult;
@@ -79,6 +84,7 @@ class Enemy {
         this.tick += 0.2;
         let d = this._dist !== undefined ? this._dist : Math.hypot(player.x - this.x, player.y - this.y);
         let angle = Math.atan2(player.y - this.y, player.x - this.x);
+        this.facing = angle; // usado por enemigos con escudo frontal para saber qué lado bloquea
 
         if (this.type === 'KAMIKAZE') {
             if (this.kamikazeState === 'CHASE' && d < 120) { this.kamikazeState = 'ARMED'; this.kamikazeTimer = 0; }
@@ -197,7 +203,13 @@ class Enemy {
         else if(this.type === 'RANGED' && d < 450) {
             if(d < 350) { this.x -= Math.cos(angle) * this.speed; this.y -= Math.sin(angle) * this.speed; }
             if(Date.now() - this.lastShot > 1500) {
-                game.spawnProjectile(this.x, this.y, angle, {speed: 8, damage: 15 * (game.enemyDamageMult || 1), color: '#ff4d4d'}, true);
+                game.spawnProjectile(this.x, this.y, angle, {speed: 8, damage: 15 * (game.enemyDamageMult || 1) * (this.eliteDmgMult || 1), color: '#ff4d4d'}, true);
+                this.lastShot = Date.now();
+            }
+        } else if(this.type === 'MORTAR' && d < 600) {
+            if(d < 400) { this.x -= Math.cos(angle) * this.speed; this.y -= Math.sin(angle) * this.speed; }
+            if(Date.now() - this.lastShot > 2600) {
+                game.spawnProjectile(this.x, this.y, angle, {speed: 4.5, damage: 22 * (game.enemyDamageMult || 1) * (this.eliteDmgMult || 1), color: '#e67e22', explosive: true, explosionRadius: 90}, true);
                 this.lastShot = Date.now();
             }
         } else if(this.type === 'KAMIKAZE' && this.kamikazeState === 'ARMED') {
@@ -275,6 +287,13 @@ class Enemy {
             ctx.beginPath(); ctx.moveTo(-10, -this.radius); ctx.lineTo(-20, -this.radius - 15); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(10, -this.radius); ctx.lineTo(20, -this.radius - 15); ctx.stroke();
             ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(-20, -this.radius - 15, 4, 0, Math.PI*2); ctx.fill(); ctx.arc(20, -this.radius - 15, 4, 0, Math.PI*2); ctx.fill();
+        } else if (this.type === 'MORTAR') {
+            ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(0, -this.radius*0.4, this.radius*0.5, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(0, -this.radius*0.4); ctx.lineTo(0, -this.radius*1.3); ctx.stroke();
+        } else if (this.type === 'SHIELD') {
+            ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill(); ctx.stroke();
         } else {
             ctx.beginPath(); ctx.arc(0, 0, this.radius * (this.type === 'KAMIKAZE' ? this.explodeScale : 1), 0, Math.PI*2); ctx.fill(); ctx.stroke();
             if (this.type === 'GHOST' && this.ghostState === 'GHOST') {
@@ -285,7 +304,7 @@ class Enemy {
             }
         }
         
-        if (this.type === 'RANGED') {
+        if (this.type === 'RANGED' || this.type === 'MORTAR') {
             ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -5, 10, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, -5, 4, 0, Math.PI*2); ctx.fill();
         } else {
@@ -311,6 +330,21 @@ class Enemy {
             ctx.globalAlpha = typeAlpha;
         }
         ctx.restore();
+
+        // Escudo frontal direccional (bloquea/reduce daño desde el frente del enemigo)
+        if (this.type === 'SHIELD') {
+            ctx.save();
+            ctx.translate(this.x - cam.x, this.y - cam.y);
+            ctx.rotate(this.facing || 0);
+            ctx.strokeStyle = '#00d2ff'; ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.arc(0, 0, this.radius + 8, -0.9, 0.9); ctx.stroke();
+            ctx.restore();
+        }
+        // Anillo dorado para variantes élite
+        if (this.elite) {
+            ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(this.x - cam.x, this.y - cam.y, this.radius + 6, 0, Math.PI*2); ctx.stroke();
+        }
 
         if(this.hp < this.maxHp) {
             ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(this.x - cam.x - 15, this.y - cam.y - this.radius - 15, 30, 5);
