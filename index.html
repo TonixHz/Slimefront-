@@ -14,6 +14,10 @@
         <div class="event-alert-subtitle">PREPÁRATE...</div>
     </div>
     <div id="levelup-toast"></div>
+    <div id="achievement-toast" class="achievement-toast">
+        <div class="achv-toast-header"></div>
+        <div class="achv-toast-name"></div>
+    </div>
     <div id="event-badge" class="hud-box" style="display:none; position:absolute; top:20px; right:20px; border-left-color:#8e44ad; z-index:11;"></div>
     <div id="ui-layer">
         <div class="stats-top">
@@ -140,9 +144,35 @@
     </div>
 
     <div id="profile-screen" class="menu-screen" style="display:none;">
-        <div class="menu-panel">
+        <div class="menu-panel profile-panel">
             <h1 class="menu-title" style="font-size:40px;">PERFIL</h1>
-            <div id="profile-stats" style="text-align:left; margin:10px 0;"></div>
+
+            <div class="profile-tabs">
+                <button class="profile-tab-btn active" id="tab-btn-stats" onclick="game.setProfileTab('stats')">📊 ESTADÍSTICAS</button>
+                <button class="profile-tab-btn" id="tab-btn-achv" onclick="game.setProfileTab('achv')">🏆 LOGROS</button>
+            </div>
+
+            <div id="profile-tab-stats">
+                <div id="profile-stats" style="text-align:left; margin:10px 0;"></div>
+            </div>
+
+            <div id="profile-tab-achv" style="display:none;">
+                <div class="achv-summary" id="achv-summary"></div>
+                <div class="achv-filters">
+                    <input type="text" id="achv-search" placeholder="🔍 Buscar logro..." oninput="game.renderAchievements()">
+                    <select id="achv-category-filter" onchange="game.renderAchievements()">
+                        <option value="ALL">Todas las categorías</option>
+                    </select>
+                    <select id="achv-status-filter" onchange="game.renderAchievements()">
+                        <option value="ALL">Todos los estados</option>
+                        <option value="COMPLETED">Completados</option>
+                        <option value="UNCLAIMED">Por reclamar</option>
+                        <option value="LOCKED">Bloqueados</option>
+                    </select>
+                </div>
+                <div id="achv-list" class="achv-list"></div>
+            </div>
+
             <button class="menu-btn primary" onclick="game.closeProfile()">VOLVER</button>
         </div>
     </div>
@@ -158,5 +188,6 @@
     <script src="enemies.js"></script>
     <script src="mobile.js"></script>
     <script src="level.js"></script>
+    <script src="achievements.js"></script>
 </body>
 </html>

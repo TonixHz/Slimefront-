@@ -326,3 +326,44 @@ game.spawnProjectile = function(x, y, angle, weapon, isEnemy = false) {
     let p = this.projectiles.find(p => !p.active);
     if(p) p.init(x, y, angle, weapon, isEnemy);
 };
+
+/**
+ * UPDATE 7 — Indicadores de enemigos fuera de cámara.
+ * Solo se ejecuta con game.lowEnemyMode activo (menos de LOW_ENEMY_THRESHOLD enemigos vivos,
+ * ver main.js), así que la lista a recorrer siempre es chica y no pesa en oleadas normales.
+ * Reutiliza isVisible() (effects.js) para decidir si hace falta flecha, y camera.x/y para
+ * pasar la posición del enemigo a espacio de pantalla, igual que el resto del renderizado.
+ */
+const ENEMY_INDICATOR_MARGIN = 40;
+const ENEMY_INDICATOR_SIZE = 12;
+game.drawLowEnemyIndicators = function() {
+    if (!this.lowEnemyMode) return;
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const halfW = cx - ENEMY_INDICATOR_MARGIN, halfH = cy - ENEMY_INDICATOR_MARGIN;
+    this.enemies.forEach(e => {
+        if (isVisible(e.x, e.y, e.radius, this.camera)) return; // ya en pantalla, no hace falta indicador
+        const sx = e.x - this.camera.x, sy = e.y - this.camera.y; // posición del enemigo en espacio de pantalla
+        const angle = Math.atan2(sy - cy, sx - cx);
+        const tan = Math.tan(angle);
+        let ex, ey;
+        if (Math.abs(halfW * tan) <= halfH) { // el rayo corta primero el borde izquierdo/derecho
+            ex = cx + (sx > cx ? halfW : -halfW);
+            ey = cy + (sx > cx ? halfW : -halfW) * tan;
+        } else { // corta primero el borde superior/inferior
+            ey = cy + (sy > cy ? halfH : -halfH);
+            ex = cx + (sy > cy ? halfH : -halfH) / tan;
+        }
+        ctx.save();
+        ctx.translate(ex, ey);
+        ctx.rotate(angle);
+        ctx.fillStyle = e.type === 'BOSS' ? '#f1c40f' : '#e74c3c';
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(ENEMY_INDICATOR_SIZE, 0);
+        ctx.lineTo(-ENEMY_INDICATOR_SIZE * 0.7, -ENEMY_INDICATOR_SIZE * 0.6);
+        ctx.lineTo(-ENEMY_INDICATOR_SIZE * 0.7, ENEMY_INDICATOR_SIZE * 0.6);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+    });
+};

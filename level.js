@@ -24,29 +24,47 @@ const SaveSystem = {
     }
 };
 
+/**
+ * UPDATE 7 — BALANCE DE PROGRESIÓN
+ * Todo el ritmo de la experiencia vive en este único objeto: subir XP_CONFIG.curveBase
+ * o bajar los valores de perKill/waveClear alcanza para rebalancear el juego entero sin
+ * tocar la lógica de más abajo. Respecto de la Update 6 se bajó mucho la XP otorgada por
+ * kill/oleada y se subió la curva de nivel, para que los niveles altos cuesten de verdad.
+ */
+const XP_CONFIG = {
+    curveBase: 150,      // XP para pasar de nivel 1 a 2
+    curveGrowth: 1.22,   // multiplicador de dificultad por cada nivel adicional
+    perKill: { BOSS: 40, TANK: 3, RANGED: 2, FAST: 1, BASIC: 1, INVISIBLE: 2, KAMIKAZE: 1, GHOST: 2 },
+    perKillDefault: 1,
+    waveClearBase: 8,
+    waveClearPerWave: 2
+};
+
 // Curva de XP: cuánta experiencia hace falta para pasar del nivel N al N+1.
-// Creciente y exponencial suave; para ajustar la progresión alcanza con tocar esta función.
 function xpToNextLevel(level) {
-    return Math.floor(80 * Math.pow(1.16, level - 1));
+    return Math.floor(XP_CONFIG.curveBase * Math.pow(XP_CONFIG.curveGrowth, level - 1));
 }
 
 // XP otorgada por eliminar cada tipo de enemigo (mismas claves que REWARDS de dinero en player.js)
-const XP_PER_KILL = { BOSS: 250, TANK: 20, RANGED: 12, FAST: 8, BASIC: 6, INVISIBLE: 10, KAMIKAZE: 8, GHOST: 12 };
-const XP_PER_KILL_DEFAULT = 6;
+const XP_PER_KILL = XP_CONFIG.perKill;
+const XP_PER_KILL_DEFAULT = XP_CONFIG.perKillDefault;
 // XP por completar una oleada (crece con el número de oleada)
-function xpForWaveClear(wave) { return 25 + wave * 6; }
+function xpForWaveClear(wave) { return XP_CONFIG.waveClearBase + wave * XP_CONFIG.waveClearPerWave; }
 
 // Recompensas por nivel: único lugar a editar para agregar/cambiar hitos.
-// type: 'money' (se acredita directo), 'box'/'skin'/'title' (por ahora solo quedan
-// registradas en profile.unlocks, listas para que un sistema de cosméticos las use).
+// type: 'money' (se acredita directo), 'diamonds' (moneda premium, ver PlayerProfile.diamonds),
+// 'box'/'skin'/'title' (por ahora solo quedan registradas en profile.unlocks, listas para que
+// un sistema de cosméticos las use). IMPORTANTE (Update 7): los niveles NUNCA otorgan XP como
+// recompensa (el XP ya es lo que cuesta subir de nivel); solo dinero/diamantes/cosméticos.
 const LEVEL_REWARDS = {
-    5:  { type: 'money', amount: 500,  label: '+$500' },
-    10: { type: 'box',   label: 'Caja' },
-    15: { type: 'skin',  label: 'Skin' },
-    20: { type: 'money', amount: 1000, label: '+$1000' },
-    25: { type: 'box',   label: 'Caja rara' },
-    30: { type: 'title', label: 'Título' },
-    40: { type: 'skin',  label: 'Skin épica' }
+    5:  { type: 'money', amount: 300, label: '+$300' },
+    10: { type: 'diamonds', amount: 20, label: '+20 💎' },
+    15: { type: 'box', label: 'Caja' },
+    20: { type: 'money', amount: 800, label: '+$800' },
+    25: { type: 'diamonds', amount: 50, label: '+50 💎' },
+    30: { type: 'skin', label: 'Skin' },
+    40: { type: 'title', label: 'Título' },
+    50: { type: 'diamonds', amount: 100, label: '+100 💎' }
 };
 
 // Perfil persistente del jugador. Preparado para sumar más estadísticas sin migraciones:
@@ -57,7 +75,7 @@ const PlayerProfile = Object.assign({
     playTimeSec: 0, kills: 0, deaths: 0,
     shotsFired: 0, shotsHit: 0,
     weaponUsage: {}, distance: 0, bestWave: 0,
-    unlocks: []
+    unlocks: [], diamonds: 0
 }, SaveSystem.get('profile', {}));
 
 PlayerProfile.save = function() { SaveSystem.set('profile', this); }; // funciones no se serializan, JSON.stringify las ignora solo
@@ -77,10 +95,21 @@ game.grantXP = function(amount) {
     PlayerProfile.save();
 };
 
+// Moneda premium nueva (Update 7). Se acredita directo si hay partida en curso; si no,
+// como PlayerProfile.diamonds es persistente y no depende de game.player, no necesita
+// cola de "pendiente" como el dinero de logros: siempre está disponible.
+game.grantDiamonds = function(amount) {
+    amount = Math.floor(amount);
+    if (amount <= 0) return;
+    PlayerProfile.diamonds += amount;
+    PlayerProfile.save();
+};
+
 game.applyLevelReward = function(level) {
     const reward = LEVEL_REWARDS[level];
     if (!reward) return;
     if (reward.type === 'money' && game.player) game.player.money += reward.amount;
+    if (reward.type === 'diamonds') game.grantDiamonds(reward.amount);
     PlayerProfile.unlocks.push({ level, type: reward.type, label: reward.label });
 };
 
@@ -118,6 +147,7 @@ game.openProfile = function() {
     const rows = [
         ['Nivel', p.level],
         ['XP', `${p.xp} / ${xpToNextLevel(p.level)}`],
+        ['Diamantes', '💎 ' + p.diamonds],
         ['Tiempo jugado', `${mm}:${ss}`],
         ['Zombies eliminados', p.kills],
         ['Precisión', acc + '%'],
