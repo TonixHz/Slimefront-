@@ -9,9 +9,26 @@ const SFX = {
     reload: 'https://actions.google.com/sounds/v1/weapons/weapon_cock.ogg',
     coin: 'https://actions.google.com/sounds/v1/water/droplet.ogg',
     thunder: 'Sounds/SFX/Events/universfield-loud-thunder-192165.mp3',
-    explosion: 'https://actions.google.com/sounds/v1/explosions/explosion.ogg',
-    chainsaw: 'https://actions.google.com/sounds/v1/foley/chainsaw.ogg',
-    flamethrower: 'https://actions.google.com/sounds/v1/foley/fire.ogg'
+    explosion: 'Sounds/SFX/Shoots/RPGEXPLOSION.mp3',
+    chainsaw: 'Sounds/SFX/Shoots/CHAINSAW.mp3',
+    flamethrower: 'Sounds/SFX/Shoots/FLAMETHROWER.mp3',
+    // --- Sonidos de disparo por categoría de arma ---
+    shoot_PISTOLA: 'Sounds/SFX/Shoots/PISTOLA.ogg',
+    shoot_REVOLVER: 'Sounds/SFX/Shoots/REVOLVER.mp3',
+    shoot_SMG: 'Sounds/SFX/Shoots/SMG.mp3',
+    shoot_RIFLE: 'Sounds/SFX/Shoots/RIFLES.mp3',
+    shoot_ESCOPETA: 'Sounds/SFX/Shoots/ESCOPETA.wav',
+    shoot_ESCOPETA2: 'Sounds/SFX/Shoots/ESCOPETA2.mp3',
+    shoot_SNIPER: 'Sounds/SFX/Shoots/SNIPER.mp3',
+    shoot_SNIPER2: 'Sounds/SFX/Shoots/SNIPER2.mp3',
+    rpg_launch: 'Sounds/SFX/Shoots/RPGLAUNCH.mp3',
+    chainsaw_hit: 'Sounds/SFX/Shoots/CHAINSAWHIT.mp3',
+    melee1: 'Sounds/SFX/Shoots/MEELE.mp3',
+    melee2: 'Sounds/SFX/Shoots/MEELE2.mp3',
+    melee3: 'Sounds/SFX/Shoots/MEELE3.mp3',
+    // --- Sonidos de muerte ---
+    slime_death: 'Sounds/SFX/Variados/SLIMEDEATH.mp3',
+    kamikaze_explosion: 'Sounds/SFX/Variados/KAMIKAZEEXPLOSION.mp3'
 };
 
 const sfxPools = {};

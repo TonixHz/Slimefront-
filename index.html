@@ -13,6 +13,7 @@
         <div class="event-alert-title"></div>
         <div class="event-alert-subtitle">PREPÁRATE...</div>
     </div>
+    <div id="levelup-toast"></div>
     <div id="event-badge" class="hud-box" style="display:none; position:absolute; top:20px; right:20px; border-left-color:#8e44ad; z-index:11;"></div>
     <div id="ui-layer">
         <div class="stats-top">
@@ -21,6 +22,10 @@
                     <div id="health-inner"></div>
                     <span id="health-text">100 / 100</span>
                 </div>
+            </div>
+            <div class="hud-box level-box">
+                <div class="hud-text" id="level-display">NIVEL 1</div>
+                <div id="xp-container"><div id="xp-inner"></div></div>
             </div>
             <div class="hud-box stats-info">
                 <div class="hud-text" id="money-display">CASH: $0</div>
@@ -134,6 +139,14 @@
         </div>
     </div>
 
+    <div id="profile-screen" class="menu-screen" style="display:none;">
+        <div class="menu-panel">
+            <h1 class="menu-title" style="font-size:40px;">PERFIL</h1>
+            <div id="profile-stats" style="text-align:left; margin:10px 0;"></div>
+            <button class="menu-btn primary" onclick="game.closeProfile()">VOLVER</button>
+        </div>
+    </div>
+
     <canvas id="gameCanvas"></canvas>
     
     <script src="main.js"></script>
@@ -144,5 +157,6 @@
     <script src="player.js"></script>
     <script src="enemies.js"></script>
     <script src="mobile.js"></script>
+    <script src="level.js"></script>
 </body>
 </html>

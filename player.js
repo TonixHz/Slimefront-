@@ -3,44 +3,43 @@
  */
 const WEAPONS_DB = {
     // --- MELÉ ---
-    KNIFE:    { name: 'KNIFE', damage: 60, fireRate: 250, capacity: Infinity, reloadTime: 0, speed: 5, range: 65, type: 'melee', color: '#bdc3c7', shake: 2, spread: 0, cat: 'melee', desc: 'Rápido, ideal para emergencias' },
-    MACHETE:  { name: 'MACHETE', damage: 100, fireRate: 320, capacity: Infinity, reloadTime: 0, speed: 5, range: 95, type: 'melee', color: '#ecf0f1', shake: 4, spread: 0, cat: 'melee', desc: 'Alto daño y mayor alcance melé' },
-    CHAINSAW: { name: 'CHAINSAW', damage: 9, fireRate: 90, capacity: Infinity, reloadTime: 0, speed: 5, range: 65, type: 'melee', color: '#7f8c8d', shake: 3, spread: 0, fuel: 100, fuelDrain: 2.2, sfx: 'chainsaw', cat: 'melee', desc: 'DPS altísimo, consume combustible' },
+    KNIFE:    { name: 'KNIFE', damage: 60, fireRate: 250, capacity: Infinity, reloadTime: 0, speed: 5, range: 65, type: 'melee', color: '#bdc3c7', shake: 2, spread: 0 },
+    MACHETE:  { name: 'MACHETE', damage: 100, fireRate: 320, capacity: Infinity, reloadTime: 0, speed: 5, range: 95, type: 'melee', color: '#ecf0f1', shake: 4, spread: 0 },
+    CHAINSAW: { name: 'CHAINSAW', damage: 9, fireRate: 90, capacity: Infinity, reloadTime: 0, speed: 5, range: 65, type: 'melee', color: '#7f8c8d', shake: 3, spread: 0, fuel: 100, fuelDrain: 2.2, sfx: 'chainsaw' },
     // --- PISTOLAS ---
-    G18:      { name: 'G18', damage: 25, fireRate: 200, capacity: 15, reloadTime: 1000, speed: 18, type: 'range', color: '#f1c40f', shake: 3, spread: 0.05, casing: true, smoke: 1, sfx: 'shoot_G18', cat: 'pistol', desc: 'Pistola inicial equilibrada' },
-    REVOLVER: { name: 'REVOLVER', damage: 45, fireRate: 500, capacity: 6, reloadTime: 1400, speed: 22, type: 'range', color: '#95a5a6', shake: 5, spread: 0.03, casing: true, smoke: 1, sfx: 'shoot_G18', pierce: 3, cat: 'pistol', desc: 'Perfora hasta 3 enemigos' },
+    G18:      { name: 'G18', damage: 25, fireRate: 200, capacity: 15, reloadTime: 1000, speed: 18, type: 'range', color: '#f1c40f', shake: 3, spread: 0.05, casing: true, smoke: 1, sfx: 'shoot_PISTOLA' },
+    REVOLVER: { name: 'REVOLVER', damage: 45, fireRate: 500, capacity: 6, reloadTime: 1400, speed: 22, type: 'range', color: '#95a5a6', shake: 5, spread: 0.03, casing: true, smoke: 1, sfx: 'shoot_REVOLVER', pierce: 3 },
     // --- SUBFUSILES ---
-    UZI:      { name: 'UZI', damage: 15, fireRate: 70, capacity: 40, reloadTime: 1500, speed: 20, type: 'range', color: '#e67e22', shake: 4, spread: 0.15, casing: true, smoke: 2, sfx: 'shoot_G18', cat: 'smg', desc: 'Cadencia muy alta, poco precisa' },
-    MP5:      { name: 'MP5', damage: 22, fireRate: 110, capacity: 30, reloadTime: 1400, speed: 22, type: 'range', color: '#7f8c8d', shake: 2, spread: 0.025, casing: true, smoke: 1, sfx: 'shoot_G18', cat: 'smg', desc: 'Muy precisa para ser subfusil' },
-    P90:      { name: 'P90', damage: 18, fireRate: 90, capacity: 50, reloadTime: 1700, speed: 21, type: 'range', color: '#9b59b6', shake: 3, spread: 0.06, casing: true, smoke: 1, sfx: 'shoot_G18', mobility: true, cat: 'smg', desc: 'Otorga +15% de velocidad de movimiento' },
+    UZI:      { name: 'UZI', damage: 15, fireRate: 70, capacity: 40, reloadTime: 1500, speed: 20, type: 'range', color: '#e67e22', shake: 4, spread: 0.15, casing: true, smoke: 2, sfx: 'shoot_SMG' },
+    MP5:      { name: 'MP5', damage: 22, fireRate: 110, capacity: 30, reloadTime: 1400, speed: 22, type: 'range', color: '#7f8c8d', shake: 2, spread: 0.025, casing: true, smoke: 1, sfx: 'shoot_SMG' },
+    P90:      { name: 'P90', damage: 18, fireRate: 90, capacity: 50, reloadTime: 1700, speed: 21, type: 'range', color: '#9b59b6', shake: 3, spread: 0.06, casing: true, smoke: 1, sfx: 'shoot_SMG', mobility: true },
     // --- ESCOPETAS ---
-    SHOTGUN:  { name: 'SHOTGUN', damage: 20, fireRate: 900, capacity: 7, reloadTime: 2200, speed: 15, type: 'range', pellets: 8, color: '#e74c3c', shake: 15, spread: 0.22, casing: true, smoke: 5, sfx: 'shoot_SHOTGUN', knockback: 220, cat: 'shotgun', desc: 'Multi-perdigón con empuje fuerte' },
-    SAWEDOFF: { name: 'SAWEDOFF', damage: 35, fireRate: 1100, capacity: 2, reloadTime: 1800, speed: 14, type: 'range', pellets: 10, color: '#c0392b', shake: 18, spread: 0.35, casing: true, smoke: 6, sfx: 'shoot_SHOTGUN', maxRange: 260, knockback: 260, cat: 'shotgun', desc: 'Devastadora a corta distancia' },
-    AA12:     { name: 'AA12', damage: 18, fireRate: 220, capacity: 20, reloadTime: 2200, speed: 15, type: 'range', pellets: 6, color: '#e67e22', shake: 10, spread: 0.2, casing: true, smoke: 3, sfx: 'shoot_SHOTGUN', knockback: 100, cat: 'shotgun', desc: 'Escopeta automática de alta cadencia' },
+    SHOTGUN:  { name: 'SHOTGUN', damage: 20, fireRate: 900, capacity: 7, reloadTime: 2200, speed: 15, type: 'range', pellets: 8, color: '#e74c3c', shake: 15, spread: 0.22, casing: true, smoke: 5, sfx: 'shoot_ESCOPETA', knockback: 220 },
+    SAWEDOFF: { name: 'SAWEDOFF', damage: 35, fireRate: 1100, capacity: 2, reloadTime: 1800, speed: 14, type: 'range', pellets: 10, color: '#c0392b', shake: 18, spread: 0.35, casing: true, smoke: 6, sfx: 'shoot_ESCOPETA2', maxRange: 260, knockback: 260 },
+    AA12:     { name: 'AA12', damage: 18, fireRate: 220, capacity: 20, reloadTime: 2200, speed: 15, type: 'range', pellets: 6, color: '#e67e22', shake: 10, spread: 0.2, casing: true, smoke: 3, sfx: 'shoot_ESCOPETA2', knockback: 100 },
     // --- RIFLES ---
-    AK47:     { name: 'AK47', damage: 40, fireRate: 140, capacity: 30, reloadTime: 1800, speed: 24, type: 'range', color: '#27ae60', shake: 6, spread: 0.08, casing: true, smoke: 3, sfx: 'shoot_G18', cat: 'rifle', desc: 'Daño alto, todoterreno' },
-    M4A1:     { name: 'M4A1', damage: 32, fireRate: 160, capacity: 30, reloadTime: 1600, speed: 23, type: 'range', color: '#2ecc71', shake: 3, spread: 0.015, casing: true, smoke: 2, sfx: 'shoot_G18', cat: 'rifle', desc: 'Muy precisa a cadencia media' },
-    FAMAS:    { name: 'FAMAS', damage: 28, fireRate: 550, capacity: 24, reloadTime: 1700, speed: 23, type: 'range', color: '#3498db', shake: 5, spread: 0.04, casing: true, smoke: 2, sfx: 'shoot_G18', burst: 3, burstDelay: 65, cat: 'rifle', desc: 'Ráfaga automática de 3 tiros' },
-    SCAR:     { name: 'SCAR', damage: 55, fireRate: 450, capacity: 20, reloadTime: 1900, speed: 25, type: 'range', color: '#16a085', shake: 8, spread: 0.03, casing: true, smoke: 2, sfx: 'shoot_G18', cat: 'rifle', desc: 'Alto daño por disparo' },
+    AK47:     { name: 'AK47', damage: 40, fireRate: 140, capacity: 30, reloadTime: 1800, speed: 24, type: 'range', color: '#27ae60', shake: 6, spread: 0.08, casing: true, smoke: 3, sfx: 'shoot_RIFLE' },
+    M4A1:     { name: 'M4A1', damage: 32, fireRate: 160, capacity: 30, reloadTime: 1600, speed: 23, type: 'range', color: '#2ecc71', shake: 3, spread: 0.015, casing: true, smoke: 2, sfx: 'shoot_RIFLE' },
+    FAMAS:    { name: 'FAMAS', damage: 28, fireRate: 550, capacity: 24, reloadTime: 1700, speed: 23, type: 'range', color: '#3498db', shake: 5, spread: 0.04, casing: true, smoke: 2, sfx: 'shoot_RIFLE', burst: 3, burstDelay: 65 },
+    SCAR:     { name: 'SCAR', damage: 55, fireRate: 450, capacity: 20, reloadTime: 1900, speed: 25, type: 'range', color: '#16a085', shake: 8, spread: 0.03, casing: true, smoke: 2, sfx: 'shoot_RIFLE' },
     // --- PRECISIÓN ---
-    WINCHESTER: { name: 'WINCHESTER', damage: 130, fireRate: 900, capacity: 8, reloadTime: 450, speed: 30, type: 'range', color: '#8e5a2d', shake: 10, spread: 0.01, casing: true, smoke: 2, sfx: 'shoot_G18', singleReload: true, cat: 'sniper', desc: 'Recarga bala por bala, interrumpible' },
-    AWP:      { name: 'AWP', damage: 260, fireRate: 1700, capacity: 5, reloadTime: 2600, speed: 38, type: 'range', color: '#34495e', shake: 22, spread: 0, casing: true, smoke: 2, sfx: 'shoot_G18', pierce: 4, cat: 'sniper', desc: 'Daño masivo, perfora en línea' },
-    SNIPER:   { name: 'SNIPER', damage: 220, fireRate: 1500, capacity: 5, reloadTime: 2500, speed: 35, type: 'range', color: '#34495e', shake: 20, spread: 0, casing: true, smoke: 2, sfx: 'shoot_G18', cat: 'sniper', desc: 'Precisión absoluta a larga distancia' },
+    WINCHESTER: { name: 'WINCHESTER', damage: 130, fireRate: 900, capacity: 8, reloadTime: 450, speed: 30, type: 'range', color: '#8e5a2d', shake: 10, spread: 0.01, casing: true, smoke: 2, sfx: 'shoot_SNIPER2', singleReload: true },
+    AWP:      { name: 'AWP', damage: 260, fireRate: 1700, capacity: 5, reloadTime: 2600, speed: 38, type: 'range', color: '#34495e', shake: 22, spread: 0, casing: true, smoke: 2, sfx: 'shoot_SNIPER2', pierce: 4 },
+    SNIPER:   { name: 'SNIPER', damage: 220, fireRate: 1500, capacity: 5, reloadTime: 2500, speed: 35, type: 'range', color: '#34495e', shake: 20, spread: 0, casing: true, smoke: 2, sfx: 'shoot_SNIPER' },
     // --- PESADAS ---
-    M249:     { name: 'M249', damage: 24, fireRate: 90, capacity: 150, reloadTime: 4000, speed: 22, type: 'range', color: '#556b2f', shake: 5, spread: 0.12, casing: true, smoke: 3, sfx: 'shoot_G18', cat: 'heavy', desc: 'Cargador enorme para sostener fuego' },
-    MINIGUN:  { name: 'MINIGUN', damage: 20, fireRate: 50, capacity: 100, reloadTime: 3000, speed: 22, type: 'range', color: '#c0392b', shake: 8, spread: 0.2, casing: true, smoke: 3, sfx: 'shoot_G18', spinup: true, cat: 'heavy', desc: 'Se acelera cuanto más disparás' },
+    M249:     { name: 'M249', damage: 24, fireRate: 90, capacity: 150, reloadTime: 4000, speed: 22, type: 'range', color: '#556b2f', shake: 5, spread: 0.12, casing: true, smoke: 3, sfx: 'shoot_G18' },
+    MINIGUN:  { name: 'MINIGUN', damage: 20, fireRate: 50, capacity: 100, reloadTime: 3000, speed: 22, type: 'range', color: '#c0392b', shake: 8, spread: 0.2, casing: true, smoke: 3, sfx: 'shoot_G18', spinup: true },
     // --- ESPECIALES ---
-    RPG:      { name: 'RPG', damage: 85, fireRate: 1400, capacity: 1, reloadTime: 2400, speed: 16, type: 'range', color: '#e67e22', shake: 25, spread: 0, casing: false, smoke: 4, sfx: 'shoot_SHOTGUN', explosive: true, explosionRadius: 140, cat: 'special', desc: 'Explosión en área al impactar' },
-    FLAMETHROWER: { name: 'FLAMETHROWER', damage: 4, fireRate: 45, capacity: 120, reloadTime: 2200, speed: 12, type: 'range', color: '#ff8800', shake: 2, spread: 0.15, casing: false, smoke: 2, sfx: 'flamethrower', maxRange: 260, burn: true, pierce: 2, cat: 'special', desc: 'Aplica quemadura por 3 segundos' },
-    CROSSBOW: { name: 'CROSSBOW', damage: 90, fireRate: 700, capacity: 1, reloadTime: 1200, speed: 26, type: 'range', color: '#16a085', shake: 4, spread: 0, casing: false, smoke: 0, sfx: 'shoot_G18', cat: 'special', desc: 'Silenciosa, daño alto sin munición sonora' }
+    RPG:      { name: 'RPG', damage: 85, fireRate: 1400, capacity: 1, reloadTime: 2400, speed: 16, type: 'range', color: '#e67e22', shake: 25, spread: 0, casing: false, smoke: 4, sfx: 'rpg_launch', explosive: true, explosionRadius: 140 },
+    FLAMETHROWER: { name: 'FLAMETHROWER', damage: 4, fireRate: 45, capacity: 120, reloadTime: 2200, speed: 12, type: 'range', color: '#ff8800', shake: 2, spread: 0.15, casing: false, smoke: 2, sfx: 'flamethrower', maxRange: 260, burn: true, pierce: 2 },
+    CROSSBOW: { name: 'CROSSBOW', damage: 90, fireRate: 700, capacity: 1, reloadTime: 1200, speed: 26, type: 'range', color: '#16a085', shake: 4, spread: 0, casing: false, smoke: 0, sfx: 'shoot_G18' }
 };
 
 class Player {
     constructor() {
         this.x = MAP_SIZE / 2; this.y = MAP_SIZE / 2;
-        this.radius = 24;
-        this.maxHp = 100 + Progression.getBonus('hp'); this.hp = this.maxHp;
-        this.money = Progression.getBonus('money');
+        this.radius = 24; this.hp = 100; this.maxHp = 100;
+        this.money = 0;
         this.inventory = [ { ...WEAPONS_DB.G18, ammo: 15 }, { ...WEAPONS_DB.KNIFE }, null, null, null ];
         this.activeSlot = 0; this.isReloading = false;
         this.tick = 0; this.recoilOffset = 0;
@@ -50,7 +49,7 @@ class Player {
         this.burstBusy = false; // FAMAS: evita reiniciar una ráfaga en curso
 
         // Dash y Stamina
-        this.maxStamina = 100 + Progression.getBonus('stamina'); this.stamina = this.maxStamina;
+        this.stamina = 100; this.maxStamina = 100;
         this.isDashing = false; this.dashTimer = 0; this.dashCooldownTimer = 0;
         this.dashDirX = 0; this.dashDirY = 0;
         
@@ -298,10 +297,12 @@ class Player {
                     MP5: 26, P90: 29, SAWEDOFF: 20, AA12: 25, M4A1: 42, FAMAS: 32, SCAR: 24, WINCHESTER: 45,
                     AWP: 50, M249: 30, RPG: 66, FLAMETHROWER: 35, CHAINSAW: 28 };
                 let mX = MUZZLE_X[this.weapon.name] ?? 25;
-                ctx.arc(mX, 0, 12 + Math.random()*15, 0, Math.PI*2);
+                // El tamaño del fogonazo escala con el retroceso/potencia del arma (pistolas chicas, RPG/AWP enormes)
+                let flashBase = 6 + (this.weapon.shake || 3) * 0.8;
+                ctx.arc(mX, 0, flashBase + Math.random()*flashBase*0.6, 0, Math.PI*2);
                 ctx.fill();
                 ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(mX, 0, 6 + Math.random()*5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(mX, 0, flashBase*0.4 + Math.random()*flashBase*0.3, 0, Math.PI*2); ctx.fill();
                 ctx.globalAlpha = 1;
             }
         }
@@ -331,18 +332,17 @@ game.reload = function() {
     if(!w || w.type === 'melee' || this.player.isReloading || w.ammo === w.capacity) return;
     this.player.isReloading = true;
     playSFX('reload');
-    const effReload = w.reloadTime * (1 - (this.reloadReductUp || 0)); // bonus de progresión: -X% tiempo de recarga
     if (w.singleReload) { // WINCHESTER: carga bala por bala, se puede interrumpir cambiando de arma
         const step = () => {
             if (this.player.weapon !== w) { this.player.isReloading = false; return; } // cambiaron de arma
             w.ammo = Math.min(w.capacity, w.ammo + 1);
             playSFX('reload', 0.25);
-            if (w.ammo < w.capacity) setTimeout(step, effReload);
+            if (w.ammo < w.capacity) setTimeout(step, w.reloadTime);
             else this.player.isReloading = false;
         };
-        setTimeout(step, effReload);
+        setTimeout(step, w.reloadTime);
     } else {
-        setTimeout(() => { w.ammo = w.capacity; this.player.isReloading = false; }, effReload);
+        setTimeout(() => { w.ammo = w.capacity; this.player.isReloading = false; }, w.reloadTime);
     }
 };
 
@@ -356,13 +356,18 @@ game.shoot = function() {
     if (Date.now() - this.lastShot < effFireRate) return;
 
     if(w.type === 'melee') {
+        let hitAny = false;
         this.enemies.forEach(e => {
-            if(!e.invulnerable && Math.hypot(this.player.x - e.x, this.player.y - e.y) < w.range + e.radius) this.hitEnemy(e, w.damage * (1 + (this.playerDamageMult || 0)), this.player.x, this.player.y);
+            if(!e.invulnerable && Math.hypot(this.player.x - e.x, this.player.y - e.y) < w.range + e.radius) { this.hitEnemy(e, w.damage); hitAny = true; }
         });
         if (w.fuel !== undefined) { // CHAINSAW: consume combustible mientras corta
             this.player.chainsawFuel = Math.max(0, this.player.chainsawFuel - w.fuelDrain);
             this.player.chainsawActive = true;
-            playSFX(w.sfx, 0.2, 0.05);
+            playSFX(w.sfx, 0.2, 0.05); // motor continuo
+            if (hitAny) playSFX('chainsaw_hit', 0.3, 0.15); // golpe de la cadena al conectar
+        } else if (hitAny) { // KNIFE/MACHETE: elige un sonido de golpe al azar entre 3
+            const meleeSounds = ['melee1', 'melee2', 'melee3'];
+            playSFX(meleeSounds[Math.floor(Math.random() * meleeSounds.length)], 0.35, 0.15);
         }
         this.lastShot = Date.now();
         return;
@@ -374,7 +379,7 @@ game.shoot = function() {
     const fireOnce = () => {
         playSFX(w.sfx, 0.4, 0.2);
         this.player.recoilOffset = w.shake * 2;
-        this.player.muzzleFlash = 3;
+        this.player.muzzleFlash = Math.min(8, 3 + Math.floor(w.shake / 6)); // armas pesadas mantienen el flash más tiempo
         this.camera.shake = w.shake;
 
         let angle = Math.atan2(this.mouse.y - (this.player.y - this.camera.y), this.mouse.x - (this.player.x - this.camera.x));
@@ -382,6 +387,11 @@ game.shoot = function() {
         if(w.casing) this.spawnCasing(this.player.x, this.player.y, angle);
         if(w.smoke) {
             for(let i=0; i<w.smoke; i++) this.spawnParticle(this.player.x + Math.cos(angle)*30, this.player.y + Math.sin(angle)*30, w.name === 'FLAMETHROWER' ? '#ff8800' : '#bdc3c7', 2, 3, 'smoke');
+        }
+        // Chispas de boca de fuego: escalan con la potencia/retroceso del arma para reforzar la sensación de poder
+        const powerParticles = Math.min(6, Math.ceil(w.shake / 5));
+        if (powerParticles > 0) {
+            for(let i=0; i<Math.ceil(powerParticles*game.particleScale); i++) this.spawnParticle(this.player.x + Math.cos(angle)*30, this.player.y + Math.sin(angle)*30, '#fff8dc', 3, 2, 'normal');
         }
 
         if(w.pellets) {
@@ -409,17 +419,18 @@ game.shoot = function() {
     this.lastShot = Date.now();
 };
 
-game.hitEnemy = function(e, dmg, srcX, srcY) {
-    // Enemigos con escudo frontal: reducen el daño recibido desde su frente (no aplica a explosiones/DOT sin origen)
-    if (e.type === 'SHIELD' && srcX !== undefined && e.facing !== undefined) {
-        const angToSrc = Math.atan2(srcY - e.y, srcX - e.x);
-        let diff = Math.atan2(Math.sin(angToSrc - e.facing), Math.cos(angToSrc - e.facing));
-        if (Math.abs(diff) < 0.9) dmg *= (1 - e.shieldReduction);
-    }
+game.hitEnemy = function(e, dmg) {
     e.hp -= dmg;
-    e.flash = 4;
+    // El flash y las partículas de impacto escalan con el daño: un golpe de AWP se siente muy distinto a un knife
+    e.flash = Math.min(10, 4 + dmg * 0.04);
     playSFX('hit', 0.2);
-    for(let i=0; i<Math.ceil(8*this.particleScale); i++) this.spawnParticle(e.x, e.y, e.color, 4, 3, 'normal'); 
+    const impactParticles = Math.min(18, Math.ceil((8 + dmg * 0.15) * this.particleScale));
+    for(let i=0; i<impactParticles; i++) this.spawnParticle(e.x, e.y, e.color, 4, 3, 'normal');
+    // Golpes fuertes suman chispas blancas y un pequeño golpe de cámara extra
+    if (dmg >= 50) {
+        for(let i=0; i<Math.ceil(4*this.particleScale); i++) this.spawnParticle(e.x, e.y, '#ffffff', 5, 2, 'normal');
+        this.camera.shake = Math.max(this.camera.shake, 3);
+    }
     
     let t = this.floatingTexts.find(t => !t.active);
     if(!t) { t = new FloatingText(); this.floatingTexts.push(t); }
@@ -427,17 +438,34 @@ game.hitEnemy = function(e, dmg, srcX, srcY) {
 
     if(e.hp <= 0 && !e.isDying) {
         e.isDying = true;
-        playSFX('death', 0.5);
-        const REWARDS = { BOSS: 1000, TANK: 80, RANGED: 45, FAST: 25, BASIC: 30, INVISIBLE: 35, KAMIKAZE: 20, GHOST: 45, SHIELD: 60, MORTAR: 55 };
-        let reward = Math.floor((REWARDS[e.type] ?? 30) * (game.moneyMult || 1) * (e.elite ? 1.8 : 1));
+        if (e.type === 'KAMIKAZE' && e.explodedDeath) playSFX('kamikaze_explosion', 0.5);
+        else playSFX('slime_death', 0.5);
+        const REWARDS = { BOSS: 1000, TANK: 80, RANGED: 45, FAST: 25, BASIC: 30, INVISIBLE: 35, KAMIKAZE: 20, GHOST: 45 };
+        let reward = Math.floor((REWARDS[e.type] ?? 30) * (game.moneyMult || 1));
         this.player.money += reward;
 
         let ft = this.floatingTexts.find(ft => !ft.active);
         if(!ft) { ft = new FloatingText(); this.floatingTexts.push(ft); }
         ft.init(e.x, e.y - 20, `+$${reward}`, '#f1c40f', 24);
 
-        for(let n=0; n<Math.ceil(20*this.particleScale); n++) this.spawnParticle(e.x, e.y, e.color, 6, 4, 'normal');
-        this.spawnTrail(e.x, e.y, e.radius * 1.5); 
+        // Intensidad de la muerte según el tipo: normal, pesada (Tank/Kamikaze) o espectacular (Boss)
+        let deathParticles = 20, deathShake = 6, deathTrailScale = 1.5;
+        if (e.type === 'TANK') { deathParticles = 34; deathShake = 16; deathTrailScale = 2.2; }
+        else if (e.type === 'KAMIKAZE') { deathParticles = 30; deathShake = 14; deathTrailScale = 1.8; }
+        else if (e.type === 'BOSS') { deathParticles = 70; deathShake = 30; deathTrailScale = 3; }
+
+        for(let n=0; n<Math.ceil(deathParticles*this.particleScale); n++) this.spawnParticle(e.x, e.y, e.color, 6, 4, 'normal');
+        // Pequeño flash blanco de muerte (mucho más grande y en varias oleadas para el Boss)
+        const flashWaves = e.type === 'BOSS' ? 3 : 1;
+        for(let fw=0; fw<flashWaves; fw++) {
+            for(let i=0; i<Math.ceil((e.type === 'BOSS' ? 16 : 6)*this.particleScale); i++) this.spawnParticle(e.x, e.y, '#ffffff', e.type === 'BOSS' ? 9 : 5, e.type === 'BOSS' ? 5 : 3, 'normal');
+        }
+        if (e.type === 'BOSS') {
+            // Ola extra de humo para un final claramente superior al resto
+            for(let i=0; i<Math.ceil(20*this.particleScale); i++) this.spawnParticle(e.x, e.y, '#555', 4, 8, 'smoke');
+        }
+        this.spawnTrail(e.x, e.y, e.radius * deathTrailScale);
+        this.camera.shake = Math.max(this.camera.shake, deathShake);
 
         const idx = this.enemies.indexOf(e);
         if(idx !== -1) this.enemies.splice(idx, 1);
