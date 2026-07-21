@@ -3,6 +3,7 @@ const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 const MAP_SIZE = 4000;
+const LOW_ENEMY_THRESHOLD = 20;
 
 const game = {
     player: null,
@@ -13,7 +14,7 @@ const game = {
     wave: 1, isWaveActive: false, paused: false,
     started: false, shadowsEnabled: true,
     keys: {}, mouse: { x: 0, y: 0, down: false },
-    lastShot: 0, particleScale: 1,
+    lastShot: 0, particleScale: 1, lowEnemyMode: false,
 
     init() {
         this.started = true;
@@ -93,7 +94,10 @@ const game = {
         }
         // Escala global de partículas: baja automáticamente con muchas entidades activas para sostener el framerate
         this.particleScale = this.enemies.length > 150 ? 0.35 : (this.enemies.length > 80 ? 0.6 : 1);
-        
+        // Modo "cacería final": quedan pocos enemigos, se desactiva el sueño de IA y el
+// frame-skipping para que ninguno quede ignorando al jugador lejos del mapa.
+	this.lowEnemyMode = this.enemies.length > 0 && this.enemies.length < LOW_ENEMY_THRESHOLD;
+
         // Terreno Procedural Optimizado
         ctx.fillStyle = terrainPattern;
         ctx.save();
@@ -175,19 +179,21 @@ const game = {
         });
 
         // Enemigos y Jugador
-        this.enemies.forEach((e, i) => {
-            if(!this.paused && doStep) {
-                if (e._dist > 1500) {
-                    // IA dormida: muy lejos del jugador, no ejecuta lógica hasta que vuelva a acercarse
-                } else if (e._dist > 700 && e.type !== 'BOSS' && (this._frameCount + i) % 2 === 0) {
-                    // Frame skipping: enemigos a media distancia reparten su update entre frames
-                } else {
-                    e.update(this.player);
-                }
-            }
-            e.draw(this.camera);
-        });
-        this.player.draw(this.camera, this.mouse);
+this.enemies.forEach((e, i) => {
+    if(!this.paused && doStep) {
+        if (this.lowEnemyMode) {
+            // Cacería final: sin sueño de IA ni frame-skipping, persiguen desde cualquier punto del mapa
+            e.update(this.player);
+        } else if (e._dist > 1500) {
+            // IA dormida: muy lejos del jugador, no ejecuta lógica hasta que vuelva a acercarse
+        } else if (e._dist > 700 && e.type !== 'BOSS' && (this._frameCount + i) % 2 === 0) {
+            // Frame skipping: enemigos a media distancia reparten su update entre frames
+        } else {
+            e.update(this.player);
+        }
+    }
+    e.draw(this.camera);
+});
         
         // Partículas y Textos
         this.particles.forEach(p => { if(p.active) { p.update(); p.draw(this.camera); } });
@@ -197,7 +203,7 @@ const game = {
         ctx.fillStyle = 'rgba(230, 126, 34, 0.08)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         EventManager.drawOverlay();
-
+	this.drawLowEnemyIndicators(); // flechas hacia los últimos enemigos fuera de cámara (ver enemies.js)
         // UI Updates
         const mobileControls = document.getElementById('mobile-controls');
         if(mobileControls) mobileControls.style.pointerEvents = this.paused ? 'none' : 'auto';
