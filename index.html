@@ -13,11 +13,6 @@
         <div class="event-alert-title"></div>
         <div class="event-alert-subtitle">PREPÁRATE...</div>
     </div>
-    <div id="levelup-toast"></div>
-    <div id="achievement-toast" class="achievement-toast">
-        <div class="achv-toast-header"></div>
-        <div class="achv-toast-name"></div>
-    </div>
     <div id="event-badge" class="hud-box" style="display:none; position:absolute; top:20px; right:20px; border-left-color:#8e44ad; z-index:11;"></div>
     <div id="ui-layer">
         <div class="stats-top">
@@ -26,10 +21,6 @@
                     <div id="health-inner"></div>
                     <span id="health-text">100 / 100</span>
                 </div>
-            </div>
-            <div class="hud-box level-box">
-                <div class="hud-text" id="level-display">NIVEL 1</div>
-                <div id="xp-container"><div id="xp-inner"></div></div>
             </div>
             <div class="hud-box stats-info">
                 <div class="hud-text" id="money-display">CASH: $0</div>
@@ -89,7 +80,6 @@
                 <div class="hud-text">OLEADAS SOBREVIVIDAS: <span id="go-waves">0</span></div>
                 <div class="hud-text">TIEMPO SOBREVIVIDO: <span id="go-time">00:00</span></div>
                 <div class="hud-text" id="go-record" style="color:#f1c40f;"></div>
-                <div class="hud-text" id="go-points" style="color:#8e44ad;"></div>
             </div>
             <button class="menu-btn primary" onclick="game.goToMainMenu()">VOLVER AL MENÚ</button>
         </div>
@@ -119,61 +109,7 @@
                 <input type="range" min="0" max="100" id="music-vol-slider" oninput="game.setMusicVolume(this.value)">
             </div>
 
-            <div class="settings-group">
-                <label class="settings-label">Tamaño de HUD</label>
-                <div class="settings-options" id="hud-size-options">
-                    <button class="option-btn" data-value="1" onclick="game.setHudSize(1)">CHICO</button>
-                    <button class="option-btn" data-value="2" onclick="game.setHudSize(2)">MEDIO</button>
-                    <button class="option-btn" data-value="3" onclick="game.setHudSize(3)">GRANDE</button>
-                </div>
-                <input type="range" min="1" max="3" id="hud-size-slider" style="display:none" oninput="game.setHudSize(this.value)">
-                <span id="hud-size-value" style="display:none"></span>
-            </div>
-
             <button class="menu-btn primary" onclick="game.closeSettings()">VOLVER</button>
-        </div>
-    </div>
-
-    <div id="upgrades-screen" class="menu-screen" style="display:none;">
-        <div class="menu-panel">
-            <h1 class="menu-title">MEJORAS</h1>
-            <p class="menu-subtitle">PUNTOS: <span id="upgrade-points">0</span></p>
-            <div id="upgrades-list" style="text-align:left; margin:10px 0;"></div>
-            <button class="menu-btn primary" onclick="game.closeUpgrades()">VOLVER</button>
-        </div>
-    </div>
-
-    <div id="profile-screen" class="menu-screen" style="display:none;">
-        <div class="menu-panel profile-panel">
-            <h1 class="menu-title" style="font-size:40px;">PERFIL</h1>
-
-            <div class="profile-tabs">
-                <button class="profile-tab-btn active" id="tab-btn-stats" onclick="game.setProfileTab('stats')">📊 ESTADÍSTICAS</button>
-                <button class="profile-tab-btn" id="tab-btn-achv" onclick="game.setProfileTab('achv')">🏆 LOGROS</button>
-            </div>
-
-            <div id="profile-tab-stats">
-                <div id="profile-stats" style="text-align:left; margin:10px 0;"></div>
-            </div>
-
-            <div id="profile-tab-achv" style="display:none;">
-                <div class="achv-summary" id="achv-summary"></div>
-                <div class="achv-filters">
-                    <input type="text" id="achv-search" placeholder="🔍 Buscar logro..." oninput="game.renderAchievements()">
-                    <select id="achv-category-filter" onchange="game.renderAchievements()">
-                        <option value="ALL">Todas las categorías</option>
-                    </select>
-                    <select id="achv-status-filter" onchange="game.renderAchievements()">
-                        <option value="ALL">Todos los estados</option>
-                        <option value="COMPLETED">Completados</option>
-                        <option value="UNCLAIMED">Por reclamar</option>
-                        <option value="LOCKED">Bloqueados</option>
-                    </select>
-                </div>
-                <div id="achv-list" class="achv-list"></div>
-            </div>
-
-            <button class="menu-btn primary" onclick="game.closeProfile()">VOLVER</button>
         </div>
     </div>
 
@@ -183,11 +119,10 @@
     <script src="ui.js"></script>
     <script src="effects.js"></script>
     <script src="events.js"></script>
+    <script src="weapons.js"></script>
     <script src="world.js"></script>
     <script src="player.js"></script>
     <script src="enemies.js"></script>
     <script src="mobile.js"></script>
-    <script src="level.js"></script>
-    <script src="achievements.js"></script>
 </body>
 </html>

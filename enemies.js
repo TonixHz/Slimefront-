@@ -92,10 +92,8 @@ class Enemy {
                     game.enemies.forEach(other => {
                         if (other !== this && !other.invulnerable && Math.hypot(other.x - this.x, other.y - this.y) < blastRadius) game.hitEnemy(other, 40);
                     });
-                    game.camera.shake = 18; // explosión más grande y contundente
-                    for(let i=0; i<Math.ceil(32*game.particleScale); i++) game.spawnParticle(this.x, this.y, '#e74c3c', 7, 5, 'normal');
-                    for(let i=0; i<Math.ceil(8*game.particleScale); i++) game.spawnParticle(this.x, this.y, '#555', 4, 7, 'smoke');
-                    this.explodedDeath = true; // marca que su propia muerte fue por explosión (sonido específico)
+                    game.camera.shake = 12;
+                    for(let i=0; i<Math.ceil(20*game.particleScale); i++) game.spawnParticle(this.x, this.y, '#e74c3c', 6, 4, 'normal');
                     game.hitEnemy(this, this.hp); // se autodestruye reutilizando la lógica de muerte existente
                 }
             }
@@ -133,7 +131,7 @@ class Enemy {
                 this.x += Math.cos(angle) * this.speed;
                 this.y += Math.sin(angle) * this.speed;
                 
-                let limit = this.bossWave >= 30 ? 50 : (this.bossWave >= 15 ? 70 : 45); // primer boss: mucho menos deambular antes de atacar
+                let limit = this.bossWave >= 30 ? 50 : (this.bossWave >= 15 ? 70 : 100);
                 if (this.stateTimer > limit) {
                     this.stateTimer = 0;
                     if (this.bossWave >= 15 && Math.random() < 0.5) {
@@ -149,12 +147,12 @@ class Enemy {
                 this.y += (Math.random() - 0.5) * 4;
                 this.color = this.stateTimer % 8 < 4 ? '#fff' : '#c0392b';
                 
-                let teleTime = this.bossWave >= 30 ? 30 : (this.bossWave >= 15 ? 50 : 25); // primer boss: telegraph más corto, dashea más seguido
+                let teleTime = this.bossWave >= 30 ? 30 : 50;
                 if (this.stateTimer > teleTime) {
                     this.state = 'DASH';
                     this.stateTimer = 0;
                     this.dashTargetAngle = angle;
-                    this.dashSpeed = this.bossWave >= 30 ? 25 : (this.bossWave >= 15 ? 18 : 24); // primer boss: dash mucho más rápido
+                    this.dashSpeed = this.bossWave >= 30 ? 25 : 18; // Dash buffeado si es 30+
                     this.color = '#c0392b';
                 }
             } else if (this.state === 'DASH') {
@@ -163,8 +161,7 @@ class Enemy {
                 
                 if (Math.random() > 0.4) game.spawnTrail(this.x, this.y, this.radius);
                 
-                let dashRecovery = this.bossWave >= 15 ? 25 : 12; // primer boss: recupera antes y vuelve a presionar
-                if (this.stateTimer > dashRecovery) {
+                if (this.stateTimer > 25) {
                     this.state = 'IDLE';
                     this.stateTimer = 0;
                 }
@@ -325,45 +322,4 @@ class Enemy {
 game.spawnProjectile = function(x, y, angle, weapon, isEnemy = false) {
     let p = this.projectiles.find(p => !p.active);
     if(p) p.init(x, y, angle, weapon, isEnemy);
-};
-
-/**
- * UPDATE 7 — Indicadores de enemigos fuera de cámara.
- * Solo se ejecuta con game.lowEnemyMode activo (menos de LOW_ENEMY_THRESHOLD enemigos vivos,
- * ver main.js), así que la lista a recorrer siempre es chica y no pesa en oleadas normales.
- * Reutiliza isVisible() (effects.js) para decidir si hace falta flecha, y camera.x/y para
- * pasar la posición del enemigo a espacio de pantalla, igual que el resto del renderizado.
- */
-const ENEMY_INDICATOR_MARGIN = 40;
-const ENEMY_INDICATOR_SIZE = 12;
-game.drawLowEnemyIndicators = function() {
-    if (!this.lowEnemyMode) return;
-    const cx = canvas.width / 2, cy = canvas.height / 2;
-    const halfW = cx - ENEMY_INDICATOR_MARGIN, halfH = cy - ENEMY_INDICATOR_MARGIN;
-    this.enemies.forEach(e => {
-        if (isVisible(e.x, e.y, e.radius, this.camera)) return; // ya en pantalla, no hace falta indicador
-        const sx = e.x - this.camera.x, sy = e.y - this.camera.y; // posición del enemigo en espacio de pantalla
-        const angle = Math.atan2(sy - cy, sx - cx);
-        const tan = Math.tan(angle);
-        let ex, ey;
-        if (Math.abs(halfW * tan) <= halfH) { // el rayo corta primero el borde izquierdo/derecho
-            ex = cx + (sx > cx ? halfW : -halfW);
-            ey = cy + (sx > cx ? halfW : -halfW) * tan;
-        } else { // corta primero el borde superior/inferior
-            ey = cy + (sy > cy ? halfH : -halfH);
-            ex = cx + (sy > cy ? halfH : -halfH) / tan;
-        }
-        ctx.save();
-        ctx.translate(ex, ey);
-        ctx.rotate(angle);
-        ctx.fillStyle = e.type === 'BOSS' ? '#f1c40f' : '#e74c3c';
-        ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(ENEMY_INDICATOR_SIZE, 0);
-        ctx.lineTo(-ENEMY_INDICATOR_SIZE * 0.7, -ENEMY_INDICATOR_SIZE * 0.6);
-        ctx.lineTo(-ENEMY_INDICATOR_SIZE * 0.7, ENEMY_INDICATOR_SIZE * 0.6);
-        ctx.closePath();
-        ctx.fill(); ctx.stroke();
-        ctx.restore();
-    });
 };

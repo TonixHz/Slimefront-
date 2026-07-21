@@ -4,14 +4,6 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 const MAP_SIZE = 4000;
 
-/**
- * UPDATE 7 — IA de "cacería final" + indicadores de enemigos fuera de cámara.
- * Umbral configurable: por debajo de esta cantidad de enemigos vivos, se desactivan el
- * sueño de IA y el frame-skipping (ver game.loop) para que nadie quede vagando lejos del
- * mapa, y se dibujan flechas en el borde de pantalla apuntando a los que faltan matar.
- */
-const LOW_ENEMY_THRESHOLD = 20;
-
 const game = {
     player: null,
     enemies: [], props: [], floatingTexts: [],
@@ -21,12 +13,10 @@ const game = {
     wave: 1, isWaveActive: false, paused: false,
     started: false, shadowsEnabled: true,
     keys: {}, mouse: { x: 0, y: 0, down: false },
-    lastShot: 0, particleScale: 1, lowEnemyMode: false,
+    lastShot: 0, particleScale: 1,
 
     init() {
         this.started = true;
-        this.playerDamageMult = Progression.getBonus('damage'); // bonus de progresión: +X% daño global del jugador
-        this.reloadReductUp = Progression.getBonus('reload'); // bonus de progresión: -X% tiempo de recarga
         this.player = new Player();
         this.camera = new Camera();
         const gfx = GRAPHICS_PRESETS[Settings.graphics] || GRAPHICS_PRESETS.PRO;
@@ -103,9 +93,6 @@ const game = {
         }
         // Escala global de partículas: baja automáticamente con muchas entidades activas para sostener el framerate
         this.particleScale = this.enemies.length > 150 ? 0.35 : (this.enemies.length > 80 ? 0.6 : 1);
-        // Modo "cacería final": quedan pocos enemigos, se desactiva el sueño de IA y el
-        // frame-skipping (ver más abajo) para que ninguno quede ignorando al jugador lejos del mapa.
-        this.lowEnemyMode = this.enemies.length > 0 && this.enemies.length < LOW_ENEMY_THRESHOLD;
         
         // Terreno Procedural Optimizado
         ctx.fillStyle = terrainPattern;
@@ -165,15 +152,13 @@ const game = {
 
             if(p.isEnemy) {
                 if(Math.hypot(p.x - this.player.x, p.y - this.player.y) < this.player.radius) {
-                    if (p.explosive) { this.explode(p.x, p.y, p.explosionRadius, p.damage); }
-                    else { this.player.takeDamage(p.damage); }
-                    p.active = false;
+                    this.player.takeDamage(p.damage); p.active = false;
                 }
             } else {
                 for(let j = this.enemies.length - 1; j >= 0; j--) {
                     let e = this.enemies[j];
                     if(!e.invulnerable && !p.hitEnemies.has(e) && Math.hypot(p.x - e.x, p.y - e.y) < e.radius) {
-                        this.hitEnemy(e, p.damage, p.x, p.y); // la lógica de muerte/recompensa vive acá ahora
+                        this.hitEnemy(e, p.damage); // la lógica de muerte/recompensa vive acá ahora
                         p.hitEnemies.add(e);
                         if (p.knockback) { // Shotgun: empuja al enemigo lejos del impacto
                             let ka = Math.atan2(e.y - p.y, e.x - p.x);
@@ -192,10 +177,7 @@ const game = {
         // Enemigos y Jugador
         this.enemies.forEach((e, i) => {
             if(!this.paused && doStep) {
-                if (this.lowEnemyMode) {
-                    // Cacería final: sin sueño de IA ni frame-skipping, persiguen desde cualquier punto del mapa
-                    e.update(this.player);
-                } else if (e._dist > 1500) {
+                if (e._dist > 1500) {
                     // IA dormida: muy lejos del jugador, no ejecuta lógica hasta que vuelva a acercarse
                 } else if (e._dist > 700 && e.type !== 'BOSS' && (this._frameCount + i) % 2 === 0) {
                     // Frame skipping: enemigos a media distancia reparten su update entre frames
@@ -215,7 +197,6 @@ const game = {
         ctx.fillStyle = 'rgba(230, 126, 34, 0.08)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         EventManager.drawOverlay();
-        this.drawLowEnemyIndicators(); // flechas hacia los últimos enemigos fuera de cámara (ver enemies.js)
 
         // UI Updates
         const mobileControls = document.getElementById('mobile-controls');
@@ -231,7 +212,7 @@ const game = {
 
         const hotbar = document.getElementById('hotbar');
         if(hotbar.children.length === 0) {
-            for(let i=0; i<5; i++) hotbar.innerHTML += `<div class="slot" id="slot-${i}" onclick="game.player.activeSlot=${i}"><span class="slot-key">${i+1}</span><span class="slot-cat"></span><span class="name"></span><span class="slot-ammo"></span></div>`;
+            for(let i=0; i<5; i++) hotbar.innerHTML += `<div class="slot" id="slot-${i}" onclick="game.player.activeSlot=${i}"><span class="slot-key">${i+1}</span><span class="name"></span><span class="slot-ammo"></span></div>`;
         }
         for(let i=0; i<5; i++) {
             let s = this.player.inventory[i];
@@ -239,9 +220,6 @@ const game = {
             el.className = this.player.activeSlot === i ? "slot active" : "slot";
             el.querySelector('.name').innerText = s ? s.name : "";
             el.querySelector('.slot-ammo').innerText = s ? (s.ammo === Infinity ? "" : s.ammo) : "";
-            const catEl = el.querySelector('.slot-cat');
-            if (s && CATEGORY_META[s.cat]) { catEl.innerText = CATEGORY_META[s.cat].icon; catEl.style.color = CATEGORY_META[s.cat].color; }
-            else catEl.innerText = "";
         }
 
         if(this.isWaveActive && this.enemies.length === 0) {
@@ -274,13 +252,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 <h1 class="menu-title">SLIMEFRONT</h1>
                 <p class="menu-subtitle">Enhanced Edition</p>
                 <button class="menu-btn primary" onclick="game.startFromLobby()">▶ JUGAR</button>
-                <button class="menu-btn" onclick="game.openUpgrades()">⭐ MEJORAS</button>
                 <button class="menu-btn" onclick="game.openSettings('lobby')">⚙ AJUSTES</button>
                 <button class="menu-btn" onclick="game.toggleControls(true)">📖 CONTROLES</button>
                 <div style="margin-top:20px; font-size:18px;">
                     <div>RÉCORD: ${Settings.bestWave} OLEADAS</div>
-                    <div>PUNTOS DE MEJORA: ${Progression.points}</div>
-                    <div class="version-tag">v0.9</div>
+                    <div class="version-tag">v0.8</div>
                 </div>
             </div>
         `;
