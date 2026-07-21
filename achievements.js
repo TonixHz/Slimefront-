@@ -51,6 +51,19 @@ const WEAPON_CATEGORY = {
 };
 const TOTAL_WEAPON_COUNT = Object.keys(WEAPON_CATEGORY).length;
 
+// Íconos por categoría cosmética de arma (mismas claves que WEAPON_CATEGORY),
+// usados solo para agrupar/mostrar los logros de "Especialista <categoría>".
+const CATEGORY_META = {
+    melee:   { icon: '🔪' },
+    pistol:  { icon: '🔫' },
+    smg:     { icon: '💥' },
+    shotgun: { icon: '💢' },
+    rifle:   { icon: '🎯' },
+    sniper:  { icon: '🔭' },
+    heavy:   { icon: '🧱' },
+    special: { icon: '🚀' }
+};
+
 function fmt(n) { return n.toLocaleString('es-ES'); }
 
 // Recompensa de un logro. Nunca otorga XP "gratis" de más: el xp de logro es aparte del

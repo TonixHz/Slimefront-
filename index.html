@@ -14,6 +14,8 @@
         <div class="event-alert-subtitle">PREPÁRATE...</div>
     </div>
     <div id="event-badge" class="hud-box" style="display:none; position:absolute; top:20px; right:20px; border-left-color:#8e44ad; z-index:11;"></div>
+    <div id="levelup-toast" class="levelup-toast"></div>
+    <div id="achievement-toast" class="achv-toast"></div>
     <div id="ui-layer">
         <div class="stats-top">
             <div class="hud-box">
@@ -21,6 +23,10 @@
                     <div id="health-inner"></div>
                     <span id="health-text">100 / 100</span>
                 </div>
+            </div>
+            <div class="hud-box level-box">
+                <div id="level-display" class="hud-text">NIVEL 1</div>
+                <div id="xp-container"><div id="xp-inner"></div></div>
             </div>
             <div class="hud-box stats-info">
                 <div class="hud-text" id="money-display">CASH: $0</div>
@@ -113,16 +119,53 @@
         </div>
     </div>
 
+    <div id="profile-screen" class="menu-screen" style="display:none;">
+        <div class="menu-panel profile-panel">
+            <h1 class="menu-title">PERFIL</h1>
+            <div class="profile-tabs">
+                <button class="option-btn active" id="tab-btn-stats" onclick="game.setProfileTab('stats')">ESTADÍSTICAS</button>
+                <button class="option-btn" id="tab-btn-achv" onclick="game.setProfileTab('achv')">LOGROS</button>
+            </div>
+
+            <div id="profile-tab-stats">
+                <div id="profile-stats" class="shop-grid"></div>
+                <h2 class="upgrades-title">MEJORAS PERMANENTES</h2>
+                <div id="upgrades-list" class="shop-grid"></div>
+            </div>
+
+            <div id="profile-tab-achv" style="display:none;">
+                <div class="achv-filters">
+                    <input type="text" id="achv-search" placeholder="Buscar logro..." oninput="game.renderAchievements()">
+                    <select id="achv-category-filter" onchange="game.renderAchievements()">
+                        <option value="ALL">Todas las categorías</option>
+                    </select>
+                    <select id="achv-status-filter" onchange="game.renderAchievements()">
+                        <option value="ALL">Todos</option>
+                        <option value="UNCLAIMED">Por reclamar</option>
+                        <option value="COMPLETED">Completados</option>
+                        <option value="LOCKED">Bloqueados</option>
+                    </select>
+                </div>
+                <div id="achv-summary"></div>
+                <div id="achv-list" class="achv-list"></div>
+            </div>
+
+            <button class="menu-btn primary" onclick="game.closeProfile()">VOLVER</button>
+        </div>
+    </div>
+
     <canvas id="gameCanvas"></canvas>
     
     <script src="main.js"></script>
     <script src="ui.js"></script>
     <script src="effects.js"></script>
     <script src="events.js"></script>
-    <script src="weapons.js"></script>
     <script src="world.js"></script>
     <script src="player.js"></script>
     <script src="enemies.js"></script>
+    <script src="level.js"></script>
+    <script src="progression.js"></script>
+    <script src="achievements.js"></script>
     <script src="mobile.js"></script>
 </body>
 </html>

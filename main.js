@@ -158,7 +158,7 @@ const game = {
                 for(let j = this.enemies.length - 1; j >= 0; j--) {
                     let e = this.enemies[j];
                     if(!e.invulnerable && !p.hitEnemies.has(e) && Math.hypot(p.x - e.x, p.y - e.y) < e.radius) {
-                        this.hitEnemy(e, p.damage); // la lógica de muerte/recompensa vive acá ahora
+                        this.hitEnemy(e, p.damage, { playerShot: true }); // la lógica de muerte/recompensa vive acá ahora
                         p.hitEnemies.add(e);
                         if (p.knockback) { // Shotgun: empuja al enemigo lejos del impacto
                             let ka = Math.atan2(e.y - p.y, e.x - p.x);

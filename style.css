@@ -33,6 +33,23 @@ canvas { display: block; }
 #ammo-hud { color: #f1c40f; font-size: 40px; font-weight: 700; line-height: 1; text-shadow: 2px 2px 5px rgba(0,0,0,0.8); }
 #ammo-icon { font-size: 30px; filter: grayscale(100%) brightness(200%); }
 
+/* Nivel / XP */
+.level-box { border-left-color: #3498db; width: 260px; }
+#level-display { font-size: 20px; color: #3498db; margin-bottom: 6px; }
+#xp-container { width: 100%; height: 12px; background: rgba(0,0,0,0.6); border: 1px solid #555; border-radius: 4px; overflow: hidden; }
+#xp-inner { width: 0%; height: 100%; background: linear-gradient(90deg, #3498db, #2980b9); transition: width 0.3s ease-out; }
+
+/* Toast: Subida de Nivel */
+.levelup-toast { position: fixed; top: 90px; left: 50%; transform: translate(-50%, -20px); z-index: 70; pointer-events: none; background: linear-gradient(135deg, #1a2a1a, #0c140c); border: 2px solid #2ecc71; border-radius: 10px; padding: 14px 30px; font-size: 30px; text-align: center; color: #2ecc71; text-shadow: 2px 2px #000; opacity: 0; transition: opacity 0.3s, transform 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+.levelup-toast span { display: block; font-size: 18px; color: #f1c40f; margin-top: 4px; }
+.levelup-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Toast: Logro Desbloqueado */
+.achv-toast { position: fixed; top: 160px; left: 50%; transform: translate(-50%, -20px); z-index: 70; pointer-events: none; background: linear-gradient(135deg, #1a1a1a, #0c0c0c); border: 2px solid var(--rarity-color, #f1c40f); border-radius: 10px; padding: 12px 26px; text-align: center; opacity: 0; transition: opacity 0.3s, transform 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+.achv-toast-header { font-size: 16px; letter-spacing: 1px; }
+.achv-toast-name { font-size: 24px; color: #fff; text-shadow: 2px 2px #000; }
+.achv-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
 /* Hotbar */
 #hotbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: all; }
 .slot { width: 70px; height: 70px; background: rgba(20, 25, 20, 0.9); border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; color: #aaa; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
@@ -100,6 +117,37 @@ canvas { display: block; }
 .event-alert { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 60; display: none; align-items: center; justify-content: center; flex-direction: column; pointer-events: none; }
 .event-alert-title { font-size: 64px; color: #fff; text-shadow: 3px 3px 0 #000; letter-spacing: 2px; text-align: center; animation: breathe 1s infinite ease-in-out; }
 .event-alert-subtitle { font-size: 22px; color: #ccc; margin-top: 10px; letter-spacing: 1px; }
+
+/* ---- Perfil / Logros ---- */
+.profile-panel { width: 640px; }
+.profile-tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+.profile-tabs .option-btn { font-size: 20px; padding: 10px; }
+.upgrades-title { font-size: 24px; color: #2ecc71; letter-spacing: 1px; margin: 4px 0 10px 0; text-align: left; }
+
+.achv-filters { display: flex; gap: 8px; margin-bottom: 12px; }
+.achv-filters input, .achv-filters select { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid #444; color: #fff; font-family: 'Teko', sans-serif; font-size: 16px; padding: 8px; border-radius: 6px; }
+#achv-summary { font-size: 18px; color: #ccc; margin-bottom: 10px; text-align: left; }
+
+.achv-list { display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto; padding-right: 6px; text-align: left; }
+.achv-list::-webkit-scrollbar { width: 8px; }
+.achv-list::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 4px; }
+.achv-list::-webkit-scrollbar-thumb { background: #2ecc71; border-radius: 4px; }
+
+.achv-card { display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--rarity-color, #444); border-left-width: 4px; border-radius: 8px; padding: 10px 14px; opacity: 0.75; }
+.achv-card.completed { opacity: 1; background: rgba(255,255,255,0.07); }
+.achv-card.legendary-glow { box-shadow: 0 0 18px rgba(241,196,15,0.35); }
+.achv-icon { font-size: 30px; flex-shrink: 0; }
+.achv-info { flex: 1; min-width: 0; }
+.achv-name { font-size: 20px; letter-spacing: 0.5px; }
+.achv-rarity { font-size: 13px; margin-left: 6px; letter-spacing: 1px; }
+.achv-desc { font-size: 15px; color: #aaa; margin: 2px 0 6px 0; }
+.achv-progress-bar { width: 100%; height: 8px; background: rgba(0,0,0,0.6); border-radius: 4px; overflow: hidden; }
+.achv-progress-inner { height: 100%; }
+.achv-progress-text { font-size: 13px; color: #888; margin-top: 3px; }
+.achv-reward { font-size: 14px; color: #f1c40f; margin-top: 4px; }
+.achv-action { flex-shrink: 0; }
+.achv-claimed { color: #2ecc71; font-weight: 700; font-size: 14px; letter-spacing: 1px; }
+.achv-locked { font-size: 22px; opacity: 0.5; }
 
 /* Controles Táctiles (solo mobile) */
 #mobile-controls { display: none; }

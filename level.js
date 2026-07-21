@@ -171,10 +171,17 @@ game.closeProfile = function() {
 // Kills + XP por enemigo + arma favorita: se detecta la transición viva -> muriendo
 // dentro del mismo hitEnemy que ya usa el juego para dinero/partículas/floating text.
 const _levelOrigHitEnemy = game.hitEnemy;
-game.hitEnemy = function(e, dmg, ...rest) {
+game.hitEnemy = function(e, dmg, meta) {
     const wasAlive = !e.isDying;
-    _levelOrigHitEnemy.call(this, e, dmg, ...rest);
-    PlayerProfile.shotsHit++;
+    _levelOrigHitEnemy.call(this, e, dmg);
+    // Solo cuenta como "impacto" (precisión) los golpes marcados como disparo
+    // real del jugador, y como máximo 1 por disparo efectivamente hecho (evita
+    // que perdigones de escopeta que pegan en varios enemigos, o el pierce,
+    // inflen shotsHit por sobre lo que realmente disparó el jugador).
+    if (meta && meta.playerShot && !this._shotHitRegistered) {
+        PlayerProfile.shotsHit++;
+        this._shotHitRegistered = true;
+    }
     if (wasAlive && e.isDying) {
         PlayerProfile.kills++;
         const w = this.player && this.player.weapon;
@@ -192,6 +199,7 @@ game.shoot = function() {
     _levelOrigShoot.call(this);
     if (w && this.lastShot !== prevLastShot && w.type !== 'melee') {
         PlayerProfile.shotsFired++;
+        this._shotHitRegistered = false; // nuevo disparo: habilita registrar como máx. 1 impacto
     }
 };
 
