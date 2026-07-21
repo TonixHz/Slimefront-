@@ -2,8 +2,8 @@
  * AUDIO SYSTEM
  */
 const SFX = {
-    shoot_G18: 'Sounds/SFX/Shoot.ogg',
-    shoot_SHOTGUN: 'Sounds/SFX/ShotgunShoot.wav',
+    shoot_G18: 'Sounds/SFX/Shoots/PISTOLA.ogg',
+    shoot_SHOTGUN: 'Sounds/SFX/Shoots/ESCOPETA.wav',
     hit: 'https://actions.google.com/sounds/v1/impacts/flesh_impact.ogg',
     death: 'https://actions.google.com/sounds/v1/science_fiction/glitch_low_power.ogg',
     reload: 'https://actions.google.com/sounds/v1/weapons/weapon_cock.ogg',
