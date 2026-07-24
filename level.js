@@ -114,7 +114,7 @@ game.applyLevelReward = function(level) {
 };
 
 game.showLevelUp = function(level) {
-    playSFX('coin', 0.7, 0.05);
+    playSFX('levelup', 0.7, 0.05);
     const el = document.getElementById('levelup-toast');
     if (!el) return;
     const reward = LEVEL_REWARDS[level];

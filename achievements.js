@@ -321,7 +321,7 @@ const AchievementManager = {
         this.saveStats();
     },
     showToast(def) {
-        playSFX('coin', 0.6, 0.05);
+        playSFX('achievement_unlock', 0.6, 0.05);
         const el = document.getElementById('achievement-toast');
         if (!el) return;
         const rarity = RARITY[def.rarity];

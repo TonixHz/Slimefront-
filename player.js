@@ -40,7 +40,7 @@ class Player {
         game.camera.shake = 10;
         document.getElementById('damage-overlay').style.opacity = "1";
         setTimeout(() => document.getElementById('damage-overlay').style.opacity = "0", 150);
-        if(this.hp <= 0) game.gameOver();
+        if(this.hp <= 0) { playSFX('muerte_player', 0.6); game.gameOver(); }
     }
 
     dash() {

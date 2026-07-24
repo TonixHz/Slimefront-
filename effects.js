@@ -24,6 +24,13 @@ const SFX = {
     shoot_sniper2: 'Sounds/SFX/Shoots/SNIPER2.mp3',
     shoot_revolver: 'Sounds/SFX/Shoots/REVOLVER.mp3',
 
+// --- Nuevos (UI) ---
+    levelup: 'Sounds/SFX/UI/NIVELUP.mp3',
+    ui_back: 'Sounds/SFX/UI/BACKBUTTON.mp3',
+    ui_click: 'Sounds/SFX/UI/CLICKBUTTON.mp3',
+    ui_hover: 'Sounds/SFX/UI/HOVERBUTTON.mp3',
+    achievement_unlock: 'Sounds/SFX/UI/LOGRODESBLOQUEADO.mp3'
+
     // --- Melee ---
     melee: 'Sounds/SFX/Shoots/MEELE.mp3',
     melee2: 'Sounds/SFX/Shoots/MEELE2.mp3',
@@ -39,6 +46,7 @@ const SFX = {
     // --- Variados ---
     kamikaze: 'Sounds/SFX/Variados/KAMIKAZEEXPLOSION.mp3',
     death: 'Sounds/SFX/Variados/SLIMEDEATH.mp3',
+    muerte_player: 'Sounds/SFX/Variados/muerteplayer.mp3',
 
     // --- Genéricos que ya usaba el juego (mapeados a lo más parecido que mandaste) ---
     hit: 'Sounds/SFX/Shoots/MEELE.mp3',
