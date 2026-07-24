@@ -125,14 +125,21 @@ function playSFX(key, vol = 0.3, pitchVar = 0.1) {
  */
 const MUSIC_TRACKS = {
     main: [
-        'Sounds/Music/Main/ABYSS.mp3'
+        'Sounds/Music/Main/Tetuano - Abyss (freetouse.com).mp3'
     ],
     combat: [
-        'Sounds/Music/Combat/METAL_IS_TRASH.mp3',
-        'Sounds/Music/Combat/DIGITAL_MAYHAM.mp3'
+        'Sounds/Music/Combat/Pufino - Digital Mayham (freetouse.com).mp3',
+        'Sounds/Music/Combat/Zambolino - Imperator (freetouse.com).mp3',
+        'Sounds/Music/Combat/Pufino - Metal Is Trash (freetouse.com).mp3',
+        'Sounds/Music/Combat/NewMe.mp3',
+        'Sounds/Music/Combat/Buddy.mp3',
+        'Sounds/Music/Combat/NoPuedesConmigo.mp3',
+        'Sounds/Music/Combat/ImTheBest.mp3'
     ],
     boss: [
-        'Sounds/Music/Boss/IMPERATOR.mp3'
+        'Sounds/Music/Boss/Horizonte.mp3',
+        'Sounds/Music/Boss/Finally.mp3',
+        'Sounds/Music/Boss/Punch.mp3'
     ]
 };
 
