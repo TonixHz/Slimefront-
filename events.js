@@ -4,27 +4,9 @@
  * (label + onStart/onUpdate/onDraw) y, si necesita un modificador nuevo, leerlo donde
  * corresponda con un "|| 1" / "|| 0" por defecto, tal como ya hacen los existentes.
  */
-const AmbientSFX = {
-    rain: 'https://actions.google.com/sounds/v1/weather/light_rain.ogg',
-    wind: 'https://actions.google.com/sounds/v1/weather/wind.ogg',
-    sandstorm: 'https://actions.google.com/sounds/v1/weather/wind.ogg' // reutilizar wind para sandstorm
-};
-
-// Canal de audio ambiente en loop, separado del pooling de SFX (que no soporta loop)
-const AmbientAudio = {
-    audio: null,
-    play(key, volume = 0.35) {
-        this.stop();
-        if (!AmbientSFX[key]) return;
-        this.audio = new Audio(AmbientSFX[key]);
-        this.audio.loop = true;
-        this.audio.volume = volume * (Settings.sfxVolume / 100);
-        this.audio.play().catch(() => {});
-    },
-    stop() {
-        if (this.audio) { this.audio.pause(); this.audio = null; }
-    }
-};
+// AmbientAudio (lluvia/viento/arena en loop) vive ahora en effects.js: reutiliza las
+// mismas claves y rutas locales que el resto de los SFX (SFX.rain/wind/sandstorm) en
+// vez de mantener una lista de URLs online separada y duplicada.
 
 // --- Partículas de clima: se dibujan en espacio de pantalla (no del mundo), livianas ---
 // Pool fijo (mismo patrón que particles/casings/trails) en vez de crear objetos nuevos en cada spawn

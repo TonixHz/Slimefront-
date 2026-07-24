@@ -8,6 +8,10 @@
  *   Sounds/Music/Main/...
  *   Sounds/Music/Combat/...
  *   Sounds/Music/Boss/...
+ *
+ * Todo el audio (SFX puntuales, música y ambiente climático) es 100% local:
+ * no hay ninguna URL externa ni fallback a servicios online. Si falta un
+ * archivo, se avisa por consola con console.warn y el juego sigue andando.
  */
 const SFX = {
     // --- Disparos ---
@@ -39,7 +43,7 @@ const SFX = {
     // --- Genéricos que ya usaba el juego (mapeados a lo más parecido que mandaste) ---
     hit: 'Sounds/SFX/Shoots/MEELE.mp3',
     reload: 'Sounds/SFX/Shoots/PISTOLA.ogg',
-    coin: 'Sounds/SFX/Variados/SLIMEDEATH.mp3',
+    coin: 'Sounds/SFX/Variados/SLIMEDEATH.mp3', // placeholder intencional, no tocar
     explosion: 'Sounds/SFX/Shoots/RPGEXPLOSION.mp3',
 
     // --- Clima / Eventos ---
@@ -49,20 +53,36 @@ const SFX = {
     rain: 'Sounds/SFX/Events/soundsforyou-light-rain-ambient-114354.mp3'
 };
 
+/**
+ * POOL DE SFX (un-shot, superponibles: disparos, golpes, monedas, etc.)
+ * Cada clave de SFX tiene varias instancias <audio> reutilizables, así reproducir
+ * ráfagas de disparos o varios enemigos a la vez no crea un `new Audio()` por evento.
+ * Nunca se descarga nada de Internet: si el archivo local no existe, se deja
+ * constancia en consola (console.warn) y esa clave queda muda, sin romper el juego.
+ */
 const sfxPools = {};
 const SFX_POOL_SIZE = 14; // varias armas comparten la misma clave de sonido; un pool chico causaba latencia perceptible en oleadas con mucho fuego simultáneo
+const _missingSfxWarned = new Set();
 
 function getSfxPool(key) {
+    if (!SFX[key]) {
+        if (!_missingSfxWarned.has(key)) {
+            console.warn(`[Audio] Clave de sonido inexistente: "${key}"`);
+            _missingSfxWarned.add(key);
+        }
+        return null;
+    }
     if (!sfxPools[key]) {
         sfxPools[key] = Array.from({ length: SFX_POOL_SIZE }, () => {
-            const a = new Audio(SFX[key] || SFX.shoot_G18);
+            const a = new Audio(SFX[key]);
             a.preservesPitch = false;
             a.preload = 'auto';
-            // Fallback a Google Sounds si el archivo local no carga
+            // Sin fallback online: si el archivo local falta o falla, solo avisamos por consola.
             a.onerror = () => {
-                const fallbackUrl = 'https://actions.google.com/sounds/v1/weapons/gun_shot_single.ogg';
-                a.src = fallbackUrl;
-                a.load();
+                if (!_missingSfxWarned.has(key)) {
+                    console.warn(`[Audio] No se pudo cargar el sonido local: ${SFX[key]}`);
+                    _missingSfxWarned.add(key);
+                }
             };
             a.load(); // fuerza la descarga/decodificación ahora y no en el primer disparo
             return a;
@@ -79,12 +99,13 @@ function preloadSFX() {
     try {
         Object.keys(SFX).forEach(key => getSfxPool(key));
     } catch (e) {
-        console.warn('Error preloading SFX:', e);
+        console.warn('Error precargando SFX:', e);
     }
 }
 
 function playSFX(key, vol = 0.3, pitchVar = 0.1) {
     const pool = getSfxPool(key);
+    if (!pool) return; // clave inexistente: ya se avisó en getSfxPool, seguimos sin romper nada
     const a = pool[pool.cursor];
     pool.cursor = (pool.cursor + 1) % pool.length;
     a.pause();
@@ -94,16 +115,32 @@ function playSFX(key, vol = 0.3, pitchVar = 0.1) {
     a.play().catch(() => {});
 }
 
+/**
+ * MÚSICA
+ * Listas de archivos LOCALES por contexto (lobby/combate/jefe). Para agregar canciones
+ * nuevas alcanza con sumar rutas a estos arrays; se elige una al azar de la carpeta
+ * correspondiente y, al terminar, se encadena automáticamente otra (nunca se queda
+ * sin música). Los nombres de archivo abajo siguen los créditos de LICENSE.md —
+ * si tus archivos reales tienen otro nombre, solo hay que ajustar estas rutas.
+ */
+const MUSIC_TRACKS = {
+    main: [
+        'Sounds/Music/Main/ABYSS.mp3'
+    ],
+    combat: [
+        'Sounds/Music/Combat/METAL_IS_TRASH.mp3',
+        'Sounds/Music/Combat/DIGITAL_MAYHAM.mp3'
+    ],
+    boss: [
+        'Sounds/Music/Boss/IMPERATOR.mp3'
+    ]
+};
+
 const MusicManager = {
-    // URLs públicas de música libre de derechos (freetouse.com, incompetech, etc)
-    mainTracks: ['https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'],
-    combatTracks: [
-        'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-        'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3'
-    ],
-    bossTracks: [
-        'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3'
-    ],
+    // Se mantienen estos 3 nombres porque otros archivos (world.js) los referencian directamente.
+    mainTracks: MUSIC_TRACKS.main,
+    combatTracks: MUSIC_TRACKS.combat,
+    bossTracks: MUSIC_TRACKS.boss,
     tracks: [],
     audio: null,
     currentIndex: -1,
@@ -114,6 +151,11 @@ const MusicManager = {
         this.audio.volume = 0;
         this.baseVolume = 0.25 * (Settings.musicVolume / 100);
         this.audio.addEventListener('ended', () => this.next());
+        this.audio.addEventListener('error', () => {
+            if (this.audio.src) console.warn(`[Audio] No se pudo cargar la música: ${this.audio.src}`);
+            // Nunca sin música: si una pista falla, se intenta con otra del mismo contexto.
+            this.next();
+        });
     },
     // Cambia de categoría de música (main/combate/jefe) solo si es distinta a la actual,
     // así no corta una canción de combate a mitad para volver a poner... la misma categoría.
@@ -162,6 +204,30 @@ const MusicManager = {
     duck(duration = 1200) {
         if (!this.audio || this.audio.paused) return;
         this._fadeTo(0, duration, () => this.audio.pause());
+    }
+};
+
+/**
+ * AMBIENTE (lluvia/viento/arena en loop). Reutiliza las MISMAS claves y rutas locales que
+ * ya viven en SFX (rain/wind/sandstorm) en vez de mantener una lista de URLs paralela:
+ * antes existían dos catálogos de sonido distintos (uno local en SFX y otro con URLs
+ * de Google en events.js) para las mismas cosas. Ahora hay un solo dueño de esas rutas.
+ * Respeta el volumen general de SFX, pero es independiente del volumen de cada disparo.
+ */
+const AmbientAudio = {
+    audio: null,
+    play(key, volume = 0.35) {
+        this.stop();
+        const src = SFX[key];
+        if (!src) { console.warn(`[Audio] Sonido ambiente inexistente: "${key}"`); return; }
+        this.audio = new Audio(src);
+        this.audio.loop = true;
+        this.audio.volume = volume * (Settings.sfxVolume / 100);
+        this.audio.onerror = () => console.warn(`[Audio] No se pudo cargar el ambiente: ${src}`);
+        this.audio.play().catch(() => {});
+    },
+    stop() {
+        if (this.audio) { this.audio.pause(); this.audio = null; }
     }
 };
 
@@ -332,5 +398,5 @@ game.explode = function(x, y, radius, dmg) {
     for(let i=0; i<Math.ceil(24*this.particleScale); i++) this.spawnParticle(x, y, i % 2 === 0 ? '#e67e22' : '#f1c40f', 8, 5, 'normal');
     for(let i=0; i<Math.ceil(6*this.particleScale); i++) this.spawnParticle(x, y, '#555', 3, 6, 'smoke');
     this.camera.shake = 20;
-    playSFX('rpg', 0.5, 0.1);  // Usa RPG launch sound (se puede cambiar a 'kamikaze' si es explosión de kamikaze)
+    playSFX('rpg_explosion', 0.5, 0.1); // corregido: 'rpg' no existía en SFX, usaba fallback silencioso
 };
