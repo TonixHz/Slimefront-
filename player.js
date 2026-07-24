@@ -326,13 +326,20 @@ game.shoot = function() {
     if (Date.now() - this.lastShot < effFireRate) return;
 
     if(w.type === 'melee') {
+        // Rastrea si el swing efectivamente conecta con algún enemigo, para elegir
+        // el sonido correcto (motor girando en el aire vs. sonido de impacto)
+        let hitSomething = false;
         this.enemies.forEach(e => {
-            if(!e.invulnerable && Math.hypot(this.player.x - e.x, this.player.y - e.y) < w.range + e.radius) this.hitEnemy(e, w.damage);
+            if(!e.invulnerable && Math.hypot(this.player.x - e.x, this.player.y - e.y) < w.range + e.radius) {
+                this.hitEnemy(e, w.damage);
+                hitSomething = true;
+            }
         });
         if (w.fuel !== undefined) { // CHAINSAW: consume combustible mientras corta
             this.player.chainsawFuel = Math.max(0, this.player.chainsawFuel - w.fuelDrain);
             this.player.chainsawActive = true;
-            playSFX('chainsaw', 0.2, 0.05);
+            // CHAINSAW = motor girando en el aire, CHAINSAWHIT = conectando con un enemigo
+            playSFX(hitSomething ? 'chainsaw_hit' : 'chainsaw', 0.2, 0.05);
         } else {
             // Sonido melee aleatorio para knife/machete
             const meleeVariants = ['melee', 'melee2', 'melee3'];
@@ -394,7 +401,10 @@ game.shoot = function() {
 game.hitEnemy = function(e, dmg) {
     e.hp -= dmg;
     e.flash = 4;
-    playSFX('hit', 0.2);
+    // Sin sonido genérico de "hit" acá: cada arma ya reproduce su propio sonido
+    // (disparo o swing/chainsaw) en el momento del ataque. Antes esto reutilizaba
+    // el sonido de melee (MEELE.mp3) para CUALQUIER impacto, incluyendo balas,
+    // por eso se escuchaba el "golpe de cuchillo" al disparar armas de fuego.
     for(let i=0; i<Math.ceil(8*this.particleScale); i++) this.spawnParticle(e.x, e.y, e.color, 4, 3, 'normal'); 
     
     let t = this.floatingTexts.find(t => !t.active);
