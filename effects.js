@@ -1,40 +1,52 @@
 /**
- * AUDIO SYSTEM - URLs públicas para GitHub Pages
+ * AUDIO SYSTEM
+ * Rutas relativas a la carpeta Sounds/ (debe estar en la raíz del repo, junto a index.html).
+ * Estructura esperada:
+ *   Sounds/SFX/Shoots/...
+ *   Sounds/SFX/Variados/...
+ *   Sounds/SFX/Events/...
+ *   Sounds/Music/Main/...
+ *   Sounds/Music/Combat/...
+ *   Sounds/Music/Boss/...
  */
 const SFX = {
-    // Disparos - usando URLs públicas de Freesound/Zapsplat
-    shoot_G18: 'https://freesound.org/data/previews/685/685110_16014704-lq.mp3',
-    shoot_SHOTGUN: 'https://freesound.org/data/previews/509/509659_4654381-lq.mp3',
-    shoot_rifle: 'https://freesound.org/data/previews/520/520775_9441686-lq.mp3',
-    shoot_smg: 'https://freesound.org/data/previews/471/471126_9771670-lq.mp3',
-    shoot_sniper: 'https://freesound.org/data/previews/425/425427_7033341-lq.mp3',
-    shoot_sniper2: 'https://freesound.org/data/previews/425/425427_7033341-lq.mp3',
-    shoot_revolver: 'https://freesound.org/data/previews/508/508658_10897131-lq.mp3',
-    
-    // Melee
-    melee: 'https://freesound.org/data/previews/546/546604_2548421-lq.mp3',
-    melee2: 'https://freesound.org/data/previews/546/546604_2548421-lq.mp3',
-    melee3: 'https://freesound.org/data/previews/546/546604_2548421-lq.mp3',
-    chainsaw: 'https://freesound.org/data/previews/346/346110_5121236-lq.mp3',
-    chainsaw_hit: 'https://freesound.org/data/previews/346/346110_5121236-lq.mp3',
-    
-    // Explosiones
-    explosion: 'https://freesound.org/data/previews/528/528411_9406502-lq.mp3',
-    rpg: 'https://freesound.org/data/previews/528/528411_9406502-lq.mp3',
-    kamikaze: 'https://freesound.org/data/previews/528/528411_9406502-lq.mp3',
-    
-    // Efectos generales
-    hit: 'https://freesound.org/data/previews/109/109662_1399837-lq.mp3',
-    death: 'https://freesound.org/data/previews/567/567393_12265342-lq.mp3',
-    reload: 'https://actions.google.com/sounds/v1/weapons/weapon_cock.ogg',
-    coin: 'https://actions.google.com/sounds/v1/water/droplet.ogg',
-    flamethrower: 'https://freesound.org/data/previews/511/511947_7091745-lq.mp3',
-    
-    // Clima
-    thunder: 'https://actions.google.com/sounds/v1/weather/heavy_rain_and_thunder.ogg',
-    rain: 'https://actions.google.com/sounds/v1/weather/light_rain.ogg',
-    wind: 'https://actions.google.com/sounds/v1/weather/wind.ogg',
-    sandstorm: 'https://actions.google.com/sounds/v1/weather/wind.ogg'
+    // --- Disparos ---
+    shoot_G18: 'Sounds/SFX/Shoots/PISTOLA.ogg',
+    shoot_SHOTGUN: 'Sounds/SFX/Shoots/ESCOPETA.wav',
+    shoot_SHOTGUN2: 'Sounds/SFX/Shoots/ESCOPETA2.mp3',
+    shoot_rifle: 'Sounds/SFX/Shoots/RIFLES.mp3',
+    shoot_smg: 'Sounds/SFX/Shoots/SMG.mp3',
+    shoot_sniper: 'Sounds/SFX/Shoots/SNIPER.mp3',
+    shoot_sniper2: 'Sounds/SFX/Shoots/SNIPER2.mp3',
+    shoot_revolver: 'Sounds/SFX/Shoots/REVOLVER.mp3',
+
+    // --- Melee ---
+    melee: 'Sounds/SFX/Shoots/MEELE.mp3',
+    melee2: 'Sounds/SFX/Shoots/MEELE2.mp3',
+    melee3: 'Sounds/SFX/Shoots/MEELE3.mp3',
+    chainsaw: 'Sounds/SFX/Shoots/CHAINSAW.mp3',
+    chainsaw_hit: 'Sounds/SFX/Shoots/CHAINSAWHIT.mp3',
+
+    // --- Especiales ---
+    flamethrower: 'Sounds/SFX/Shoots/FLAMETHROWER.mp3',
+    rpg_launch: 'Sounds/SFX/Shoots/RPGLAUNCH.mp3',
+    rpg_explosion: 'Sounds/SFX/Shoots/RPGEXPLOSION.mp3',
+
+    // --- Variados ---
+    kamikaze: 'Sounds/SFX/Variados/KAMIKAZEEXPLOSION.mp3',
+    death: 'Sounds/SFX/Variados/SLIMEDEATH.mp3',
+
+    // --- Genéricos que ya usaba el juego (mapeados a lo más parecido que mandaste) ---
+    hit: 'Sounds/SFX/Shoots/MEELE.mp3',
+    reload: 'Sounds/SFX/Shoots/PISTOLA.ogg',
+    coin: 'Sounds/SFX/Variados/SLIMEDEATH.mp3',
+    explosion: 'Sounds/SFX/Shoots/RPGEXPLOSION.mp3',
+
+    // --- Clima / Eventos ---
+    wind: 'Sounds/SFX/Events/liecio-strong-howling-wind-132281.mp3',
+    sandstorm: 'Sounds/SFX/Events/soundreality-sandstorm-222741.mp3',
+    thunder: 'Sounds/SFX/Events/universfield-loud-thunder-192165.mp3',
+    rain: 'Sounds/SFX/Events/soundsforyou-light-rain-ambient-114354.mp3'
 };
 
 const sfxPools = {};
