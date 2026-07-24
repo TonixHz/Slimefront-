@@ -179,21 +179,24 @@ const game = {
         });
 
         // Enemigos y Jugador
-this.enemies.forEach((e, i) => {
-    if(!this.paused && doStep) {
-        if (this.lowEnemyMode) {
-            // Cacería final: sin sueño de IA ni frame-skipping, persiguen desde cualquier punto del mapa
-            e.update(this.player);
-        } else if (e._dist > 1500) {
-            // IA dormida: muy lejos del jugador, no ejecuta lógica hasta que vuelva a acercarse
-        } else if (e._dist > 700 && e.type !== 'BOSS' && (this._frameCount + i) % 2 === 0) {
-            // Frame skipping: enemigos a media distancia reparten su update entre frames
-        } else {
-            e.update(this.player);
-        }
-    }
-    e.draw(this.camera);
-});
+        this.enemies.forEach((e, i) => {
+            if(!this.paused && doStep) {
+                if (this.lowEnemyMode) {
+                    // Cacería final: sin sueño de IA ni frame-skipping, persiguen desde cualquier punto del mapa
+                    e.update(this.player);
+                } else if (e._dist > 1500) {
+                    // IA dormida: muy lejos del jugador, no ejecuta lógica hasta que vuelva a acercarse
+                } else if (e._dist > 700 && e.type !== 'BOSS' && (this._frameCount + i) % 2 === 0) {
+                    // Frame skipping: enemigos a media distancia reparten su update entre frames
+                } else {
+                    e.update(this.player);
+                }
+            }
+            e.draw(this.camera);
+        });
+        
+        // RENDERIZAR AL JUGADOR (crítico - estaba faltando)
+        this.player.draw(this.camera, this.mouse);
         
         // Partículas y Textos
         this.particles.forEach(p => { if(p.active) { p.update(); p.draw(this.camera); } });
@@ -203,7 +206,6 @@ this.enemies.forEach((e, i) => {
         ctx.fillStyle = 'rgba(230, 126, 34, 0.08)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         EventManager.drawOverlay();
-	this.drawLowEnemyIndicators(); // flechas hacia los últimos enemigos fuera de cámara (ver enemies.js)
         // UI Updates
         const mobileControls = document.getElementById('mobile-controls');
         if(mobileControls) mobileControls.style.pointerEvents = this.paused ? 'none' : 'auto';
@@ -244,12 +246,23 @@ this.enemies.forEach((e, i) => {
 window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
 
 window.addEventListener('DOMContentLoaded', () => {
-    // Precarga de SFX: crea y fuerza la carga de los pools de audio de una, para que no
-    // se sienta delay la primera vez que se dispara cada sonido en combate.
-    preloadSFX();
-
-    MusicManager.init();
-    MusicManager.playLobby();
+    // === PANTALLA DE CARGA ===
+    const loadingScreen = document.getElementById('loading-screen');
+    const handleLoadingClick = () => {
+        loadingScreen.style.display = 'none';
+        document.getElementById('lobby-screen').style.display = 'flex';
+        // Precarga de SFX y música tras interacción del usuario (necesario en algunos navegadores)
+        preloadSFX();
+        MusicManager.init();
+        MusicManager.playLobby();
+        loadingScreen.removeEventListener('click', handleLoadingClick);
+    };
+    if (loadingScreen) loadingScreen.addEventListener('click', handleLoadingClick);
+    
+    // Fallback: si hay timeout, mostrar lobby automáticamente
+    setTimeout(() => {
+        if (loadingScreen.style.display !== 'none') handleLoadingClick();
+    }, 3000);
 
     const lobbyScreen = document.getElementById('lobby-screen');
     if (lobbyScreen) {
@@ -260,9 +273,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 <button class="menu-btn primary" onclick="game.startFromLobby()">▶ JUGAR</button>
                 <button class="menu-btn" onclick="game.openSettings('lobby')">⚙ AJUSTES</button>
                 <button class="menu-btn" onclick="game.toggleControls(true)">📖 CONTROLES</button>
+                <button class="menu-btn" onclick="game.openCredits()">🎬 CRÉDITOS</button>
                 <div style="margin-top:20px; font-size:18px;">
                     <div>RÉCORD: ${Settings.bestWave} OLEADAS</div>
-                    <div class="version-tag">v0.8</div>
+                    <div class="version-tag">v0.9</div>
                 </div>
             </div>
         `;

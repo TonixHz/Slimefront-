@@ -1,17 +1,42 @@
 /**
  * AUDIO SYSTEM
+ * Usa archivos locales. Reemplaza las URLs con rutas a tu servidor o archivos base64.
+ * Por ahora fallback a Google Sounds si no están disponibles.
  */
 const SFX = {
-    shoot_G18: 'Sounds/SFX/Shoots/PISTOLA.ogg',
-    shoot_SHOTGUN: 'Sounds/SFX/Shoots/ESCOPETA.wav',
-    hit: 'https://actions.google.com/sounds/v1/impacts/flesh_impact.ogg',
-    death: 'https://actions.google.com/sounds/v1/science_fiction/glitch_low_power.ogg',
-    reload: 'https://actions.google.com/sounds/v1/weapons/weapon_cock.ogg',
-    coin: 'https://actions.google.com/sounds/v1/water/droplet.ogg',
-    thunder: 'Sounds/SFX/Events/universfield-loud-thunder-192165.mp3',
-    explosion: 'https://actions.google.com/sounds/v1/explosions/explosion.ogg',
-    chainsaw: 'https://actions.google.com/sounds/v1/foley/chainsaw.ogg',
-    flamethrower: 'https://actions.google.com/sounds/v1/foley/fire.ogg'
+    // Disparos
+    shoot_G18: './sounds/shoot_pistol.mp3',  // PISTOLA.ogg
+    shoot_SHOTGUN: './sounds/shoot_escopeta.wav',  // ESCOPETA.wav
+    shoot_rifle: './sounds/shoot_rifles.mp3',  // RIFLES.mp3
+    shoot_smg: './sounds/shoot_smg.mp3',  // SMG.mp3
+    shoot_sniper: './sounds/shoot_sniper.mp3',  // SNIPER.mp3
+    shoot_sniper2: './sounds/shoot_sniper2.mp3',  // SNIPER2.mp3
+    shoot_revolver: './sounds/shoot_revolver.mp3',  // REVOLVER.mp3
+    
+    // Melee
+    melee: './sounds/melee.mp3',  // MEELE.mp3
+    melee2: './sounds/melee2.mp3',  // MEELE2.mp3
+    melee3: './sounds/melee3.mp3',  // MEELE3.mp3
+    chainsaw: './sounds/chainsaw.mp3',  // CHAINSAW.mp3
+    chainsaw_hit: './sounds/chainsaw_hit.mp3',  // CHAINSAWHIT.mp3
+    
+    // Explosiones
+    explosion: './sounds/rpg_explosion.mp3',  // RPGEXPLOSION.mp3
+    rpg: './sounds/rpg_launch.mp3',  // RPGLAUNCH.mp3
+    kamikaze: './sounds/kamikaze_explosion.mp3',  // KAMIKAZEEXPLOSION.mp3
+    
+    // Efectos generales
+    hit: './sounds/slime_hit.mp3',  // fallback
+    death: './sounds/slime_death.mp3',  // SLIMEDEATH.mp3
+    reload: 'https://actions.google.com/sounds/v1/weapons/weapon_cock.ogg',  // fallback Google
+    coin: 'https://actions.google.com/sounds/v1/water/droplet.ogg',  // fallback Google
+    flamethrower: './sounds/flamethrower.mp3',  // FLAMETHROWER.mp3
+    
+    // Clima
+    thunder: './sounds/thunder.mp3',  // universfield-loud-thunder-192165.mp3
+    rain: './sounds/rain.mp3',  // soundsforyou-light-rain-ambient-114354.mp3
+    wind: './sounds/wind.mp3',  // liecio-strong-howling-wind-132281.mp3
+    sandstorm: './sounds/sandstorm.mp3'  // soundreality-sandstorm-222741.mp3
 };
 
 const sfxPools = {};
@@ -23,6 +48,12 @@ function getSfxPool(key) {
             const a = new Audio(SFX[key] || SFX.shoot_G18);
             a.preservesPitch = false;
             a.preload = 'auto';
+            // Fallback a Google Sounds si el archivo local no carga
+            a.onerror = () => {
+                const fallbackUrl = 'https://actions.google.com/sounds/v1/weapons/gun_shot_single.ogg';
+                a.src = fallbackUrl;
+                a.load();
+            };
             a.load(); // fuerza la descarga/decodificación ahora y no en el primer disparo
             return a;
         });
@@ -50,20 +81,14 @@ function playSFX(key, vol = 0.3, pitchVar = 0.1) {
 }
 
 const MusicManager = {
-    mainTracks: ['Sounds/Music/Main/Tetuano - Abyss (freetouse.com).mp3'],
+    // URLs públicas de música libre de derechos (freetouse.com, incompetech, etc)
+    mainTracks: ['https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'],
     combatTracks: [
-        'Sounds/Music/Combat/Pufino - Metal Is Trash (freetouse.com).mp3',
-        'Sounds/Music/Combat/NewMe.mp3',
-        'Sounds/Music/Combat/Buddy.mp3',
-        'Sounds/Music/Combat/NoPuedesConmigo.mp3',
-        'Sounds/Music/Combat/ImTheBest.mp3',
-        'Sounds/Music/Combat/Pufino - Digital Mayham (freetouse.com).mp3',
-        'Sounds/Music/Combat/Zambolino - Imperator (freetouse.com).mp3'
+        'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+        'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3'
     ],
     bossTracks: [
-        'Sounds/Music/Boss/Horizonte.mp3',
-        'Sounds/Music/Boss/Finally.mp3',
-        'Sounds/Music/Boss/Punch.mp3'
+        'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3'
     ],
     tracks: [],
     audio: null,
@@ -293,5 +318,5 @@ game.explode = function(x, y, radius, dmg) {
     for(let i=0; i<Math.ceil(24*this.particleScale); i++) this.spawnParticle(x, y, i % 2 === 0 ? '#e67e22' : '#f1c40f', 8, 5, 'normal');
     for(let i=0; i<Math.ceil(6*this.particleScale); i++) this.spawnParticle(x, y, '#555', 3, 6, 'smoke');
     this.camera.shake = 20;
-    playSFX('explosion', 0.5, 0.1);
+    playSFX('rpg', 0.5, 0.1);  // Usa RPG launch sound (se puede cambiar a 'kamikaze' si es explosión de kamikaze)
 };

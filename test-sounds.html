@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Test de Sonidos - SLIMEFRONT</title>
+    <style>
+        body { background: #050505; color: #2ecc71; font-family: monospace; padding: 20px; }
+        h1 { color: #f1c40f; }
+        .sound-test { margin: 10px 0; padding: 10px; background: #111; border-left: 4px solid #333; }
+        .sound-test.ok { border-left-color: #2ecc71; }
+        .sound-test.error { border-left-color: #e74c3c; }
+        button { background: #2ecc71; color: black; padding: 5px 15px; border: none; cursor: pointer; margin: 5px 0; }
+        button:hover { background: #58e08f; }
+    </style>
+</head>
+<body>
+    <h1>🎵 Test de Sonidos</h1>
+    <p>Presiona los botones para probar cada sonido. Los archivos deben estar en <code>./sounds/</code></p>
+    <div id="tests"></div>
+
+    <script>
+        const SFX = {
+            shoot_pistol: './sounds/shoot_pistol.mp3',
+            shoot_escopeta: './sounds/shoot_escopeta.wav',
+            shoot_rifles: './sounds/shoot_rifles.mp3',
+            shoot_smg: './sounds/shoot_smg.mp3',
+            shoot_sniper: './sounds/shoot_sniper.mp3',
+            shoot_sniper2: './sounds/shoot_sniper2.mp3',
+            shoot_revolver: './sounds/shoot_revolver.mp3',
+            melee: './sounds/melee.mp3',
+            melee2: './sounds/melee2.mp3',
+            melee3: './sounds/melee3.mp3',
+            chainsaw: './sounds/chainsaw.mp3',
+            chainsaw_hit: './sounds/chainsaw_hit.mp3',
+            rpg_explosion: './sounds/rpg_explosion.mp3',
+            rpg_launch: './sounds/rpg_launch.mp3',
+            kamikaze_explosion: './sounds/kamikaze_explosion.mp3',
+            slime_death: './sounds/slime_death.mp3',
+            flamethrower: './sounds/flamethrower.mp3',
+            thunder: './sounds/thunder.mp3',
+            rain: './sounds/rain.mp3',
+            wind: './sounds/wind.mp3',
+            sandstorm: './sounds/sandstorm.mp3'
+        };
+
+        const container = document.getElementById('tests');
+        const audioPool = {};
+
+        Object.entries(SFX).forEach(([name, url]) => {
+            const div = document.createElement('div');
+            div.className = 'sound-test';
+            
+            const audio = new Audio();
+            audio.onerror = () => {
+                div.classList.add('error');
+                div.classList.remove('ok');
+                status.textContent = '❌ NO ENCONTRADO';
+            };
+            audio.oncanplay = () => {
+                div.classList.add('ok');
+                div.classList.remove('error');
+                status.textContent = '✅ CARGADO';
+            };
+            audio.src = url;
+            audio.preload = 'auto';
+            audioPool[name] = audio;
+
+            const status = document.createElement('span');
+            status.textContent = '⏳ Cargando...';
+            
+            const btn = document.createElement('button');
+            btn.textContent = '▶ Probar';
+            btn.onclick = () => {
+                audio.currentTime = 0;
+                audio.play().catch(e => console.error(`Error al reproducir ${name}:`, e));
+            };
+            
+            div.innerHTML = `<strong>${name}</strong> (${url.split('/').pop()}) - `;
+            div.appendChild(status);
+            div.appendChild(btn);
+            container.appendChild(div);
+        });
+
+        console.log('%c✅ Test de sonidos listo', 'color: #2ecc71; font-size: 16px;');
+        console.log('Verifica que los archivos estén en: ./sounds/');
+    </script>
+</body>
+</html>

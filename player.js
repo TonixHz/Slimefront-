@@ -332,7 +332,11 @@ game.shoot = function() {
         if (w.fuel !== undefined) { // CHAINSAW: consume combustible mientras corta
             this.player.chainsawFuel = Math.max(0, this.player.chainsawFuel - w.fuelDrain);
             this.player.chainsawActive = true;
-            playSFX(w.sfx, 0.2, 0.05);
+            playSFX('chainsaw', 0.2, 0.05);
+        } else {
+            // Sonido melee aleatorio para knife/machete
+            const meleeVariants = ['melee', 'melee2', 'melee3'];
+            playSFX(meleeVariants[Math.floor(Math.random() * meleeVariants.length)], 0.3, 0.1);
         }
         this.lastShot = Date.now();
         return;
@@ -342,7 +346,15 @@ game.shoot = function() {
     if (w.burst && this.player.burstBusy) return; // FAMAS: ya hay una ráfaga en curso
 
     const fireOnce = () => {
-        playSFX(w.sfx, 0.4, 0.2);
+        // Usar sonido específico del arma, con fallback inteligente
+        let soundKey = w.sfx || 'shoot_G18';
+        if (soundKey === 'shoot_G18' && w.name === 'REVOLVER') soundKey = 'shoot_revolver';
+        else if (soundKey === 'shoot_G18' && ['AK47', 'M4A1', 'FAMAS', 'SCAR'].includes(w.name)) soundKey = 'shoot_rifle';
+        else if (soundKey === 'shoot_G18' && ['UZI', 'MP5', 'P90'].includes(w.name)) soundKey = 'shoot_smg';
+        else if (soundKey === 'shoot_G18' && ['SNIPER', 'AWP'].includes(w.name)) soundKey = 'shoot_sniper';
+        else if (soundKey === 'shoot_G18' && w.name === 'WINCHESTER') soundKey = 'shoot_sniper2';
+        
+        playSFX(soundKey, 0.4, 0.2);
         this.player.recoilOffset = w.shake * 2;
         this.player.muzzleFlash = 3;
         this.camera.shake = w.shake;

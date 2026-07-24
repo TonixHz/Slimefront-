@@ -56,12 +56,12 @@ game.openSettings = function(from) {
     this.settingsOrigin = from;
     document.getElementById(from === 'lobby' ? 'lobby-screen' : 'esc-menu').style.display = 'none';
     document.getElementById('settings-panel').style.display = 'flex';
-    document.getElementById('sfx-vol-slider').value = Settings.sfxVolume;
-    document.getElementById('music-vol-slider').value = Settings.musicVolume;
-    document.getElementById('hud-size-slider').value = Settings.hudSize;
+    const sfxSlider = document.getElementById('sfx-vol-slider');
+    const musicSlider = document.getElementById('music-vol-slider');
+    if(sfxSlider) sfxSlider.value = Settings.sfxVolume;
+    if(musicSlider) musicSlider.value = Settings.musicVolume;
     document.getElementById('sfx-vol-value').innerText = Settings.sfxVolume;
     document.getElementById('music-vol-value').innerText = Settings.musicVolume;
-    document.getElementById('hud-size-value').innerText = Settings.hudSize;
     document.querySelectorAll('#graphics-options .option-btn').forEach(b => b.classList.toggle('active', b.dataset.value === Settings.graphics));
 };
 
@@ -84,7 +84,7 @@ game.setMusicVolume = function(v) {
     MusicManager.baseVolume = 0.25 * (Settings.musicVolume / 100);
     if(MusicManager.audio && !MusicManager.audio.paused) MusicManager.audio.volume = MusicManager.baseVolume;
 };
-game.setHudSize = function(v) { Settings.hudSize = parseInt(v); Settings.save(); document.getElementById('hud-size-value').innerText = v; };
+// game.setHudSize removida (no existe en HTML)
 
 // Pantalla de Controles
 game.toggleControls = function(show) {
@@ -130,4 +130,15 @@ game.gameOver = function() {
     document.getElementById('go-time').innerText = `${mm}:${ss}`;
     document.getElementById('go-record').innerText = recordText;
     document.getElementById('gameover-screen').style.display = 'flex';
+};
+
+// === CRÉDITOS ===
+game.openCredits = function() {
+    document.getElementById('lobby-screen').style.display = 'none';
+    document.getElementById('credits-screen').style.display = 'flex';
+};
+
+game.closeCredits = function() {
+    document.getElementById('credits-screen').style.display = 'none';
+    document.getElementById('lobby-screen').style.display = 'flex';
 };

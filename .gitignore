@@ -1,0 +1,21 @@
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Audios locales (usar URLs públicas)
+Sounds/
+
+# Editor de código
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Logs
+*.log
+
+# Temporal
+.temp/
+.cache/

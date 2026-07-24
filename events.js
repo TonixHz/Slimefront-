@@ -5,9 +5,9 @@
  * corresponda con un "|| 1" / "|| 0" por defecto, tal como ya hacen los existentes.
  */
 const AmbientSFX = {
-    rain: 'Sounds/SFX/Events/soundsforyou-light-rain-ambient-114354.mp3',
-    wind: 'Sounds/SFX/Events/liecio-strong-howling-wind-132281.mp3',
-    sandstorm: 'Sounds/SFX/Events/soundreality-sandstorm-222741.mp3'
+    rain: 'https://actions.google.com/sounds/v1/weather/light_rain.ogg',
+    wind: 'https://actions.google.com/sounds/v1/weather/wind.ogg',
+    sandstorm: 'https://actions.google.com/sounds/v1/weather/wind.ogg' // reutilizar wind para sandstorm
 };
 
 // Canal de audio ambiente en loop, separado del pooling de SFX (que no soporta loop)
