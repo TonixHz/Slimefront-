@@ -1,42 +1,40 @@
 /**
- * AUDIO SYSTEM
- * Usa archivos locales. Reemplaza las URLs con rutas a tu servidor o archivos base64.
- * Por ahora fallback a Google Sounds si no están disponibles.
+ * AUDIO SYSTEM - URLs públicas para GitHub Pages
  */
 const SFX = {
-    // Disparos
-    shoot_G18: './sounds/shoot_pistol.mp3',  // PISTOLA.ogg
-    shoot_SHOTGUN: './sounds/shoot_escopeta.wav',  // ESCOPETA.wav
-    shoot_rifle: './sounds/shoot_rifles.mp3',  // RIFLES.mp3
-    shoot_smg: './sounds/shoot_smg.mp3',  // SMG.mp3
-    shoot_sniper: './sounds/shoot_sniper.mp3',  // SNIPER.mp3
-    shoot_sniper2: './sounds/shoot_sniper2.mp3',  // SNIPER2.mp3
-    shoot_revolver: './sounds/shoot_revolver.mp3',  // REVOLVER.mp3
+    // Disparos - usando URLs públicas de Freesound/Zapsplat
+    shoot_G18: 'https://freesound.org/data/previews/685/685110_16014704-lq.mp3',
+    shoot_SHOTGUN: 'https://freesound.org/data/previews/509/509659_4654381-lq.mp3',
+    shoot_rifle: 'https://freesound.org/data/previews/520/520775_9441686-lq.mp3',
+    shoot_smg: 'https://freesound.org/data/previews/471/471126_9771670-lq.mp3',
+    shoot_sniper: 'https://freesound.org/data/previews/425/425427_7033341-lq.mp3',
+    shoot_sniper2: 'https://freesound.org/data/previews/425/425427_7033341-lq.mp3',
+    shoot_revolver: 'https://freesound.org/data/previews/508/508658_10897131-lq.mp3',
     
     // Melee
-    melee: './sounds/melee.mp3',  // MEELE.mp3
-    melee2: './sounds/melee2.mp3',  // MEELE2.mp3
-    melee3: './sounds/melee3.mp3',  // MEELE3.mp3
-    chainsaw: './sounds/chainsaw.mp3',  // CHAINSAW.mp3
-    chainsaw_hit: './sounds/chainsaw_hit.mp3',  // CHAINSAWHIT.mp3
+    melee: 'https://freesound.org/data/previews/546/546604_2548421-lq.mp3',
+    melee2: 'https://freesound.org/data/previews/546/546604_2548421-lq.mp3',
+    melee3: 'https://freesound.org/data/previews/546/546604_2548421-lq.mp3',
+    chainsaw: 'https://freesound.org/data/previews/346/346110_5121236-lq.mp3',
+    chainsaw_hit: 'https://freesound.org/data/previews/346/346110_5121236-lq.mp3',
     
     // Explosiones
-    explosion: './sounds/rpg_explosion.mp3',  // RPGEXPLOSION.mp3
-    rpg: './sounds/rpg_launch.mp3',  // RPGLAUNCH.mp3
-    kamikaze: './sounds/kamikaze_explosion.mp3',  // KAMIKAZEEXPLOSION.mp3
+    explosion: 'https://freesound.org/data/previews/528/528411_9406502-lq.mp3',
+    rpg: 'https://freesound.org/data/previews/528/528411_9406502-lq.mp3',
+    kamikaze: 'https://freesound.org/data/previews/528/528411_9406502-lq.mp3',
     
     // Efectos generales
-    hit: './sounds/slime_hit.mp3',  // fallback
-    death: './sounds/slime_death.mp3',  // SLIMEDEATH.mp3
-    reload: 'https://actions.google.com/sounds/v1/weapons/weapon_cock.ogg',  // fallback Google
-    coin: 'https://actions.google.com/sounds/v1/water/droplet.ogg',  // fallback Google
-    flamethrower: './sounds/flamethrower.mp3',  // FLAMETHROWER.mp3
+    hit: 'https://freesound.org/data/previews/109/109662_1399837-lq.mp3',
+    death: 'https://freesound.org/data/previews/567/567393_12265342-lq.mp3',
+    reload: 'https://actions.google.com/sounds/v1/weapons/weapon_cock.ogg',
+    coin: 'https://actions.google.com/sounds/v1/water/droplet.ogg',
+    flamethrower: 'https://freesound.org/data/previews/511/511947_7091745-lq.mp3',
     
     // Clima
-    thunder: './sounds/thunder.mp3',  // universfield-loud-thunder-192165.mp3
-    rain: './sounds/rain.mp3',  // soundsforyou-light-rain-ambient-114354.mp3
-    wind: './sounds/wind.mp3',  // liecio-strong-howling-wind-132281.mp3
-    sandstorm: './sounds/sandstorm.mp3'  // soundreality-sandstorm-222741.mp3
+    thunder: 'https://actions.google.com/sounds/v1/weather/heavy_rain_and_thunder.ogg',
+    rain: 'https://actions.google.com/sounds/v1/weather/light_rain.ogg',
+    wind: 'https://actions.google.com/sounds/v1/weather/wind.ogg',
+    sandstorm: 'https://actions.google.com/sounds/v1/weather/wind.ogg'
 };
 
 const sfxPools = {};
@@ -66,7 +64,11 @@ function getSfxPool(key) {
 // Antes se creaban recién en el primer playSFX() de cada tipo, y esa primera
 // creación + decodificación del audio es la que generaba el delay perceptible.
 function preloadSFX() {
-    Object.keys(SFX).forEach(key => getSfxPool(key));
+    try {
+        Object.keys(SFX).forEach(key => getSfxPool(key));
+    } catch (e) {
+        console.warn('Error preloading SFX:', e);
+    }
 }
 
 function playSFX(key, vol = 0.3, pitchVar = 0.1) {

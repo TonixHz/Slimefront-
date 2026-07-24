@@ -249,20 +249,28 @@ window.addEventListener('DOMContentLoaded', () => {
     // === PANTALLA DE CARGA ===
     const loadingScreen = document.getElementById('loading-screen');
     const handleLoadingClick = () => {
+        if (!loadingScreen) return;
         loadingScreen.style.display = 'none';
-        document.getElementById('lobby-screen').style.display = 'flex';
+        loadingScreen.style.pointerEvents = 'none';
+        const lobbyScreen = document.getElementById('lobby-screen');
+        if (lobbyScreen) lobbyScreen.style.display = 'flex';
         // Precarga de SFX y música tras interacción del usuario (necesario en algunos navegadores)
-        preloadSFX();
-        MusicManager.init();
-        MusicManager.playLobby();
-        loadingScreen.removeEventListener('click', handleLoadingClick);
+        if (typeof preloadSFX === 'function') preloadSFX();
+        if (typeof MusicManager !== 'undefined') {
+            MusicManager.init();
+            MusicManager.playLobby();
+        }
     };
-    if (loadingScreen) loadingScreen.addEventListener('click', handleLoadingClick);
+    if (loadingScreen) {
+        loadingScreen.addEventListener('click', handleLoadingClick, { once: true });
+        loadingScreen.addEventListener('touchstart', handleLoadingClick, { once: true });
+        loadingScreen.addEventListener('keydown', handleLoadingClick, { once: true });
+    }
     
     // Fallback: si hay timeout, mostrar lobby automáticamente
     setTimeout(() => {
-        if (loadingScreen.style.display !== 'none') handleLoadingClick();
-    }, 3000);
+        if (loadingScreen && loadingScreen.style.display !== 'none') handleLoadingClick();
+    }, 4000);
 
     const lobbyScreen = document.getElementById('lobby-screen');
     if (lobbyScreen) {
