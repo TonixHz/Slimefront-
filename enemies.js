@@ -304,7 +304,10 @@ class Enemy {
                 ctx.beginPath(); ctx.moveTo(-20, 20); ctx.quadraticCurveTo(0, 40, 20, 20); ctx.stroke();
             }
         }
-        if (game.activeEvent === 'MUTATION') {
+        // Anillo de brillo del evento MUTACIÓN: puramente decorativo (el efecto real en
+        // el juego ya lo aplican los multiplicadores de tamaño/vida/daño del evento, no
+        // este anillo), se apaga en ULTRA.
+        if (game.fxEnabled && game.activeEvent === 'MUTATION') {
             ctx.globalAlpha = 0.35;
             ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 4;
             ctx.beginPath(); ctx.arc(0, 0, this.radius * 1.15, 0, Math.PI*2); ctx.stroke();

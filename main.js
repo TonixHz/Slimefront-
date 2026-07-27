@@ -12,7 +12,7 @@ const game = {
     particles: [], casings: [], projectiles: [], trails: [],
     camera: null,
     wave: 1, isWaveActive: false, paused: false,
-    started: false, shadowsEnabled: true,
+    started: false, shadowsEnabled: true, fxEnabled: true,
     keys: {}, mouse: { x: 0, y: 0, down: false },
     lastShot: 0, particleScale: 1, lowEnemyMode: false,
 
@@ -22,6 +22,10 @@ const game = {
         this.camera = new Camera();
         const gfx = GRAPHICS_PRESETS[Settings.graphics] || GRAPHICS_PRESETS.PRO;
         this.shadowsEnabled = gfx.shadows;
+        // Bandera global única para el resto de efectos que no pasan por un Object Pool
+        // (camera shake, destello de boca, partículas de clima, tinte ambiental). El
+        // preset ULTRA es el único que la apaga; ver GRAPHICS_PRESETS en ui.js.
+        this.fxEnabled = !gfx.ultra;
 
         // Pre-alocar arrays para Object Pooling (el tamaño depende del preset gráfico elegido)
         for(let i=0; i<gfx.particles; i++) this.particles.push(new Particle());
@@ -202,9 +206,12 @@ const game = {
         this.particles.forEach(p => { if(p.active) { p.update(); p.draw(this.camera); } });
         this.floatingTexts.forEach(t => { if(t.active) { t.update(); t.draw(this.camera); } });
 
-        // Tinte ambiental atardecer
-        ctx.fillStyle = 'rgba(230, 126, 34, 0.08)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Tinte ambiental atardecer: puramente cosmético (no aporta información de juego),
+        // se apaga en ULTRA para ahorrarse un fillRect de pantalla completa por frame.
+        if (this.fxEnabled) {
+            ctx.fillStyle = 'rgba(230, 126, 34, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
         EventManager.drawOverlay();
         // UI Updates
         const mobileControls = document.getElementById('mobile-controls');

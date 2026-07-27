@@ -1,11 +1,27 @@
 /**
  * AJUSTES DEL JUGADOR
  */
+// ULTRA: llevar los pools de partículas/casquillos/rastros a 0 reutiliza el mismo
+// Object Pooling que el juego ya usa (game.spawnParticle/spawnCasing/spawnTrail hacen
+// `find(p => !p.active)` sobre un array vacío y no crean nada), así que con solo vaciar
+// esos pools quedan automáticamente desactivados TODOS los efectos que pasan por ahí:
+// humo, chispas, sangre, partículas de muerte, rastro de dash/movimiento/fantasma/
+// kamikaze, casquillos, explosiones decorativas, etc. — sin duplicar lógica en cada
+// sitio que las dispara. La bandera "ultra" además activa game.fxEnabled (ver main.js),
+// que apaga en un único lugar los pocos efectos que NO pasan por un pool: camera shake,
+// destello de boca/glow del arma, partículas de clima y el tinte ambiental de pantalla.
 const GRAPHICS_PRESETS = {
     LOW:    { props: 100, particles: 100, casings: 30,  projectiles: 60,  trails: 60,  shadows: false },
     MEDIUM: { props: 200, particles: 200, casings: 60,  projectiles: 100, trails: 120, shadows: true },
-    PRO:    { props: 300, particles: 300, casings: 100, projectiles: 150, trails: 200, shadows: true }
+    PRO:    { props: 300, particles: 300, casings: 100, projectiles: 150, trails: 200, shadows: true },
+    ULTRA:  { props: 50,  particles: 0,   casings: 0,   projectiles: 80,  trails: 0,   shadows: false, ultra: true }
 };
+
+// Único punto que decide si el <body> lleva la clase que apaga animaciones/transiciones/
+// sombras/blur cosméticos de toda la UI (ver regla .ultra-mode en style.css).
+function applyPerfClass() {
+    if (document.body) document.body.classList.toggle('ultra-mode', Settings.graphics === 'ULTRA');
+}
 
 const Settings = {
     graphics: localStorage.getItem('slime_graphics') || 'PRO',
@@ -21,6 +37,7 @@ const Settings = {
         localStorage.setItem('slime_bestWave', this.bestWave);
     }
 };
+applyPerfClass(); // aplica la preferencia guardada (ULTRA u otro) ni bien carga el script
 
 // ---- Lobby / Pausa / Ajustes ----
 game.startFromLobby = function() {
@@ -74,6 +91,7 @@ game.setGraphics = function(tier) {
     Settings.graphics = tier;
     Settings.save();
     document.querySelectorAll('#graphics-options .option-btn').forEach(b => b.classList.toggle('active', b.dataset.value === tier));
+    applyPerfClass();
 };
 
 game.setSfxVolume = function(v) { Settings.sfxVolume = parseInt(v); Settings.save(); document.getElementById('sfx-vol-value').innerText = v; };

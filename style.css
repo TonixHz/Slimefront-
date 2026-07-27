@@ -157,3 +157,19 @@ canvas { display: block; }
 #mobile-dash-btn, #mobile-reload-btn { position: absolute; bottom: 40px; width: 65px; height: 65px; border-radius: 50%; pointer-events: all; border: 2px solid #444; background: rgba(20,25,20,0.85); color: #fff; font-family: 'Teko', sans-serif; font-size: 16px; letter-spacing: 1px; }
 #mobile-dash-btn { right: 100px; border-color: #2ecc71; }
 #mobile-reload-btn { right: 20px; border-color: #f1c40f; }
+
+/* ==========================================================================
+   ULTRA RENDIMIENTO — único punto de control para toda la UI (HTML/CSS).
+   Se activa/desactiva agregando o quitando la clase "ultra-mode" en <body>
+   (ver applyPerfClass() en ui.js), así que ningún otro selector de este
+   archivo necesita tocarse ni duplicarse: esta única regla apaga animaciones,
+   transiciones, sombras y blur en TODA la interfaz de una sola vez.
+   ========================================================================== */
+body.ultra-mode * {
+    animation: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+    filter: none !important;
+}

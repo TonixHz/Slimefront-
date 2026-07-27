@@ -160,7 +160,8 @@ class Player {
             ctx.translate(this.radius - 5, 0); 
             ctx.translate(-this.recoilOffset, 0); 
             
-            ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 3;
+            // Sombra proyectada del arma: puramente cosmética/postprocesado, se apaga en ULTRA
+            if (game.fxEnabled) { ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 3; }
             
             if (this.weapon.name === 'AK47') {
                 ctx.fillStyle = '#873600'; ctx.fillRect(-10, -3, 15, 6); 
@@ -264,7 +265,8 @@ class Player {
             
             ctx.shadowBlur = 0; ctx.shadowColor = 'transparent'; ctx.shadowOffsetY = 0;
 
-            if (this.muzzleFlash > 0 && this.weapon.type === 'range') {
+            // Destello de boca/glow: efecto puramente cosmético, se apaga por completo en ULTRA
+            if (game.fxEnabled && this.muzzleFlash > 0 && this.weapon.type === 'range') {
                 ctx.fillStyle = '#f1c40f';
                 ctx.globalAlpha = 0.9;
                 ctx.beginPath();

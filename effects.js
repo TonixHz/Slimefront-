@@ -382,10 +382,16 @@ class Camera {
         this.x = Math.max(0, Math.min(this.x, MAP_SIZE - canvas.width));
         this.y = Math.max(0, Math.min(this.y, MAP_SIZE - canvas.height));
         
-        if (this.shake > 0.1) {
+        // Screen shake: único punto que aplica el shake acumulado por armas/explosiones/etc.
+        // (todas esas asignaciones directas a game.camera.shake siguen intactas, simplemente
+        // no se traducen en desplazamiento de cámara cuando game.fxEnabled está apagado, como
+        // ocurre con el preset ULTRA).
+        if (game.fxEnabled && this.shake > 0.1) {
             this.x += (Math.random() - 0.5) * this.shake;
             this.y += (Math.random() - 0.5) * this.shake;
             this.shake *= 0.85; 
+        } else {
+            this.shake = 0;
         }
     }
 }

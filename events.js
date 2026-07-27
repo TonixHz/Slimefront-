@@ -14,6 +14,9 @@ const WEATHER_POOL_SIZE = 400;
 let weatherParticles = Array.from({ length: WEATHER_POOL_SIZE }, () => ({ active: false }));
 let weatherCursor = 0;
 function spawnWeatherParticle(kind, color) {
+    // Puramente decorativo (no aporta información de juego, a diferencia de los overlays
+    // de visión de niebla/oscuridad): se desactiva por completo en el preset ULTRA.
+    if (!game.fxEnabled) return;
     if (Math.random() > (game.particleScale || 1)) return; // reduce automáticamente el spawn con mucha carga activa
     const p = weatherParticles[weatherCursor];
     weatherCursor = (weatherCursor + 1) % weatherParticles.length;
