@@ -323,3 +323,4 @@ document.addEventListener('mouseover', e => {
     const btn = e.target.closest('.menu-btn, .option-btn, .buy-btn, .sell-btn, .depart-btn, .shop-btn');
     if (btn) playSFX('ui_hover', 0.15, 0.05);
 });
+});   

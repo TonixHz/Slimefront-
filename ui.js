@@ -89,7 +89,8 @@ game.setMusicVolume = function(v) {
 // Pantalla de Controles
 game.toggleControls = function(show) {
     document.getElementById('lobby-screen').style.display = show ? 'none' : 'flex';
-    document.getElementById('controls-panel').style.display = show ? 'flex' : 'none';
+    const panel = document.getElementById('controls-panel');
+    if (panel) panel.style.display = show ? 'flex' : 'none';
 };
 
 game.updateShop = function() {
