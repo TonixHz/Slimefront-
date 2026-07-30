@@ -1,55 +1,23 @@
 /**
  * SISTEMA DE NIVEL / XP + PERFIL DEL JUGADOR
- * Módulo nuevo y aditivo: no reescribe ninguna mecánica existente, solo
- * "envuelve" (wrap) las funciones ya presentes en el juego (game.hitEnemy,
- * game.shoot, game.loop, game.gameOver, Player.prototype.update) para
- * escuchar eventos que ya ocurren y sumar XP / estadísticas sin duplicar
- * lógica de combate, economía ni oleadas.
- *
- * NOTA (migración a Firebase): el SaveSystem (localStorage puro) que antes vivía
- * acá se reemplazó por FirebaseSaveSystem.js (Auth + Firestore + caché local,
- * offline-first). Ese archivo se carga ANTES que este y define el mismo objeto
- * global `SaveSystem` con exactamente la misma interfaz (get/set), así que todo
- * lo de más abajo sigue funcionando sin cambios.
- *
- * Como el login con Google resuelve de forma asíncrona (después de que este
- * script ya construyó PlayerProfile con lo que había en la caché local), nos
- * suscribimos con SaveSystem.onRemoteData para "refrescar" PlayerProfile si
- * llegan datos más nuevos desde la nube una vez el usuario inicia sesión.
- */
-
-/**
- * UPDATE 7 — BALANCE DE PROGRESIÓN
- * Todo el ritmo de la experiencia vive en este único objeto: subir XP_CONFIG.curveBase
- * o bajar los valores de perKill/waveClear alcanza para rebalancear el juego entero sin
- * tocar la lógica de más abajo. Respecto de la Update 6 se bajó mucho la XP otorgada por
- * kill/oleada y se subió la curva de nivel, para que los niveles altos cuesten de verdad.
  */
 const XP_CONFIG = {
-    curveBase: 150,      // XP para pasar de nivel 1 a 2
-    curveGrowth: 1.22,   // multiplicador de dificultad por cada nivel adicional
+    curveBase: 150,
+    curveGrowth: 1.22,
     perKill: { BOSS: 40, TANK: 3, RANGED: 2, FAST: 1, BASIC: 1, INVISIBLE: 2, KAMIKAZE: 1, GHOST: 2 },
     perKillDefault: 1,
     waveClearBase: 8,
     waveClearPerWave: 2
 };
 
-// Curva de XP: cuánta experiencia hace falta para pasar del nivel N al N+1.
 function xpToNextLevel(level) {
     return Math.floor(XP_CONFIG.curveBase * Math.pow(XP_CONFIG.curveGrowth, level - 1));
 }
 
-// XP otorgada por eliminar cada tipo de enemigo (mismas claves que REWARDS de dinero en player.js)
 const XP_PER_KILL = XP_CONFIG.perKill;
 const XP_PER_KILL_DEFAULT = XP_CONFIG.perKillDefault;
-// XP por completar una oleada (crece con el número de oleada)
 function xpForWaveClear(wave) { return XP_CONFIG.waveClearBase + wave * XP_CONFIG.waveClearPerWave; }
 
-// Recompensas por nivel: único lugar a editar para agregar/cambiar hitos.
-// type: 'money' (se acredita directo), 'diamonds' (moneda premium, ver PlayerProfile.diamonds),
-// 'box'/'skin'/'title' (por ahora solo quedan registradas en profile.unlocks, listas para que
-// un sistema de cosméticos las use). IMPORTANTE (Update 7): los niveles NUNCA otorgan XP como
-// recompensa (el XP ya es lo que cuesta subir de nivel); solo dinero/diamantes/cosméticos.
 const LEVEL_REWARDS = {
     5:  { type: 'money', amount: 300, label: '+$300' },
     10: { type: 'diamonds', amount: 20, label: '+20 💎' },
@@ -61,18 +29,25 @@ const LEVEL_REWARDS = {
     50: { type: 'diamonds', amount: 100, label: '+100 💎' }
 };
 
-// Perfil persistente del jugador. Preparado para sumar más estadísticas sin migraciones:
-// cualquier campo nuevo que se agregue acá simplemente empieza en su valor por defecto
-// para partidas viejas (Object.assign conserva lo guardado y completa lo que falte).
-const PlayerProfile = Object.assign({
+const PLAYER_PROFILE_DEFAULTS = {
     level: 1, xp: 0,
     playTimeSec: 0, kills: 0, deaths: 0,
     shotsFired: 0, shotsHit: 0,
     weaponUsage: {}, distance: 0, bestWave: 0,
     unlocks: [], diamonds: 0
-}, SaveSystem.get('profile', {}));
+};
+const PlayerProfile = Object.assign({}, PLAYER_PROFILE_DEFAULTS, SaveSystem.get('profile', {}));
 
-PlayerProfile.save = function() { SaveSystem.set('profile', this); }; // funciones no se serializan, JSON.stringify las ignora solo
+PlayerProfile.save = function() { SaveSystem.set('profile', this); };
+
+PlayerProfile.reset = function() {
+    Object.keys(PLAYER_PROFILE_DEFAULTS).forEach(k => {
+        const d = PLAYER_PROFILE_DEFAULTS[k];
+        this[k] = Array.isArray(d) ? [] : (d && typeof d === 'object' ? {} : d);
+    });
+    this.save();
+    if (typeof game !== 'undefined' && game.updateLevelHUD) game.updateLevelHUD();
+};
 
 game.grantXP = function(amount) {
     amount = Math.floor(amount);
@@ -89,9 +64,6 @@ game.grantXP = function(amount) {
     PlayerProfile.save();
 };
 
-// Moneda premium nueva (Update 7). Se acredita directo si hay partida en curso; si no,
-// como PlayerProfile.diamonds es persistente y no depende de game.player, no necesita
-// cola de "pendiente" como el dinero de logros: siempre está disponible.
 game.grantDiamonds = function(amount) {
     amount = Math.floor(amount);
     if (amount <= 0) return;
@@ -114,7 +86,7 @@ game.showLevelUp = function(level) {
     const reward = LEVEL_REWARDS[level];
     el.innerHTML = `¡NIVEL ${level}!` + (reward ? `<span>${reward.label}</span>` : '');
     el.classList.remove('show');
-    void el.offsetWidth; // fuerza reflow para poder re-disparar la animación en niveles consecutivos
+    void el.offsetWidth;
     el.classList.add('show');
     clearTimeout(game._levelupToastTimer);
     game._levelupToastTimer = setTimeout(() => el.classList.remove('show'), 2400);
@@ -128,7 +100,6 @@ game.updateLevelHUD = function() {
     xpEl.style.width = Math.min(100, (PlayerProfile.xp / xpToNextLevel(PlayerProfile.level)) * 100) + "%";
 };
 
-// ---- Pantalla de Perfil ----
 game.openProfile = function() {
     document.getElementById('lobby-screen').style.display = 'none';
     const p = PlayerProfile;
@@ -161,18 +132,10 @@ game.closeProfile = function() {
     document.getElementById('lobby-screen').style.display = 'flex';
 };
 
-// ---- Hooks (wrapping no invasivo de funciones ya existentes) ----
-
-// Kills + XP por enemigo + arma favorita: se detecta la transición viva -> muriendo
-// dentro del mismo hitEnemy que ya usa el juego para dinero/partículas/floating text.
 const _levelOrigHitEnemy = game.hitEnemy;
 game.hitEnemy = function(e, dmg, meta) {
     const wasAlive = !e.isDying;
     _levelOrigHitEnemy.call(this, e, dmg);
-    // Solo cuenta como "impacto" (precisión) los golpes marcados como disparo
-    // real del jugador, y como máximo 1 por disparo efectivamente hecho (evita
-    // que perdigones de escopeta que pegan en varios enemigos, o el pierce,
-    // inflen shotsHit por sobre lo que realmente disparó el jugador).
     if (meta && meta.playerShot && !this._shotHitRegistered) {
         PlayerProfile.shotsHit++;
         this._shotHitRegistered = true;
@@ -185,8 +148,6 @@ game.hitEnemy = function(e, dmg, meta) {
     }
 };
 
-// Disparos efectivos (para precisión): se detecta comparando game.lastShot antes/después,
-// que el propio juego ya actualiza únicamente cuando el arma efectivamente dispara.
 const _levelOrigShoot = game.shoot;
 game.shoot = function() {
     const w = this.player && this.player.weapon;
@@ -194,11 +155,10 @@ game.shoot = function() {
     _levelOrigShoot.call(this);
     if (w && this.lastShot !== prevLastShot && w.type !== 'melee') {
         PlayerProfile.shotsFired++;
-        this._shotHitRegistered = false; // nuevo disparo: habilita registrar como máx. 1 impacto
+        this._shotHitRegistered = false;
     }
 };
 
-// Distancia recorrida: se mide el desplazamiento real ya aplicado por el movimiento del jugador.
 const _levelOrigPlayerUpdate = Player.prototype.update;
 Player.prototype.update = function(keys) {
     const px = this.x, py = this.y;
@@ -207,8 +167,6 @@ Player.prototype.update = function(keys) {
     if (d > 0) PlayerProfile.distance += d;
 };
 
-// Oleadas: XP por cada oleada superada + refresco del HUD de nivel, enganchado al loop principal
-// (se detecta el mismo incremento de this.wave que ya dispara la tienda entre oleadas).
 const _levelOrigLoop = game.loop;
 game.loop = function() {
     const waveBefore = this.wave;
@@ -221,7 +179,6 @@ game.loop = function() {
     game.updateLevelHUD();
 };
 
-// Muertes + tiempo jugado acumulado, sin tocar la lógica de fin de partida existente.
 const _levelOrigGameOver = game.gameOver;
 game.gameOver = function() {
     PlayerProfile.deaths++;
@@ -233,16 +190,12 @@ game.gameOver = function() {
 
 window.addEventListener('beforeunload', () => PlayerProfile.save());
 
-// ---- Migración a Firebase: refresco cuando llegan datos remotos más nuevos que la
-// caché local con la que se armó PlayerProfile al cargar este script ----
 SaveSystem.onRemoteData(function(keys) {
     if (!keys.includes('profile')) return;
     Object.assign(PlayerProfile, SaveSystem.get('profile', {}));
     game.updateLevelHUD();
 });
 
-// Botón de Perfil en el lobby + HUD inicial. Se registra después que main.js arma el
-// innerHTML del lobby, así que se agrega al final del panel sin pisar nada.
 window.addEventListener('DOMContentLoaded', () => {
     const panel = document.querySelector('#lobby-screen .menu-panel');
     if (panel) {

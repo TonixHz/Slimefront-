@@ -37,6 +37,13 @@
  *   nadie la llama todavía: es la base para una futura pantalla de "Top jugadores"
  *   sin tener que rediseñar nada de este archivo.
  *
+ * NUEVO (boot flow): SaveSystem.ready es una Promise que resuelve cuando Firebase
+ * Auth ya resolvió su primer estado (logueado o no) y, si había sesión, ya se bajó
+ * el progreso de Firestore. boot.js espera esto antes de mostrar cualquier pantalla.
+ *
+ * NUEVO: SaveSystem.clearProgress() borra por completo el progreso (local + nube),
+ * usado desde Ajustes → Borrar progreso.
+ *
  * Debe cargarse:
  *   - DESPUÉS de los <script> del SDK de Firebase (compat) en index.html.
  *   - ANTES de level.js / progression.js / achievements.js (que consumen SaveSystem).
@@ -79,6 +86,11 @@ const SaveSystem = {
     _dirty: new Set(),
     _pushTimer: null,
     _remoteListeners: [],
+    ready: null,        // Promise que resuelve cuando Firebase Auth ya resolvió su
+                         // primer estado (logueado o no) Y, si había sesión, ya se
+                         // bajó el progreso de Firestore. boot.js espera esto antes
+                         // de mostrar cualquier pantalla.
+    _readyResolve: null,
 
     // ================= LECTURA / ESCRITURA (misma interfaz que el SaveSystem viejo) =================
 
@@ -122,32 +134,32 @@ const SaveSystem = {
         this._pushTimer = setTimeout(() => this._pushDirty(), _SYNC_DEBOUNCE_MS);
     },
 
-async _pushDirty() {
-    if (!this._uid || this._dirty.size === 0) return;
-    const keys = Array.from(this._dirty);
-    this._dirty.clear();
-    const patch = {};
-    keys.forEach(k => {
-        // Firestore rechaza con "invalid-argument" cualquier valor no serializable
-        // (funciones, undefined, etc.). PlayerProfile, por ejemplo, tiene su propio
-        // método .save colgando del mismo objeto que se cachea acá (ver level.js:
-        // "PlayerProfile.save = function(){...}"), y localStorage lo tolera porque
-        // JSON.stringify ignora funciones en silencio, pero el SDK de Firestore no.
-        // Pasamos todo por el mismo ciclo JSON para quedarnos solo con datos planos.
+    async _pushDirty() {
+        if (!this._uid || this._dirty.size === 0) return;
+        const keys = Array.from(this._dirty);
+        this._dirty.clear();
+        const patch = {};
+        keys.forEach(k => {
+            // Firestore rechaza con "invalid-argument" cualquier valor no serializable
+            // (funciones, undefined, etc.). PlayerProfile, por ejemplo, tiene su propio
+            // método .save colgando del mismo objeto que se cachea acá (ver level.js:
+            // "PlayerProfile.save = function(){...}"), y localStorage lo tolera porque
+            // JSON.stringify ignora funciones en silencio, pero el SDK de Firestore no.
+            // Pasamos todo por el mismo ciclo JSON para quedarnos solo con datos planos.
+            try {
+                patch[k] = JSON.parse(JSON.stringify(this._cache[k]));
+            } catch (e) {
+                console.warn(`[FirebaseSaveSystem] No se pudo serializar la key "${k}", se omite este ciclo de sync:`, e);
+            }
+        });
+        patch._updatedAt = firebase.firestore.FieldValue.serverTimestamp();
         try {
-            patch[k] = JSON.parse(JSON.stringify(this._cache[k]));
+            await _db.collection(PLAYERS_COLLECTION).doc(this._uid).set(patch, { merge: true });
         } catch (e) {
-            console.warn(`[FirebaseSaveSystem] No se pudo serializar la key "${k}", se omite este ciclo de sync:`, e);
+            console.warn('[FirebaseSaveSystem] Firestore no disponible, se sigue jugando con la caché local. Reintentará:', e.code || e);
+            keys.forEach(k => this._dirty.add(k));
         }
-    });
-    patch._updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-    try {
-        await _db.collection(PLAYERS_COLLECTION).doc(this._uid).set(patch, { merge: true });
-    } catch (e) {
-        console.warn('[FirebaseSaveSystem] Firestore no disponible, se sigue jugando con la caché local. Reintentará:', e.code || e);
-        keys.forEach(k => this._dirty.add(k));
-    }
-},
+    },
 
     // Fuerza el envío inmediato (se usa al cerrar sesión o al salir de la pestaña)
     async flush() {
@@ -172,6 +184,29 @@ async _pushDirty() {
             if (changedKeys.length) this._notifyRemote(changedKeys);
         } catch (e) {
             console.warn('[FirebaseSaveSystem] No se pudo descargar el progreso de la nube, se sigue con la caché local:', e.code || e);
+        }
+    },
+
+    // ================= BORRADO TOTAL DE PROGRESO (nuevo) =================
+    // Borra localStorage + caché en memoria + el documento en Firestore (si hay
+    // sesión). NO toca la sesión de auth ni las preferencias de gráficos/volumen
+    // (esas viven aparte, en Settings de ui.js).
+    async clearProgress() {
+        const keys = ['profile', 'progression', 'achv_stats', 'achv_state'];
+        keys.forEach(k => {
+            delete this._cache[k];
+            this._dirty.delete(k);
+            try { localStorage.removeItem(_LOCAL_PREFIX + k); } catch (e) {}
+        });
+        clearTimeout(this._pushTimer);
+        if (this._uid) {
+            try {
+                // set con merge:false reemplaza el documento entero por uno vacío,
+                // borrando cualquier campo viejo que hubiera en la nube.
+                await _db.collection(PLAYERS_COLLECTION).doc(this._uid).set({}, { merge: false });
+            } catch (e) {
+                console.warn('[FirebaseSaveSystem] No se pudo borrar el progreso en la nube:', e.code || e);
+            }
         }
     },
 
@@ -210,6 +245,8 @@ async _pushDirty() {
     },
 
     init() {
+        this.ready = new Promise(resolve => { this._readyResolve = resolve; });
+        let firstCheck = true;
         _auth.onAuthStateChanged(async user => {
             this._uid = user ? user.uid : null;
             if (user) {
@@ -218,6 +255,7 @@ async _pushDirty() {
             } else {
                 document.dispatchEvent(new CustomEvent('savesystem:logout'));
             }
+            if (firstCheck) { firstCheck = false; this._readyResolve(); }
         });
         // Último intento de guardar antes de cerrar/recargar la pestaña
         window.addEventListener('beforeunload', () => { this._pushDirty(); });

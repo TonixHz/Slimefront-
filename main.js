@@ -15,8 +15,17 @@ const game = {
     started: false, shadowsEnabled: true, fxEnabled: true,
     keys: {}, mouse: { x: 0, y: 0, down: false },
     lastShot: 0, particleScale: 1, lowEnemyMode: false,
+    _inputBound: false,
 
     init() {
+        // Reset completo: init() ahora puede llamarse más de una vez en la misma
+        // sesión de página (Jugar de Nuevo / Volver al Menú y volver a jugar), así
+        // que hay que vaciar todo lo que antes solo se llenaba una vez.
+        this.enemies = []; this.props = []; this.floatingTexts = [];
+        this.particles = []; this.casings = []; this.projectiles = []; this.trails = [];
+        this.wave = 1; this.isWaveActive = false; this.paused = false;
+        if (typeof EventManager !== 'undefined') EventManager.deactivate();
+
         this.started = true;
         this.player = new Player();
         this.camera = new Camera();
@@ -51,24 +60,26 @@ const game = {
         this.props.sort((a,b) => (a.isSolid ? 1 : 0) - (b.isSolid ? 1 : 0));
         this.buildPropGrid();
         this.startTime = Date.now();
-        
-        window.addEventListener('keydown', e => {
-            this.keys[e.code] = true;
-            if(e.key >= 1 && e.key <= 5) this.player.activeSlot = e.key - 1;
-            if(e.code === 'KeyR') this.reload();
-            if(e.code === 'Space') {
-                e.preventDefault(); // evita que la página scrollee con la barra espaciadora
-                if(!this.paused) this.player.dash();
-            }
-            if(e.code === 'Escape') this.toggleEscMenu();
-        });
-        window.addEventListener('keyup', e => this.keys[e.code] = false);
-        window.addEventListener('mousemove', e => { this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
-        window.addEventListener('mousedown', () => this.mouse.down = true);
-        window.addEventListener('mouseup', () => this.mouse.down = false);
+
+        if (!this._inputBound) {
+            this._inputBound = true;
+            window.addEventListener('keydown', e => {
+                this.keys[e.code] = true;
+                if(e.key >= 1 && e.key <= 5) this.player.activeSlot = e.key - 1;
+                if(e.code === 'KeyR') this.reload();
+                if(e.code === 'Space') {
+                    e.preventDefault(); // evita que la página scrollee con la barra espaciadora
+                    if(!this.paused) this.player.dash();
+                }
+                if(e.code === 'Escape') this.toggleEscMenu();
+            });
+            window.addEventListener('keyup', e => this.keys[e.code] = false);
+            window.addEventListener('mousemove', e => { this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
+            window.addEventListener('mousedown', () => this.mouse.down = true);
+            window.addEventListener('mouseup', () => this.mouse.down = false);
+        }
 
         this.startNextWave();
-        this.loop();
     },
 
     // Sistema de Colisiones Físicas Circulares contra el entorno
@@ -85,6 +96,15 @@ const game = {
     },
 
     loop() {
+        // Mientras no haya partida activa (menú, login, etc.) el loop no dibuja ni
+        // actualiza nada — solo se reprograma. Esto permite que exista UN SOLO loop
+        // arrancado una sola vez al cargar la página (ver el final de este archivo),
+        // en vez de arrancar uno nuevo cada vez que se llama a init().
+        if (!this.started || !this.player || !this.camera) {
+            requestAnimationFrame(() => this.loop());
+            return;
+        }
+
         this.camera.follow(this.player);
         // Tiempo Lento: si el evento está activo, solo la mitad de los frames ejecutan lógica de juego
         this._slowToggle = !this._slowToggle;
@@ -252,33 +272,12 @@ const game = {
 
 window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
 
-window.addEventListener('DOMContentLoaded', () => {
-    // === PANTALLA DE CARGA ===
-    const loadingScreen = document.getElementById('loading-screen');
-    const handleLoadingClick = () => {
-        if (!loadingScreen) return;
-        loadingScreen.style.display = 'none';
-        loadingScreen.style.pointerEvents = 'none';
-        const lobbyScreen = document.getElementById('lobby-screen');
-        if (lobbyScreen) lobbyScreen.style.display = 'flex';
-        // Precarga de SFX y música tras interacción del usuario (necesario en algunos navegadores)
-        if (typeof preloadSFX === 'function') preloadSFX();
-        if (typeof MusicManager !== 'undefined') {
-            MusicManager.init();
-            MusicManager.playLobby();
-        }
-    };
-    if (loadingScreen) {
-        loadingScreen.addEventListener('click', handleLoadingClick, { once: true });
-        loadingScreen.addEventListener('touchstart', handleLoadingClick, { once: true });
-        loadingScreen.addEventListener('keydown', handleLoadingClick, { once: true });
-    }
-    
-    // Fallback: si hay timeout, mostrar lobby automáticamente
-    setTimeout(() => {
-        if (loadingScreen && loadingScreen.style.display !== 'none') handleLoadingClick();
-    }, 4000);
+// Arranca el único loop de renderizado del juego. Gracias al guard agregado al
+// principio de loop(), esto no dibuja nada hasta que exista game.player (o sea,
+// hasta el primer game.init()), así que es seguro llamarlo ya mismo.
+game.loop();
 
+window.addEventListener('DOMContentLoaded', () => {
     const lobbyScreen = document.getElementById('lobby-screen');
     if (lobbyScreen) {
         lobbyScreen.innerHTML = `
@@ -325,17 +324,14 @@ window.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    const retryLobbyMusic = () => MusicManager.start();
-    window.addEventListener('keydown', retryLobbyMusic, { once: true });
-    window.addEventListener('mousedown', retryLobbyMusic, { once: true });
-document.addEventListener('click', e => {
-    const btn = e.target.closest('.menu-btn, .option-btn, .buy-btn, .sell-btn, .depart-btn, .shop-btn');
-    if (!btn) return;
-    const isBack = btn.textContent.includes('VOLVER') || btn.onclick?.toString().includes('close');
-    playSFX(isBack ? 'ui_back' : 'ui_click', 0.4);
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.menu-btn, .option-btn, .buy-btn, .sell-btn, .depart-btn, .shop-btn');
+        if (!btn) return;
+        const isBack = btn.textContent.includes('VOLVER') || btn.onclick?.toString().includes('close');
+        playSFX(isBack ? 'ui_back' : 'ui_click', 0.4);
+    });
+    document.addEventListener('mouseover', e => {
+        const btn = e.target.closest('.menu-btn, .option-btn, .buy-btn, .sell-btn, .depart-btn, .shop-btn');
+        if (btn) playSFX('ui_hover', 0.15, 0.05);
+    });
 });
-document.addEventListener('mouseover', e => {
-    const btn = e.target.closest('.menu-btn, .option-btn, .buy-btn, .sell-btn, .depart-btn, .shop-btn');
-    if (btn) playSFX('ui_hover', 0.15, 0.05);
-});
-});   

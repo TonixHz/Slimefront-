@@ -1,15 +1,6 @@
 /**
  * AJUSTES DEL JUGADOR
  */
-// ULTRA: llevar los pools de partículas/casquillos/rastros a 0 reutiliza el mismo
-// Object Pooling que el juego ya usa (game.spawnParticle/spawnCasing/spawnTrail hacen
-// `find(p => !p.active)` sobre un array vacío y no crean nada), así que con solo vaciar
-// esos pools quedan automáticamente desactivados TODOS los efectos que pasan por ahí:
-// humo, chispas, sangre, partículas de muerte, rastro de dash/movimiento/fantasma/
-// kamikaze, casquillos, explosiones decorativas, etc. — sin duplicar lógica en cada
-// sitio que las dispara. La bandera "ultra" además activa game.fxEnabled (ver main.js),
-// que apaga en un único lugar los pocos efectos que NO pasan por un pool: camera shake,
-// destello de boca/glow del arma, partículas de clima y el tinte ambiental de pantalla.
 const GRAPHICS_PRESETS = {
     LOW:    { props: 100, particles: 100, casings: 30,  projectiles: 60,  trails: 60,  shadows: false },
     MEDIUM: { props: 200, particles: 200, casings: 60,  projectiles: 100, trails: 120, shadows: true },
@@ -17,8 +8,6 @@ const GRAPHICS_PRESETS = {
     ULTRA:  { props: 50,  particles: 0,   casings: 0,   projectiles: 80,  trails: 0,   shadows: false, ultra: true }
 };
 
-// Único punto que decide si el <body> lleva la clase que apaga animaciones/transiciones/
-// sombras/blur cosméticos de toda la UI (ver regla .ultra-mode en style.css).
 function applyPerfClass() {
     if (document.body) document.body.classList.toggle('ultra-mode', Settings.graphics === 'ULTRA');
 }
@@ -37,9 +26,8 @@ const Settings = {
         localStorage.setItem('slime_bestWave', this.bestWave);
     }
 };
-applyPerfClass(); // aplica la preferencia guardada (ULTRA u otro) ni bien carga el script
+applyPerfClass();
 
-// ---- Lobby / Pausa / Ajustes ----
 game.startFromLobby = function() {
     document.getElementById('lobby-screen').style.display = 'none';
     MusicManager.duck(500);
@@ -67,7 +55,73 @@ game.closeEscMenu = function() {
     MusicManager.resume(600);
 };
 
-game.goToMainMenu = function() { location.reload(); };
+// Vuelve al menú SIN recargar la página: pausa/limpia la partida en curso y
+// muestra el lobby. Sirve tanto desde el menú de pausa (ESC) como desde la
+// pantalla de Game Over.
+game.goToMainMenu = function() {
+    document.getElementById('gameover-screen').style.display = 'none';
+    document.getElementById('esc-menu').style.display = 'none';
+    document.getElementById('shop-menu').style.display = 'none';
+
+    this.started = false; // el loop único de main.js deja de dibujar en el próximo frame
+    this.paused = true;
+    this.isWaveActive = false;
+    this.enemies = [];
+    if (this.particles) this.particles.forEach(p => p.active = false);
+    if (this.casings) this.casings.forEach(c => c.active = false);
+    if (this.projectiles) this.projectiles.forEach(p => p.active = false);
+    if (this.trails) this.trails.forEach(t => t.active = false);
+    if (this.floatingTexts) this.floatingTexts.forEach(t => t.active = false);
+    if (typeof EventManager !== 'undefined') EventManager.deactivate();
+
+    MusicManager.duck(400);
+    MusicManager.tracks = MusicManager.mainTracks;
+    MusicManager.currentIndex = -1;
+    setTimeout(() => { if (!game.started) MusicManager.start(); }, 450);
+
+    document.getElementById('lobby-screen').style.display = 'flex';
+};
+
+// Arranca una partida nueva directo desde la pantalla de Game Over (sin pasar
+// por el menú principal).
+game.playAgain = function() {
+    document.getElementById('gameover-screen').style.display = 'none';
+    MusicManager.duck(300);
+    this.init();
+};
+
+// ---- Cuenta: cerrar sesión / borrar progreso (Ajustes) ----
+game.openLogoutConfirm = function() { document.getElementById('confirm-logout-modal').style.display = 'flex'; };
+game.closeLogoutConfirm = function() { document.getElementById('confirm-logout-modal').style.display = 'none'; };
+game.confirmLogout = async function() {
+    game.closeLogoutConfirm();
+    document.getElementById('settings-panel').style.display = 'none';
+    await SaveSystem.signOut();
+    // Recargar es la forma más simple de garantizar que no quede ningún estado de
+    // partida colgado; boot.js detecta que no hay sesión y muestra el login.
+    location.reload();
+};
+
+game.openDeleteConfirm = function() { document.getElementById('confirm-delete-modal').style.display = 'flex'; };
+game.closeDeleteConfirm = function() { document.getElementById('confirm-delete-modal').style.display = 'none'; };
+
+game.resetAllProgress = async function() {
+    if (typeof SaveSystem.clearProgress === 'function') await SaveSystem.clearProgress();
+    if (typeof PlayerProfile !== 'undefined') PlayerProfile.reset();
+    if (typeof AchievementManager !== 'undefined') AchievementManager.resetAll();
+    if (typeof Progression !== 'undefined') Progression.reset();
+    Settings.bestWave = 0;
+    Settings.save();
+};
+
+game.confirmDeleteProgress = async function() {
+    game.closeDeleteConfirm();
+    document.getElementById('settings-panel').style.display = 'none';
+    await game.resetAllProgress();
+    // Mantiene la sesión iniciada (no llamamos a signOut) y recarga para volver
+    // al estado inicial sin ningún dato en memoria desincronizado.
+    location.reload();
+};
 
 game.openSettings = function(from) {
     this.settingsOrigin = from;
@@ -102,9 +156,7 @@ game.setMusicVolume = function(v) {
     MusicManager.baseVolume = 0.25 * (Settings.musicVolume / 100);
     if(MusicManager.audio && !MusicManager.audio.paused) MusicManager.audio.volume = MusicManager.baseVolume;
 };
-// game.setHudSize removida (no existe en HTML)
 
-// Pantalla de Controles
 game.toggleControls = function(show) {
     document.getElementById('lobby-screen').style.display = show ? 'none' : 'flex';
     const panel = document.getElementById('controls-panel');

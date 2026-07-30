@@ -1,23 +1,5 @@
 /**
  * SISTEMA DE LOGROS
- * Modular y aditivo, siguiendo el mismo patrón que level.js: envuelve (wrap) funciones
- * ya existentes para escuchar eventos del juego sin duplicar lógica de combate/economía.
- *
- * Para agregar un logro nuevo alcanza con sumar una entrada a ACHIEVEMENTS_DB (o usar
- * buildChain para una cadena progresiva) indicando su "trigger" (cuándo se re-evalúa) y
- * su getValue() (de dónde saca el progreso actual). Nunca hay condiciones de logros
- * sueltas dentro de la lógica principal del juego: todo vive acá.
- *
- * Persistencia: reutiliza SaveSystem (ahora definido en FirebaseSaveSystem.js, con
- * Auth + Firestore + caché local offline-first). El día que se quiera cambiar cómo se
- * guarda, alcanza con tocar ese archivo, no este.
- *
- * UPDATE 7 — BALANCE: todos los umbrales de logros viven como números literales dentro
- * de cada buildChain/buildUnique de más abajo (agrupados por sección) para que ajustar
- * la dificultad sea simplemente cambiar esos números, sin tocar el motor de evaluación.
- * Se subieron considerablemente respecto de la Update 6, sobre todo en las últimas
- * etapas (Mítico/Legendario) y en las cadenas de progreso, para que requieran muchas
- * partidas y no se completen en las primeras horas de juego.
  */
 
 const RARITY = {
@@ -39,7 +21,6 @@ const ACHIEVEMENT_CATEGORIES = {
     SPECIAL:     '🎖️ Especiales'
 };
 
-// Mapeo cosmético arma -> categoría (independiente de WEAPONS_DB, solo para agrupar logros)
 const WEAPON_CATEGORY = {
     KNIFE: 'melee', MACHETE: 'melee', CHAINSAW: 'melee',
     G18: 'pistol', REVOLVER: 'pistol',
@@ -52,8 +33,6 @@ const WEAPON_CATEGORY = {
 };
 const TOTAL_WEAPON_COUNT = Object.keys(WEAPON_CATEGORY).length;
 
-// Íconos por categoría cosmética de arma (mismas claves que WEAPON_CATEGORY),
-// usados solo para agrupar/mostrar los logros de "Especialista <categoría>".
 const CATEGORY_META = {
     melee:   { icon: '🔪' },
     pistol:  { icon: '🔫' },
@@ -67,9 +46,6 @@ const CATEGORY_META = {
 
 function fmt(n) { return n.toLocaleString('es-ES'); }
 
-// Recompensa de un logro. Nunca otorga XP "gratis" de más: el xp de logro es aparte del
-// xp de nivel (que ahora se rebalanceó en level.js) y sirve como bonus de progreso, no
-// reemplaza los requisitos de nivel. Acepta diamantes (moneda nueva, ver level.js).
 function reward(opts) {
     opts = opts || {};
     const xp = opts.xp || 0, money = opts.money || 0, diamonds = opts.diamonds || 0;
@@ -82,8 +58,7 @@ function reward(opts) {
     return { xp, money, diamonds, label: parts.join('  ') || opts.label || '', cosmetic };
 }
 
-// ---- Progreso/estadísticas usadas exclusivamente por los logros (no duplica lo de level.js) ----
-const AchievementStats = Object.assign({
+const ACHIEVEMENT_STATS_DEFAULTS = {
     bossKills: 0, categoryKills: {}, weaponsUsed: [], reloads: 0,
     killStreakNoDeath: 0, bestKillStreak: 0, meleeBossKills: 0,
     perfectWaves: 0, eventsCompleted: 0, eventTypesCompleted: [],
@@ -91,9 +66,9 @@ const AchievementStats = Object.assign({
     upgradesBuys: 0, upgradesTouched: [], healthPackUses: 0, dashUses: 0,
     proWavesCleared: 0, moneyEarned: 0, bossWavesDefeated: [], lowHpClears: 0,
     pendingMoney: 0
-}, SaveSystem.get('achv_stats', {}));
+};
+const AchievementStats = Object.assign({}, ACHIEVEMENT_STATS_DEFAULTS, SaveSystem.get('achv_stats', {}));
 
-// ---- Estado por logro: solo lo mínimo indispensable (progreso se recalcula en vivo) ----
 const AchievementState = SaveSystem.get('achv_state', {});
 
 const ACHIEVEMENTS_DB = {};
@@ -111,9 +86,6 @@ function buildChain(idPrefix, category, icon, trigger, nameFn, descFn, getValueF
 function buildUnique(id, category, icon, trigger, name, desc, rarity, target, getValue, rewardOpts, hidden) {
     ACHIEVEMENTS_DB[id] = { id, category, icon, trigger, name, desc, rarity, target, getValue, reward: reward(rewardOpts), hidden: !!hidden };
 }
-
-// ================= CADENAS PROGRESIVAS =================
-// (targets subidos considerablemente en la Update 7 — ver comentario de cabecera)
 
 buildChain('kills_total', 'COMBAT', '🔫', 'kill',
     t => `Exterminador (${fmt(t)})`, t => `Elimina ${fmt(t)} enemigos en total.`,
@@ -216,7 +188,6 @@ buildChain('shots_fired', 'WEAPONS', '💥', 'shoot',
     [{ target: 2000, rarity: 'RARO', xp: 40, money: 80 }, { target: 15000, rarity: 'SUPER_RARO', xp: 140, money: 250 },
      { target: 75000, rarity: 'EPICO', xp: 450, money: 900 }, { target: 400000, rarity: 'LEGENDARIO', xp: 1200, money: 3000, diamonds: 60 }]);
 
-// Bajas por categoría de arma (2 escalones cada una)
 Object.keys(CATEGORY_META).forEach(cat => {
     const meta = CATEGORY_META[cat];
     buildChain(`cat_kills_${cat}`, 'WEAPONS', meta.icon, 'kill',
@@ -225,14 +196,11 @@ Object.keys(CATEGORY_META).forEach(cat => {
         [{ target: 400, rarity: 'RARO', xp: 50, money: 100 }, { target: 5000, rarity: 'EPICO', xp: 350, money: 800 }]);
 });
 
-// Sobrevivir a cada tipo de evento notable al menos una vez
 [['STORM', '🌩️'], ['SANDSTORM', '🌪️'], ['BLIZZARD', '❄️'], ['RADIOACTIVE', '☢️'], ['INVASION', '💀'], ['DARKNESS', '🌑']].forEach(([key, icon]) => {
     buildUnique(`event_survive_${key}`, 'EVENTS', icon, 'eventSurvive',
         `Superó: ${RANDOM_EVENTS[key].label}`, `Completa una oleada entera con el evento "${RANDOM_EVENTS[key].label}" activo.`,
         'MITICO', 1, () => (AchievementStats.eventTypesCompleted.includes(key) ? 1 : 0), { xp: 250, money: 500, diamonds: 20 });
 });
-
-// ================= LOGROS ÚNICOS =================
 
 buildUnique('melee_boss_kill', 'SPECIAL', '🔪', 'kill', 'Filo Contra Titanes',
     'Derrota a un jefe usando únicamente un arma cuerpo a cuerpo.', 'LEGENDARIO', 1,
@@ -277,7 +245,6 @@ buildUnique('dash_master', 'SPECIAL', '💨', 'dash', 'Maestro del Dash',
 buildUnique('low_hp_clear', 'SURVIVAL', '💓', 'waveClear', 'Al Filo de la Muerte',
     'Termina una oleada con menos del 10% de tu vida máxima.', 'EPICO', 1, () => AchievementStats.lowHpClears, { xp: 250, money: 600 }, true);
 
-// Índice por trigger para no recorrer los ~100 logros en cada evento, solo el subconjunto relevante
 const _achTriggerIndex = {};
 Object.values(ACHIEVEMENTS_DB).forEach(def => {
     (_achTriggerIndex[def.trigger] = _achTriggerIndex[def.trigger] || []).push(def);
@@ -351,13 +318,19 @@ const AchievementManager = {
         this.saveStats();
     },
     saveStats() { SaveSystem.set('achv_stats', AchievementStats); },
-    saveState() { SaveSystem.set('achv_state', AchievementState); }
+    saveState() { SaveSystem.set('achv_state', AchievementState); },
+    resetAll() {
+        Object.keys(ACHIEVEMENT_STATS_DEFAULTS).forEach(k => {
+            const d = ACHIEVEMENT_STATS_DEFAULTS[k];
+            AchievementStats[k] = Array.isArray(d) ? [] : (d && typeof d === 'object' ? {} : d);
+        });
+        Object.keys(AchievementState).forEach(k => delete AchievementState[k]);
+        this.saveStats();
+        this.saveState();
+        if (typeof game.renderAchievements === 'function') game.renderAchievements();
+    }
 };
 
-// ================= HOOKS (envuelven funciones ya existentes, no las reescriben) =================
-
-// Kills: racha, categoría, bosses y dinero ganado, reutilizando la transición viva->muriendo
-// que level.js ya usa. Se engancha DESPUÉS de level.js (ver orden de <script> en index.html).
 const _achOrigHitEnemy = game.hitEnemy;
 game.hitEnemy = function(e, dmg, ...rest) {
     const wasAlive = !e.isDying;
@@ -383,8 +356,6 @@ game.hitEnemy = function(e, dmg, ...rest) {
     }
 };
 
-// Uso de armas (para "Arsenal") + disparos totales: mismo truco que level.js (detectar
-// avance de this.lastShot, que el juego solo mueve cuando efectivamente se dispara).
 const _achOrigShoot = game.shoot;
 game.shoot = function() {
     const w = this.player && this.player.weapon;
@@ -396,7 +367,6 @@ game.shoot = function() {
     }
 };
 
-// Recargas efectivas
 const _achOrigReload = game.reload;
 game.reload = function() {
     const w = this.player && this.player.weapon;
@@ -408,14 +378,12 @@ game.reload = function() {
     }
 };
 
-// Daño recibido en la oleada actual (para "Impecable" y "Al Filo de la Muerte")
 const _achOrigTakeDamage = Player.prototype.takeDamage;
 Player.prototype.takeDamage = function(amt) {
     AchievementManager._tookDamageThisWave = true;
     _achOrigTakeDamage.call(this, amt);
 };
 
-// Dash efectivo
 const _achOrigDash = Player.prototype.dash;
 Player.prototype.dash = function() {
     const before = this.isDashing;
@@ -423,8 +391,6 @@ Player.prototype.dash = function() {
     if (!before && this.isDashing) { AchievementStats.dashUses++; AchievementManager.evaluate('dash'); }
 };
 
-// Oleada superada: reutiliza la misma detección de cambio de wave que level.js, pero
-// tomando el evento activo ANTES de que EventManager.deactivate() lo limpie dentro del loop original.
 const _achOrigLoop = game.loop;
 game.loop = function() {
     const waveBefore = this.wave;
@@ -433,14 +399,12 @@ game.loop = function() {
     if (this.wave !== waveBefore) AchievementManager.onWaveClear(waveBefore, eventBefore);
 };
 
-// Subida de nivel
 const _achOrigShowLevelUp = game.showLevelUp;
 game.showLevelUp = function(level) {
     _achOrigShowLevelUp.call(this, level);
     AchievementManager.evaluate('levelUp');
 };
 
-// Muerte del jugador
 const _achOrigGameOver = game.gameOver;
 game.gameOver = function() {
     _achOrigGameOver.call(this);
@@ -449,7 +413,6 @@ game.gameOver = function() {
     AchievementManager.saveStats();
 };
 
-// Compra/venta de armas
 const _achOrigBuyWeapon = game.buyWeapon;
 game.buyWeapon = function(k) {
     const before = this.player.inventory.some(s => s && s.name === k);
@@ -471,7 +434,6 @@ game.sellWeapon = function(k) {
     AchievementManager.saveStats();
 };
 
-// Compra de curación en tienda
 const _achOrigBuyHealth = game.buyHealth;
 game.buyHealth = function() {
     const before = this.player.money;
@@ -479,7 +441,6 @@ game.buyHealth = function() {
     if (this.player.money < before) { AchievementStats.healthPackUses++; AchievementManager.evaluate('healthBuy'); }
 };
 
-// Mejoras permanentes (progresión entre partidas)
 const _achOrigProgBuy = Progression.buy;
 Progression.buy = function(k) {
     const result = _achOrigProgBuy.call(this, k);
@@ -492,7 +453,6 @@ Progression.buy = function(k) {
     return result;
 };
 
-// Dinero pendiente de logros reclamados fuera de partida, se acredita al iniciar la siguiente
 const _achOrigInit = game.init;
 game.init = function() {
     _achOrigInit.call(this);
@@ -505,18 +465,12 @@ game.init = function() {
 
 window.addEventListener('beforeunload', () => AchievementManager.saveStats());
 
-// ---- Migración a Firebase: si llegan estadísticas/estado de logros más nuevos desde
-// la nube (después del login) que los que había en la caché local al construir estos
-// objetos, se mergean en el mismo objeto (no se reemplaza la referencia, para que el
-// resto de este archivo -que ya la capturó por closure- siga viendo los datos nuevos) ----
 SaveSystem.onRemoteData(function(keys) {
     let changed = false;
     if (keys.includes('achv_stats')) { Object.assign(AchievementStats, SaveSystem.get('achv_stats', {})); changed = true; }
     if (keys.includes('achv_state')) { Object.assign(AchievementState, SaveSystem.get('achv_state', {})); changed = true; }
     if (changed && typeof game.renderAchievements === 'function') game.renderAchievements();
 });
-
-// ================= UI: pestaña de Logros dentro del Perfil =================
 
 const _achOrigOpenProfile = game.openProfile;
 game.openProfile = function() {

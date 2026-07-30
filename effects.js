@@ -100,27 +100,32 @@ function getSfxPool(key) {
     return sfxPools[key];
 }
 
-// Crea todos los pools de sonido de una sola vez al arrancar la página.
-// Antes se creaban recién en el primer playSFX() de cada tipo, y esa primera
-// creación + decodificación del audio es la que generaba el delay perceptible.
-function preloadSFX() {
-    try {
-        Object.keys(SFX).forEach(key => getSfxPool(key));
-    } catch (e) {
-        console.warn('Error precargando SFX:', e);
-    }
-}
-
-function playSFX(key, vol = 0.3, pitchVar = 0.1) {
-    const pool = getSfxPool(key);
-    if (!pool) return; // clave inexistente: ya se avisó en getSfxPool, seguimos sin romper nada
-    const a = pool[pool.cursor];
-    pool.cursor = (pool.cursor + 1) % pool.length;
-    a.pause();
-    a.currentTime = 0;
-    a.volume = vol * (Settings.sfxVolume / 100);
-    a.playbackRate = 1 + (Math.random() - 0.5) * pitchVar;
-    a.play().catch(() => {});
+// Precarga TODOS los sonidos y devuelve una Promise que resuelve cuando cada uno
+// terminó de cargar (o falló / venció el timeout de seguridad, para que un sonido
+// roto o lento nunca cuelgue el arranque del juego para siempre).
+// onProgress(cargados, total, key) se llama por cada sonido que termina.
+function preloadSFX(onProgress) {
+    return new Promise(resolve => {
+        const keys = Object.keys(SFX);
+        if (keys.length === 0) { resolve(); return; }
+        let loaded = 0;
+        keys.forEach(key => {
+            const pool = getSfxPool(key); // ya crea y llama .load() en todo el pool
+            const a = pool ? pool[0] : null;
+            const done = () => {
+                loaded++;
+                if (onProgress) onProgress(loaded, keys.length, key);
+                if (loaded === keys.length) resolve();
+            };
+            if (!a) { done(); return; }
+            if (a.readyState >= 3) { done(); return; } // ya tiene suficiente data
+            let settled = false;
+            const finish = () => { if (settled) return; settled = true; done(); };
+            a.addEventListener('canplaythrough', finish, { once: true });
+            a.addEventListener('error', finish, { once: true });
+            setTimeout(finish, 5000); // seguridad: nunca bloquear el arranque
+        });
+    });
 }
 
 /**
@@ -150,6 +155,32 @@ const MUSIC_TRACKS = {
         'Sounds/Music/Boss/Punch.mp3'
     ]
 };
+
+// Precarga (metadata) de todas las canciones de las 3 categorías (main/combat/boss).
+// Solo se pide 'loadedmetadata' (no el archivo entero) para no gastar mucho ancho de
+// banda antes de jugar, pero sí confirmar que cada pista es alcanzable.
+function preloadMusic(onProgress) {
+    return new Promise(resolve => {
+        const allTracks = [...MUSIC_TRACKS.main, ...MUSIC_TRACKS.combat, ...MUSIC_TRACKS.boss];
+        if (allTracks.length === 0) { resolve(); return; }
+        let loaded = 0;
+        allTracks.forEach(src => {
+            const a = new Audio();
+            a.preload = 'auto';
+            let settled = false;
+            const finish = () => {
+                if (settled) return; settled = true;
+                loaded++;
+                if (onProgress) onProgress(loaded, allTracks.length, src);
+                if (loaded === allTracks.length) resolve();
+            };
+            a.addEventListener('loadedmetadata', finish, { once: true });
+            a.addEventListener('error', () => { console.warn(`[Audio] No se pudo precargar la música: ${src}`); finish(); }, { once: true });
+            a.src = src;
+            setTimeout(finish, 6000);
+        });
+    });
+}
 
 const MusicManager = {
     // Se mantienen estos 3 nombres porque otros archivos (world.js) los referencian directamente.
@@ -224,9 +255,7 @@ const MusicManager = {
 
 /**
  * AMBIENTE (lluvia/viento/arena en loop). Reutiliza las MISMAS claves y rutas locales que
- * ya viven en SFX (rain/wind/sandstorm) en vez de mantener una lista de URLs paralela:
- * antes existían dos catálogos de sonido distintos (uno local en SFX y otro con URLs
- * de Google en events.js) para las mismas cosas. Ahora hay un solo dueño de esas rutas.
+ * ya viven en SFX (rain/wind/sandstorm) en vez de mantener un catálogo paralelo.
  * Respeta el volumen general de SFX, pero es independiente del volumen de cada disparo.
  */
 const AmbientAudio = {
