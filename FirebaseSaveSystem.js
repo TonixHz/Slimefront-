@@ -122,20 +122,32 @@ const SaveSystem = {
         this._pushTimer = setTimeout(() => this._pushDirty(), _SYNC_DEBOUNCE_MS);
     },
 
-    async _pushDirty() {
-        if (!this._uid || this._dirty.size === 0) return;
-        const keys = Array.from(this._dirty);
-        this._dirty.clear();
-        const patch = {};
-        keys.forEach(k => { patch[k] = this._cache[k]; });
-        patch._updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+async _pushDirty() {
+    if (!this._uid || this._dirty.size === 0) return;
+    const keys = Array.from(this._dirty);
+    this._dirty.clear();
+    const patch = {};
+    keys.forEach(k => {
+        // Firestore rechaza con "invalid-argument" cualquier valor no serializable
+        // (funciones, undefined, etc.). PlayerProfile, por ejemplo, tiene su propio
+        // método .save colgando del mismo objeto que se cachea acá (ver level.js:
+        // "PlayerProfile.save = function(){...}"), y localStorage lo tolera porque
+        // JSON.stringify ignora funciones en silencio, pero el SDK de Firestore no.
+        // Pasamos todo por el mismo ciclo JSON para quedarnos solo con datos planos.
         try {
-            await _db.collection(PLAYERS_COLLECTION).doc(this._uid).set(patch, { merge: true });
+            patch[k] = JSON.parse(JSON.stringify(this._cache[k]));
         } catch (e) {
-            console.warn('[FirebaseSaveSystem] Firestore no disponible, se sigue jugando con la caché local. Reintentará:', e.code || e);
-            keys.forEach(k => this._dirty.add(k)); // no se pierde el progreso: reintenta en el próximo ciclo
+            console.warn(`[FirebaseSaveSystem] No se pudo serializar la key "${k}", se omite este ciclo de sync:`, e);
         }
-    },
+    });
+    patch._updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    try {
+        await _db.collection(PLAYERS_COLLECTION).doc(this._uid).set(patch, { merge: true });
+    } catch (e) {
+        console.warn('[FirebaseSaveSystem] Firestore no disponible, se sigue jugando con la caché local. Reintentará:', e.code || e);
+        keys.forEach(k => this._dirty.add(k));
+    }
+},
 
     // Fuerza el envío inmediato (se usa al cerrar sesión o al salir de la pestaña)
     async flush() {
