@@ -221,6 +221,17 @@
 
 <div id="controls-panel" class="menu-screen" style="display:none;"></div>
 
+<!-- Firebase (SDK "compat": expone el namespace global `firebase`, sin necesidad de
+     convertir el resto del proyecto a ES Modules). Deben ir ANTES de FirebaseSaveSystem.js. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
+
+<!-- Reemplaza al viejo SaveSystem basado en localStorage. Debe cargarse ANTES que
+     level.js/progression.js/achievements.js (definen SaveSystem como variable global). -->
+<script src="FirebaseSaveSystem.js"></script>
+
 <script src="main.js"></script>
 <script src="ui.js"></script>
 <script src="effects.js"></script>
@@ -232,6 +243,7 @@
 <script src="level.js"></script>
 <script src="progression.js"></script>
 <script src="achievements.js"></script>
+<script src="auth-ui.js"></script>
 <script src="mobile.js"></script>
 </body>
 </html>

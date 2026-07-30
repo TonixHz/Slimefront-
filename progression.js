@@ -7,8 +7,9 @@
  * aditivo/wrapping que level.js y achievements.js: nunca reemplaza lógica de combate,
  * solo aplica bonificaciones pequeñas y permanentes sobre lo que el juego ya calcula.
  *
- * Debe cargarse DESPUÉS de level.js (usa SaveSystem) y ANTES de achievements.js
- * (que envuelve Progression.buy y lee UPGRADES_DB).
+ * Debe cargarse DESPUÉS de FirebaseSaveSystem.js y level.js (usa SaveSystem, definido
+ * ahora en FirebaseSaveSystem.js) y ANTES de achievements.js (que envuelve
+ * Progression.buy y lee UPGRADES_DB).
  */
 const UPGRADES_DB = {
     VITALITY:  { name: 'Vitalidad',    desc: '+10 HP máxima por nivel',        icon: '❤️', maxLevel: 5, baseCost: 250, costGrowth: 1.6 },
@@ -151,3 +152,14 @@ game.openProfile = function() {
     _progOrigOpenProfile.call(this);
     game.renderUpgrades();
 };
+
+// ---- Migración a Firebase: si el usuario inicia sesión y Firestore trae niveles de
+// mejora distintos a los de la caché local con la que arrancó esta partida, se
+// reaplican sobre el jugador actual y se refresca la lista en pantalla ----
+SaveSystem.onRemoteData(function(keys) {
+    if (!keys.includes('progression')) return;
+    const remote = SaveSystem.get('progression', { levels: {} });
+    Progression.levels = remote.levels || {};
+    if (game.player) Progression.applyToPlayer(game.player);
+    game.renderUpgrades();
+});

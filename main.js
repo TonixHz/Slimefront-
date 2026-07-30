@@ -285,6 +285,10 @@ window.addEventListener('DOMContentLoaded', () => {
             <div class="menu-panel">
                 <h1 class="menu-title">SLIMEFRONT</h1>
                 <p class="menu-subtitle">Enhanced Edition</p>
+                <div id="auth-box" class="auth-box">
+                    <span id="auth-status" class="hud-text"></span>
+                    <button id="auth-btn" class="menu-btn" onclick="AuthUI.handleClick()"></button>
+                </div>
                 <button class="menu-btn primary" onclick="game.startFromLobby()">▶ JUGAR</button>
                 <button class="menu-btn" onclick="game.openSettings('lobby')">⚙ AJUSTES</button>
                 <button class="menu-btn" onclick="game.toggleControls(true)">📖 CONTROLES</button>
@@ -295,6 +299,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
+        // AuthUI (auth-ui.js) se carga después que este script arma el lobby por primera
+        // vez, así que el botón nace vacío y se rellena solo apenas AuthUI exista (su
+        // propio listener de DOMContentLoaded llama a refresh() al terminar de cargar).
+        if (typeof AuthUI !== 'undefined') AuthUI.refresh();
     }
 
     // Asegúrate de que este panel exista en tu HTML (o créalo dinámicamente)

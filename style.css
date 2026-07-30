@@ -158,6 +158,11 @@ canvas { display: block; }
 #mobile-dash-btn { right: 100px; border-color: #2ecc71; }
 #mobile-reload-btn { right: 20px; border-color: #f1c40f; }
 
+/* ---- Login (Firebase Auth) en el lobby ---- */
+.auth-box { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 18px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid #333; border-radius: 8px; }
+.auth-box #auth-status { font-size: 15px; color: #ccc; text-align: center; }
+.auth-box .menu-btn { margin-top: 0; font-size: 18px; padding: 10px; }
+
 /* ==========================================================================
    ULTRA RENDIMIENTO — único punto de control para toda la UI (HTML/CSS).
    Se activa/desactiva agregando o quitando la clase "ultra-mode" en <body>

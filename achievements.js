@@ -8,8 +8,9 @@
  * su getValue() (de dónde saca el progreso actual). Nunca hay condiciones de logros
  * sueltas dentro de la lógica principal del juego: todo vive acá.
  *
- * Persistencia: reutiliza SaveSystem (definido en level.js). El día que se quiera un
- * guardado online alcanza con tocar SaveSystem.get()/set(), no este archivo.
+ * Persistencia: reutiliza SaveSystem (ahora definido en FirebaseSaveSystem.js, con
+ * Auth + Firestore + caché local offline-first). El día que se quiera cambiar cómo se
+ * guarda, alcanza con tocar ese archivo, no este.
  *
  * UPDATE 7 — BALANCE: todos los umbrales de logros viven como números literales dentro
  * de cada buildChain/buildUnique de más abajo (agrupados por sección) para que ajustar
@@ -503,6 +504,17 @@ game.init = function() {
 };
 
 window.addEventListener('beforeunload', () => AchievementManager.saveStats());
+
+// ---- Migración a Firebase: si llegan estadísticas/estado de logros más nuevos desde
+// la nube (después del login) que los que había en la caché local al construir estos
+// objetos, se mergean en el mismo objeto (no se reemplaza la referencia, para que el
+// resto de este archivo -que ya la capturó por closure- siga viendo los datos nuevos) ----
+SaveSystem.onRemoteData(function(keys) {
+    let changed = false;
+    if (keys.includes('achv_stats')) { Object.assign(AchievementStats, SaveSystem.get('achv_stats', {})); changed = true; }
+    if (keys.includes('achv_state')) { Object.assign(AchievementState, SaveSystem.get('achv_state', {})); changed = true; }
+    if (changed && typeof game.renderAchievements === 'function') game.renderAchievements();
+});
 
 // ================= UI: pestaña de Logros dentro del Perfil =================
 

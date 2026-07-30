@@ -6,23 +6,17 @@
  * escuchar eventos que ya ocurren y sumar XP / estadísticas sin duplicar
  * lógica de combate, economía ni oleadas.
  *
- * Todo lo persistente pasa por SaveSystem: hoy usa localStorage, el día que
- * se quiera un guardado online alcanza con reemplazar get()/set() acá abajo
- * (por ejemplo por llamadas async a una API) sin tocar el resto del archivo
- * ni el resto del juego.
+ * NOTA (migración a Firebase): el SaveSystem (localStorage puro) que antes vivía
+ * acá se reemplazó por FirebaseSaveSystem.js (Auth + Firestore + caché local,
+ * offline-first). Ese archivo se carga ANTES que este y define el mismo objeto
+ * global `SaveSystem` con exactamente la misma interfaz (get/set), así que todo
+ * lo de más abajo sigue funcionando sin cambios.
+ *
+ * Como el login con Google resuelve de forma asíncrona (después de que este
+ * script ya construyó PlayerProfile con lo que había en la caché local), nos
+ * suscribimos con SaveSystem.onRemoteData para "refrescar" PlayerProfile si
+ * llegan datos más nuevos desde la nube una vez el usuario inicia sesión.
  */
-const SaveSystem = {
-    _prefix: 'slime_',
-    get(key, fallback) {
-        try {
-            const raw = localStorage.getItem(this._prefix + key);
-            return raw !== null ? JSON.parse(raw) : fallback;
-        } catch (e) { return fallback; }
-    },
-    set(key, value) {
-        try { localStorage.setItem(this._prefix + key, JSON.stringify(value)); } catch (e) {}
-    }
-};
 
 /**
  * UPDATE 7 — BALANCE DE PROGRESIÓN
@@ -145,6 +139,7 @@ game.openProfile = function() {
     const totalSec = p.playTimeSec + liveSec;
     const mm = String(Math.floor(totalSec / 60)).padStart(2, '0'), ss = String(totalSec % 60).padStart(2, '0');
     const rows = [
+        ['Cuenta', typeof AuthUI !== 'undefined' ? AuthUI.currentLabel() : 'Invitado (local)'],
         ['Nivel', p.level],
         ['XP', `${p.xp} / ${xpToNextLevel(p.level)}`],
         ['Diamantes', '💎 ' + p.diamonds],
@@ -237,6 +232,14 @@ game.gameOver = function() {
 };
 
 window.addEventListener('beforeunload', () => PlayerProfile.save());
+
+// ---- Migración a Firebase: refresco cuando llegan datos remotos más nuevos que la
+// caché local con la que se armó PlayerProfile al cargar este script ----
+SaveSystem.onRemoteData(function(keys) {
+    if (!keys.includes('profile')) return;
+    Object.assign(PlayerProfile, SaveSystem.get('profile', {}));
+    game.updateLevelHUD();
+});
 
 // Botón de Perfil en el lobby + HUD inicial. Se registra después que main.js arma el
 // innerHTML del lobby, así que se agrega al final del panel sin pisar nada.
