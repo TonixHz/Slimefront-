@@ -100,6 +100,43 @@ function getSfxPool(key) {
     return sfxPools[key];
 }
 
+/**
+ * playSFX(key, volume, pitchVariance)
+ * ÚNICO punto del juego que reproduce un efecto de sonido puntual/superponible.
+ * Restaurada acá (vivía implícitamente antes de separar el sistema de precarga) para
+ * que TODO el código existente (player.js, level.js, achievements.js, progression.js,
+ * world.js, main.js, events.js) que ya la llama siga funcionando sin ningún cambio.
+ *
+ * Firma usada en todo el proyecto:
+ *   playSFX('reload')                        -> solo la clave, volumen y pitch por defecto
+ *   playSFX('death', 0.5)                    -> clave + volumen relativo (0-1)
+ *   playSFX('chainsaw_hit', 0.2, 0.05)       -> clave + volumen + variación de pitch (+/- ese %)
+ *
+ * - Toma la siguiente instancia <audio> libre del pool (round-robin vía pool.cursor),
+ *   así varios disparos/golpes simultáneos con la misma clave no se cortan entre sí.
+ * - El volumen final respeta además el volumen general de efectos (Settings.sfxVolume),
+ *   igual que ya hace AmbientAudio en este mismo archivo.
+ * - Si la clave no existe en SFX, getSfxPool ya deja el warning en consola y acá
+ *   simplemente no se reproduce nada (el juego nunca se rompe por un sonido faltante).
+ */
+function playSFX(key, volume = 1, pitchVariance = 0) {
+    const pool = getSfxPool(key);
+    if (!pool) return;
+
+    const a = pool[pool.cursor];
+    pool.cursor = (pool.cursor + 1) % pool.length;
+
+    try { a.currentTime = 0; } catch (e) { /* metadata aún no lista: no es fatal */ }
+
+    const generalVol = (typeof Settings !== 'undefined' && typeof Settings.sfxVolume === 'number') ? (Settings.sfxVolume / 100) : 1;
+    a.volume = Math.max(0, Math.min(1, volume * generalVol));
+    a.playbackRate = pitchVariance > 0 ? (1 + (Math.random() * 2 - 1) * pitchVariance) : 1;
+
+    a.play().catch(() => {
+        // Bloqueado por autoplay policy o interrumpido por otro play(): no rompe el juego.
+    });
+}
+
 // Precarga TODOS los sonidos y devuelve una Promise que resuelve cuando cada uno
 // terminó de cargar (o falló / venció el timeout de seguridad, para que un sonido
 // roto o lento nunca cuelgue el arranque del juego para siempre).
