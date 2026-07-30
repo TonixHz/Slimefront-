@@ -16,3 +16,6 @@ Thumbs.db
 # Temporal
 .temp/
 .cache/
+
+node_modules/
+dist/

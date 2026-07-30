@@ -11,7 +11,7 @@
     <meta property="og:type" content="website">
     <title>SLIMEFRONT v0.9</title>
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%232ecc71'/><text x='16' y='20' font-size='20' font-weight='bold' text-anchor='middle' fill='%23050505'>S</text></svg>">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="assets/style.css">
     <style>
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #050505; display: flex; align-items: center; justify-content: center; z-index: 200; flex-direction: column; }
@@ -270,30 +270,11 @@
     </div>
 </div>
 
-<!-- Firebase (SDK "compat": expone el namespace global `firebase`, sin necesidad de
-     convertir el resto del proyecto a ES Modules). Deben ir ANTES de FirebaseSaveSystem.js. -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
 
-<!-- Reemplaza al viejo SaveSystem basado en localStorage. Debe cargarse ANTES que
-     level.js/progression.js/achievements.js (definen SaveSystem como variable global). -->
-<script src="FirebaseSaveSystem.js"></script>
-
-<script src="main.js"></script>
-<script src="ui.js"></script>
-<script src="effects.js"></script>
-<script src="events.js"></script>
-<script src="world.js"></script>
-<script src="weapons.js"></script>
-<script src="player.js"></script>
-<script src="enemies.js"></script>
-<script src="level.js"></script>
-<script src="progression.js"></script>
-<script src="achievements.js"></script>
-<script src="auth-ui.js"></script>
-<script src="mobile.js"></script>
-<script src="boot.js"></script>
-</body>
-</html>
+<!-- Juego completo -->
+<script src="bundle.js"></script>
