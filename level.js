@@ -101,7 +101,10 @@ game.updateLevelHUD = function() {
 };
 
 game.openProfile = function() {
-    document.getElementById('lobby-screen').style.display = 'none';
+    // hideLobbyScreen (definida en ui.js) también saca la clase body.lobby-active,
+    // así el fondo vivo (LobbyScene) sigue dibujándose detrás sin problema —
+    // #profile-screen es opaco igual que el resto de pantallas modales.
+    if (typeof hideLobbyScreen === 'function') hideLobbyScreen(); else document.getElementById('lobby-screen').style.display = 'none';
     const p = PlayerProfile;
     const acc = p.shotsFired > 0 ? Math.min(100, Math.round(p.shotsHit / p.shotsFired * 100)) : 0;
     const favEntry = Object.entries(p.weaponUsage).sort((a, b) => b[1] - a[1])[0];
@@ -129,7 +132,7 @@ game.openProfile = function() {
 };
 game.closeProfile = function() {
     document.getElementById('profile-screen').style.display = 'none';
-    document.getElementById('lobby-screen').style.display = 'flex';
+    if (typeof showLobbyScreen === 'function') showLobbyScreen(); else document.getElementById('lobby-screen').style.display = 'grid';
 };
 
 const _levelOrigHitEnemy = game.hitEnemy;
@@ -194,16 +197,12 @@ SaveSystem.onRemoteData(function(keys) {
     if (!keys.includes('profile')) return;
     Object.assign(PlayerProfile, SaveSystem.get('profile', {}));
     game.updateLevelHUD();
+    if (typeof game.refreshLobbyPanels === 'function') game.refreshLobbyPanels();
 });
 
 window.addEventListener('DOMContentLoaded', () => {
-    const panel = document.querySelector('#lobby-screen .menu-panel');
-    if (panel) {
-        const btn = document.createElement('button');
-        btn.className = 'menu-btn';
-        btn.textContent = '🪪 PERFIL';
-        btn.onclick = () => game.openProfile();
-        panel.appendChild(btn);
-    }
+    // El botón de "Perfil" ahora vive como tarjeta de navegación ("Logros" abre
+    // el perfil en la pestaña de logros) en el lobby v2 (ver game.buildLobby en
+    // main.js), así que ya no hace falta inyectar un botón extra acá.
     game.updateLevelHUD();
 });

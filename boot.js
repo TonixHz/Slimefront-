@@ -83,9 +83,12 @@ const BootFlow = {
         // detrás de una interacción real del usuario (este click).
         if (typeof MusicManager !== 'undefined') MusicManager.playLobby();
 
+        // #lobby-screen es un CSS grid (ver .lobby-screen-v2 en assets/style.css),
+        // no un flexbox: 'flex' aquí dejaría el layout de 3 zonas roto.
         const lobbyScreen = document.getElementById('lobby-screen');
-        if (lobbyScreen) lobbyScreen.style.display = 'flex';
+        if (lobbyScreen) lobbyScreen.style.display = 'grid';
         if (typeof AuthUI !== 'undefined') AuthUI.refresh();
+        if (typeof game.refreshLobbyPanels === 'function') game.refreshLobbyPanels();
     }
 };
 

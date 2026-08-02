@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
 body { 
     margin: 0; background: #050505; color: white; 
@@ -85,7 +86,7 @@ canvas { display: block; }
 .depart-btn:hover { background: #ff7675; transform: translateY(2px); box-shadow: 0 3px 0 #c0392b; }
 .depart-btn:active { transform: translateY(5px); box-shadow: none; }
 
-/* Menú / UI Principal */
+/* Menú / UI Principal (pantallas modales opacas: pausa, ajustes, perfil, etc.) */
 .menu-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5,8,5,0.96); z-index: 100; display: flex; align-items: center; justify-content: center; pointer-events: all; }
 .menu-panel { background: linear-gradient(135deg, #111a11 0%, #080c08 100%); border: 2px solid #333; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 0 0 4px #2ecc71; padding: 40px 50px; width: 420px; text-align: center; }
 .menu-title { font-size: 54px; color: #2ecc71; margin: 0; letter-spacing: 4px; text-shadow: 3px 3px #000; animation: breathe 3s infinite ease-in-out; }
@@ -177,4 +178,274 @@ body.ultra-mode * {
     text-shadow: none !important;
     backdrop-filter: none !important;
     filter: none !important;
+}
+
+/* ==========================================================================
+   ===========================  LOBBY v2 — DISEÑO  ==========================
+   ==========================================================================
+   Sistema de diseño para el lobby "living menu". Todo vive bajo un único
+   namespace (.lobby-*) para no pisar ninguna regla de arriba. Paleta y
+   tipografía heredan del resto del juego (Teko + verde slime #2ecc71 +
+   dorado #f1c40f sobre negro) para que el menú se sienta parte del mismo
+   juego y no un rediseño de marca; lo "pixel art" se resuelve con sombras
+   duras (sin blur, con offset), bordes de esquina cuadrada y una tipografía
+   monoespaciada de 8 bits (Press Start 2P) reservada a etiquetas pequeñas
+   (eyebrows/badges), nunca a bloques largos de texto.
+   ========================================================================== */
+
+:root {
+    --lf-void:        #050505;
+    --lf-forest:      #0a130b;
+    --lf-green:       #2ecc71;
+    --lf-green-dark:  #145a32;
+    --lf-green-glow:  rgba(46, 204, 113, 0.55);
+    --lf-gold:        #f1c40f;
+    --lf-glass-bg:    rgba(10, 18, 12, 0.55);
+    --lf-glass-bg-2:  rgba(14, 24, 16, 0.72);
+    --lf-glass-brd:   rgba(46, 204, 113, 0.28);
+    --lf-ink:         #eafff0;
+    --lf-ink-dim:     #9db3a2;
+    --lf-pixel-font:  'Press Start 2P', 'Teko', monospace;
+}
+
+@keyframes lf-fade-up {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes lf-fade-in {
+    from { opacity: 0; } to { opacity: 1; }
+}
+@keyframes lf-logo-breathe {
+    0%, 100% { transform: scale(1) translateY(0); filter: drop-shadow(0 0 6px var(--lf-green-glow)); }
+    50%      { transform: scale(1.015) translateY(-2px); filter: drop-shadow(0 0 18px var(--lf-green-glow)); }
+}
+@keyframes lf-badge-blink {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+}
+
+/* El menú se vuelve completamente transparente e "invisible" salvo en sus
+   3 zonas interactivas: el canvas del juego (lobbyscene.js) se ve por
+   completo en el hueco del centro. */
+#lobby-screen.lobby-screen-v2 {
+    position: fixed; inset: 0; z-index: 50;
+    background: transparent;
+    pointer-events: none;
+    display: grid;
+    grid-template-columns: 380px 1fr 340px;
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+        "left center right"
+        "bottom bottom bottom";
+    padding: 34px 34px 22px 34px;
+    box-sizing: border-box;
+    gap: 20px;
+    font-family: 'Teko', sans-serif;
+}
+
+/* Cuando el lobby está activo, ocultamos el HUD de partida y oscurecemos
+   levemente el centro con una viñeta propia para que el texto lateral
+   siempre sea legible, sin tapar la escena. */
+body.lobby-active #ui-layer,
+body.lobby-active #vignette,
+body.lobby-active #damage-overlay { display: none; }
+
+/* -------------------------------- IZQUIERDA ------------------------------ */
+.lobby-left {
+    grid-area: left;
+    position: relative;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    padding: 8px 22px 22px 8px;
+}
+/* Scrim: oscurece de izquierda a centro para que el texto flote sobre el
+   juego sin un panel sólido "plano". */
+.lobby-left::before {
+    content: "";
+    position: absolute;
+    top: -34px; left: -34px; right: -40px; bottom: -22px;
+    background: linear-gradient(100deg, rgba(3,6,3,0.92) 0%, rgba(3,6,3,0.72) 45%, rgba(3,6,3,0) 100%);
+    z-index: -1;
+    pointer-events: none;
+}
+
+.lobby-logo { animation: lf-fade-up 0.6s ease-out both; }
+.lobby-logo-title {
+    font-size: 64px; margin: 0; letter-spacing: 5px; line-height: 1;
+    color: var(--lf-green);
+    text-shadow: 3px 3px 0 #000, 3px 3px 0 #000, 0 0 24px var(--lf-green-glow);
+    animation: lf-logo-breathe 3.4s ease-in-out infinite;
+}
+.lobby-logo-eyebrow {
+    font-family: var(--lf-pixel-font);
+    font-size: 10px; color: var(--lf-gold);
+    letter-spacing: 2px; margin: 6px 0 0 2px;
+    text-shadow: 2px 2px 0 #000;
+}
+.lobby-logo-sub { color: var(--lf-ink-dim); margin: 4px 0 0 2px; font-size: 19px; letter-spacing: 1.5px; }
+
+.lobby-nav { display: flex; flex-direction: column; gap: 12px; }
+
+/* Tarjetas de navegación: icono + título + subtítulo, con esquinas
+   cuadradas (pixel), sombra dura y glow al hover. */
+.nav-card {
+    all: unset;
+    box-sizing: border-box;
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 18px;
+    background: var(--lf-glass-bg-2);
+    border: 2px solid rgba(255,255,255,0.08);
+    border-left: 5px solid var(--lf-green-dark);
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.55);
+    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, border-color 0.15s ease-out, background 0.15s ease-out;
+    animation: lf-fade-up 0.6s ease-out both;
+    opacity: 0;
+}
+.nav-card:nth-child(1) { animation-delay: 0.05s; }
+.nav-card:nth-child(2) { animation-delay: 0.12s; }
+.nav-card:nth-child(3) { animation-delay: 0.19s; }
+.nav-card:nth-child(4) { animation-delay: 0.26s; }
+
+.nav-card:hover, .nav-card:focus-visible {
+    transform: translate(-4px, -4px) scale(1.015);
+    box-shadow: 8px 8px 0 rgba(0,0,0,0.55), 0 0 26px var(--lf-green-glow);
+    border-left-color: var(--lf-green);
+    background: rgba(20, 34, 22, 0.85);
+}
+.nav-card:active { transform: translate(0, 0) scale(0.99); box-shadow: 2px 2px 0 rgba(0,0,0,0.6); }
+
+.nav-card-icon {
+    flex-shrink: 0; width: 46px; height: 46px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; border-radius: 4px;
+    background: rgba(0,0,0,0.35);
+    border: 2px solid rgba(255,255,255,0.08);
+}
+.nav-card-text { display: flex; flex-direction: column; min-width: 0; text-align: left; }
+.nav-card-title { font-size: 25px; letter-spacing: 1.5px; color: #fff; text-shadow: 2px 2px 0 rgba(0,0,0,0.6); }
+.nav-card-sub { font-size: 14px; color: var(--lf-ink-dim); letter-spacing: 0.5px; margin-top: -2px; }
+
+.nav-card-primary { border-left-color: var(--lf-green); background: linear-gradient(135deg, rgba(46,204,113,0.18), rgba(10,18,12,0.75)); }
+.nav-card-primary .nav-card-icon { background: var(--lf-green); color: #08210f; }
+.nav-card-primary:hover { box-shadow: 8px 8px 0 rgba(0,0,0,0.55), 0 0 34px var(--lf-green-glow); }
+
+.nav-card-danger:hover { border-left-color: #e74c3c; box-shadow: 8px 8px 0 rgba(0,0,0,0.55), 0 0 26px rgba(231,76,60,0.5); }
+
+.lobby-auth { margin-top: auto; animation: lf-fade-up 0.6s ease-out 0.32s both; opacity: 0; }
+.lobby-auth.lf-in { opacity: 1; }
+
+/* -------------------------------- CENTRO ---------------------------------- */
+.lobby-center { grid-area: center; pointer-events: none; }
+
+/* -------------------------------- DERECHA --------------------------------- */
+.lobby-right {
+    grid-area: right;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    padding-right: 4px;
+    max-height: 100%;
+}
+.lobby-right::-webkit-scrollbar { width: 6px; }
+.lobby-right::-webkit-scrollbar-thumb { background: var(--lf-green-dark); border-radius: 3px; }
+
+/* Glassmorphism: fondo translúcido + blur + borde luminoso + doble sombra
+   (una dura/oscura para profundidad "pixel", otra difusa de color para el
+   glow). */
+.glass-panel {
+    background: var(--lf-glass-bg);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    border: 1px solid var(--lf-glass-brd);
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03) inset, 0 0 24px rgba(46,204,113,0.06);
+    animation: lf-fade-up 0.55s ease-out both;
+    opacity: 0;
+    transition: box-shadow 0.2s ease-out, transform 0.2s ease-out;
+}
+.glass-panel:hover { box-shadow: 0 14px 34px rgba(0,0,0,0.6), 0 0 30px rgba(46,204,113,0.16); transform: translateY(-2px); }
+.lobby-right .glass-panel:nth-child(1) { animation-delay: 0.05s; }
+.lobby-right .glass-panel:nth-child(2) { animation-delay: 0.14s; }
+.lobby-right .glass-panel:nth-child(3) { animation-delay: 0.23s; }
+.lobby-right .glass-panel:nth-child(4) { animation-delay: 0.32s; }
+
+.panel-eyebrow {
+    font-family: var(--lf-pixel-font);
+    font-size: 9px; letter-spacing: 1.5px;
+    color: var(--lf-gold); margin: 0 0 8px 0;
+    display: flex; align-items: center; gap: 8px;
+}
+.panel-eyebrow::before { content: ""; width: 6px; height: 6px; background: var(--lf-gold); animation: lf-badge-blink 1.6s infinite; }
+.panel-title { font-size: 24px; color: #fff; letter-spacing: 1px; margin: 0 0 10px 0; text-shadow: 2px 2px 0 rgba(0,0,0,0.6); }
+
+/* Panel de perfil */
+.profile-panel-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.pixel-avatar {
+    width: 46px; height: 46px; border-radius: 8px;
+    background: radial-gradient(circle at 35% 30%, #a8e6cf, #3b7a57 65%, #1e382b 100%);
+    border: 2px solid var(--lf-green-dark);
+    box-shadow: 0 0 12px var(--lf-green-glow);
+    flex-shrink: 0;
+}
+.profile-panel-name { font-size: 20px; color: var(--lf-ink); line-height: 1.1; }
+.profile-panel-lvl { font-size: 13px; color: var(--lf-ink-dim); letter-spacing: 0.5px; }
+.lf-stat-row { display: flex; justify-content: space-between; font-size: 16px; padding: 4px 0; color: var(--lf-ink-dim); border-bottom: 1px dashed rgba(255,255,255,0.06); }
+.lf-stat-row span:last-child { color: var(--lf-ink); font-weight: 600; }
+.lf-stat-row:last-child { border-bottom: none; }
+
+/* Panel de noticias */
+.news-item { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.news-item:last-child { border-bottom: none; }
+.news-item-title { font-size: 17px; color: var(--lf-ink); }
+.news-item-date { font-size: 12px; color: var(--lf-ink-dim); letter-spacing: 0.5px; }
+
+/* Panel de desafío diario */
+.daily-goal { font-size: 18px; color: var(--lf-ink); line-height: 1.35; margin-bottom: 8px; }
+.daily-reward { font-size: 14px; color: var(--lf-gold); letter-spacing: 0.5px; }
+
+/* -------------------------------- BARRA INFERIOR -------------------------- */
+.lobby-bottombar {
+    grid-area: bottom;
+    pointer-events: auto;
+    display: flex; justify-content: center; align-items: center; gap: 10px;
+    animation: lf-fade-in 0.6s ease-out 0.2s both;
+}
+.quickbar-btn {
+    all: unset; box-sizing: border-box; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 20px;
+    background: var(--lf-glass-bg-2);
+    border: 1px solid var(--lf-glass-brd);
+    border-radius: 999px;
+    color: var(--lf-ink);
+    font-size: 18px; letter-spacing: 1px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.45);
+    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, background 0.15s ease-out, color 0.15s ease-out;
+}
+.quickbar-btn:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.5), 0 0 18px var(--lf-green-glow);
+    background: var(--lf-green); color: #08210f;
+}
+.quickbar-btn .qb-icon { font-size: 18px; }
+
+/* Toast liviano reusado para el lobby (placeholders de Tienda/Colección/Taller) */
+#lobby-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Responsive: por debajo de cierto ancho, colapsamos a una sola columna
+   (el centro pierde protagonismo, pero el juego sigue de fondo). */
+@media (max-width: 1100px) {
+    #lobby-screen.lobby-screen-v2 {
+        grid-template-columns: 1fr;
+        grid-template-areas: "left" "right" "bottom";
+    }
+    .lobby-center { display: none; }
+    .lobby-right { flex-direction: row; overflow-x: auto; overflow-y: hidden; }
 }

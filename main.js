@@ -27,6 +27,10 @@ const game = {
         if (typeof EventManager !== 'undefined') EventManager.deactivate();
 
         this.started = true;
+        // La partida está en curso: mostramos el HUD (oculto mientras se ve el lobby).
+        const uiLayer = document.getElementById('ui-layer');
+        if (uiLayer) uiLayer.style.display = 'block';
+
         this.player = new Player();
         this.camera = new Camera();
         const gfx = GRAPHICS_PRESETS[Settings.graphics] || GRAPHICS_PRESETS.PRO;
@@ -96,11 +100,12 @@ const game = {
     },
 
     loop() {
-        // Mientras no haya partida activa (menú, login, etc.) el loop no dibuja ni
-        // actualiza nada — solo se reprograma. Esto permite que exista UN SOLO loop
-        // arrancado una sola vez al cargar la página (ver el final de este archivo),
-        // en vez de arrancar uno nuevo cada vez que se llama a init().
+        // Mientras no haya partida activa (menú, login, etc.) el loop no actualiza
+        // lógica de juego, pero SÍ dibuja la escena viva del lobby (LobbyScene,
+        // en lobbyscene.js) directamente sobre este mismo canvas, así el centro
+        // de la pantalla nunca se ve en negro/vacío detrás del menú.
         if (!this.started || !this.player || !this.camera) {
+            if (typeof LobbyScene !== 'undefined') LobbyScene.render();
             requestAnimationFrame(() => this.loop());
             return;
         }
@@ -267,10 +272,221 @@ const game = {
         }
 
         requestAnimationFrame(() => this.loop());
+    },
+
+    // ======================================================================
+    // LOBBY v2 — construcción de las 3 zonas + barra inferior.
+    // Se separa del innerHTML estático de index.html porque necesita leer
+    // datos "en vivo" (perfil, logros, récord) cada vez que se vuelve a
+    // mostrar el lobby (goToMainMenu en ui.js llama a refreshLobbyPanels()).
+    // ======================================================================
+    buildLobby() {
+        const root = document.getElementById('lobby-screen');
+        if (!root) return;
+        root.innerHTML = `
+            <div class="lobby-left">
+                <div class="lobby-logo">
+                    <div class="lobby-logo-eyebrow">◆ DEFENSA · SUPERVIVENCIA · SLIMES</div>
+                    <h1 class="menu-title lobby-logo-title" style="animation:none;">SLIMEFRONT</h1>
+                    <p class="lobby-logo-sub">Enhanced Edition · v0.9</p>
+                </div>
+                <nav class="lobby-nav">
+                    <button class="nav-card nav-card-primary" onclick="game.startFromLobby()">
+                        <span class="nav-card-icon">▶</span>
+                        <span class="nav-card-text">
+                            <span class="nav-card-title">Jugar</span>
+                            <span class="nav-card-sub">Empieza una nueva incursión</span>
+                        </span>
+                    </button>
+                    <button class="nav-card" onclick="game.openAchievementsFromLobby()">
+                        <span class="nav-card-icon">🏆</span>
+                        <span class="nav-card-text">
+                            <span class="nav-card-title">Logros</span>
+                            <span class="nav-card-sub" id="lobby-nav-achv-sub">Cargando...</span>
+                        </span>
+                    </button>
+                    <button class="nav-card" onclick="game.openSettings('lobby')">
+                        <span class="nav-card-icon">⚙</span>
+                        <span class="nav-card-text">
+                            <span class="nav-card-title">Opciones</span>
+                            <span class="nav-card-sub">Gráficos, audio y cuenta</span>
+                        </span>
+                    </button>
+                    <button class="nav-card nav-card-danger" onclick="game.openExitConfirm()">
+                        <span class="nav-card-icon">⏻</span>
+                        <span class="nav-card-text">
+                            <span class="nav-card-title">Salir</span>
+                            <span class="nav-card-sub">Cerrar SLIMEFRONT</span>
+                        </span>
+                    </button>
+                </nav>
+                <div id="auth-box" class="auth-box lobby-auth">
+                    <span id="auth-status" class="hud-text"></span>
+                    <button id="auth-btn" class="menu-btn" onclick="AuthUI.handleClick()"></button>
+                </div>
+            </div>
+
+            <div class="lobby-center"></div>
+
+            <div class="lobby-right">
+                <div class="glass-panel panel-profile">
+                    <div class="panel-eyebrow">PERFIL</div>
+                    <div class="profile-panel-head">
+                        <div class="pixel-avatar"></div>
+                        <div>
+                            <div class="profile-panel-name" id="lobby-profile-name">Invitado</div>
+                            <div class="profile-panel-lvl" id="lobby-profile-lvl">Nivel 1</div>
+                        </div>
+                    </div>
+                    <div id="lobby-profile-stats"></div>
+                </div>
+
+                <div class="glass-panel panel-news">
+                    <div class="panel-eyebrow">NOTICIAS</div>
+                    <div class="panel-title" style="font-size:20px;">Parche v0.9</div>
+                    <div id="lobby-news-list"></div>
+                </div>
+
+                <div class="glass-panel panel-daily">
+                    <div class="panel-eyebrow">DESAFÍO DIARIO</div>
+                    <div class="daily-goal" id="lobby-daily-goal">Cargando...</div>
+                    <div class="daily-reward" id="lobby-daily-reward"></div>
+                </div>
+
+                <div class="glass-panel panel-stats">
+                    <div class="panel-eyebrow">ESTADÍSTICAS</div>
+                    <div id="lobby-stats-list"></div>
+                </div>
+            </div>
+
+            <div class="lobby-bottombar">
+                <button class="quickbar-btn" onclick="game.openStorePlaceholder()"><span class="qb-icon">🛒</span>Tienda</button>
+                <button class="quickbar-btn" onclick="game.openCollectionPlaceholder()"><span class="qb-icon">📚</span>Colección</button>
+                <button class="quickbar-btn" onclick="game.openWorkshopPlaceholder()"><span class="qb-icon">🔧</span>Taller</button>
+                <button class="quickbar-btn" onclick="game.toggleControls(true)"><span class="qb-icon">📖</span>Controles</button>
+                <button class="quickbar-btn" onclick="game.openCredits()"><span class="qb-icon">🎬</span>Créditos</button>
+            </div>
+        `;
+        if (typeof AuthUI !== 'undefined') AuthUI.refresh();
+        this.refreshLobbyPanels();
+    },
+
+    // Repinta solo los datos (no reconstruye el DOM) de los paneles derechos +
+    // el subtítulo de logros. Se puede llamar tantas veces como haga falta
+    // (login, logros desbloqueados, vuelta al menú) sin cortar las animaciones
+    // de entrada de las tarjetas.
+    refreshLobbyPanels() {
+        const p = (typeof PlayerProfile !== 'undefined') ? PlayerProfile : null;
+
+        // --- Perfil ---
+        const nameEl = document.getElementById('lobby-profile-name');
+        const lvlEl = document.getElementById('lobby-profile-lvl');
+        const statsEl = document.getElementById('lobby-profile-stats');
+        if (nameEl) nameEl.innerText = (typeof AuthUI !== 'undefined') ? AuthUI.currentLabel() : 'Invitado';
+        if (p && lvlEl) lvlEl.innerText = `Nivel ${p.level} · 💎 ${p.diamonds}`;
+        if (p && statsEl) {
+            statsEl.innerHTML = `
+                <div class="lf-stat-row"><span>Mejor oleada</span><span>${Settings.bestWave}</span></div>
+                <div class="lf-stat-row"><span>Eliminaciones</span><span>${p.kills.toLocaleString('es-ES')}</span></div>
+                <div class="lf-stat-row"><span>Dinero acumulado</span><span>$${(p.diamonds ? p.diamonds : 0)}</span></div>
+            `;
+        }
+
+        // --- Logros (subtítulo de la tarjeta de navegación) ---
+        const achvSub = document.getElementById('lobby-nav-achv-sub');
+        if (achvSub && typeof ACHIEVEMENTS_DB !== 'undefined') {
+            const defs = Object.values(ACHIEVEMENTS_DB);
+            const done = defs.filter(d => d.getValue() >= d.target).length;
+            achvSub.innerText = `${done}/${defs.length} desbloqueados`;
+        }
+
+        // --- Noticias (contenido estático del parche actual) ---
+        const newsList = document.getElementById('lobby-news-list');
+        if (newsList) {
+            const news = [
+                { title: 'Sistema de logros y guardado en la nube', date: 'v0.9' },
+                { title: 'Nuevo evento dinámico: Bombardeo', date: 'v0.9' },
+                { title: '20 armas balanceadas, del cuchillo al RPG', date: 'v0.9' }
+            ];
+            newsList.innerHTML = news.map(n => `
+                <div class="news-item">
+                    <div class="news-item-title">${n.title}</div>
+                    <div class="news-item-date">${n.date}</div>
+                </div>
+            `).join('');
+        }
+
+        // --- Desafío diario (rota una vez por día, determinista por fecha) ---
+        const goalEl = document.getElementById('lobby-daily-goal');
+        const rewardEl = document.getElementById('lobby-daily-reward');
+        if (goalEl) {
+            const goals = [
+                'Sobrevive 10 oleadas usando solo armas cuerpo a cuerpo.',
+                'Elimina 150 slimes sin usar el dash.',
+                'Llega a la oleada 8 sin comprar munición en la tienda.',
+                'Derrota a un jefe con la escopeta recortada.',
+                'Completa una oleada entera durante un evento dinámico.'
+            ];
+            const dayIndex = Math.floor(Date.now() / 86400000) % goals.length;
+            goalEl.innerText = goals[dayIndex];
+            if (rewardEl) rewardEl.innerText = '🎁 Recompensa informativa — sin seguimiento automático todavía';
+        }
+
+        // --- Estadísticas ---
+        const statsList = document.getElementById('lobby-stats-list');
+        if (p && statsList) {
+            const acc = p.shotsFired > 0 ? Math.round(p.shotsHit / p.shotsFired * 100) : 0;
+            const liveSec = this.started ? Math.floor((Date.now() - this.startTime) / 1000) : 0;
+            const totalSec = p.playTimeSec + liveSec;
+            const mm = String(Math.floor(totalSec / 60)).padStart(2, '0'), ss = String(totalSec % 60).padStart(2, '0');
+            statsList.innerHTML = `
+                <div class="lf-stat-row"><span>Precisión</span><span>${acc}%</span></div>
+                <div class="lf-stat-row"><span>Tiempo jugado</span><span>${mm}:${ss}</span></div>
+                <div class="lf-stat-row"><span>Distancia recorrida</span><span>${Math.floor(p.distance)} m</span></div>
+                <div class="lf-stat-row"><span>Muertes</span><span>${p.deaths}</span></div>
+            `;
+        }
+    },
+
+    openAchievementsFromLobby() {
+        this.openProfile();
+        this.setProfileTab('achv');
+    },
+
+    // ---- Barra inferior: Tienda / Colección / Taller (aún no implementados
+    // como sistemas propios; se deja un aviso claro en vez de fingir que
+    // hacen algo). ----
+    _lobbyToast(msg) {
+        const el = document.getElementById('lobby-toast');
+        if (!el) return;
+        el.innerHTML = `<div class="achv-toast-name">${msg}</div>`;
+        el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+        clearTimeout(this._lobbyToastTimer);
+        this._lobbyToastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+    },
+    openStorePlaceholder() { this._lobbyToast('🛒 Tienda: próximamente'); },
+    openCollectionPlaceholder() { this._lobbyToast('📚 Colección: próximamente'); },
+    openWorkshopPlaceholder() { this._lobbyToast('🔧 Taller: próximamente'); },
+
+    // ---- Salir ----
+    openExitConfirm() { document.getElementById('confirm-exit-modal').style.display = 'flex'; },
+    closeExitConfirm() { document.getElementById('confirm-exit-modal').style.display = 'none'; },
+    confirmExit() {
+        // window.close() solo funciona en pestañas abiertas por script; en la
+        // mayoría de los navegadores el usuario deberá cerrar la pestaña él
+        // mismo. Lo intentamos igual y avisamos si no se pudo.
+        window.close();
+        setTimeout(() => {
+            this.closeExitConfirm();
+            this._lobbyToast('Podés cerrar esta pestaña para salir');
+        }, 200);
     }
 };
 
-window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    if (typeof LobbyScene !== 'undefined') LobbyScene.reset();
+});
 
 // Arranca el único loop de renderizado del juego. Gracias al guard agregado al
 // principio de loop(), esto no dibuja nada hasta que exista game.player (o sea,
@@ -278,31 +494,8 @@ window.addEventListener('resize', () => { canvas.width = window.innerWidth; canv
 game.loop();
 
 window.addEventListener('DOMContentLoaded', () => {
-    const lobbyScreen = document.getElementById('lobby-screen');
-    if (lobbyScreen) {
-        lobbyScreen.innerHTML = `
-            <div class="menu-panel">
-                <h1 class="menu-title">SLIMEFRONT</h1>
-                <p class="menu-subtitle">Enhanced Edition</p>
-                <div id="auth-box" class="auth-box">
-                    <span id="auth-status" class="hud-text"></span>
-                    <button id="auth-btn" class="menu-btn" onclick="AuthUI.handleClick()"></button>
-                </div>
-                <button class="menu-btn primary" onclick="game.startFromLobby()">▶ JUGAR</button>
-                <button class="menu-btn" onclick="game.openSettings('lobby')">⚙ AJUSTES</button>
-                <button class="menu-btn" onclick="game.toggleControls(true)">📖 CONTROLES</button>
-                <button class="menu-btn" onclick="game.openCredits()">🎬 CRÉDITOS</button>
-                <div style="margin-top:20px; font-size:18px;">
-                    <div>RÉCORD: ${Settings.bestWave} OLEADAS</div>
-                    <div class="version-tag">v0.9</div>
-                </div>
-            </div>
-        `;
-        // AuthUI (auth-ui.js) se carga después que este script arma el lobby por primera
-        // vez, así que el botón nace vacío y se rellena solo apenas AuthUI exista (su
-        // propio listener de DOMContentLoaded llama a refresh() al terminar de cargar).
-        if (typeof AuthUI !== 'undefined') AuthUI.refresh();
-    }
+    document.body.classList.add('lobby-active');
+    game.buildLobby();
 
     // Asegúrate de que este panel exista en tu HTML (o créalo dinámicamente)
     const controlsPanel = document.getElementById('controls-panel');
@@ -325,13 +518,13 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('click', e => {
-        const btn = e.target.closest('.menu-btn, .option-btn, .buy-btn, .sell-btn, .depart-btn, .shop-btn');
+        const btn = e.target.closest('.menu-btn, .option-btn, .buy-btn, .sell-btn, .depart-btn, .shop-btn, .nav-card, .quickbar-btn');
         if (!btn) return;
         const isBack = btn.textContent.includes('VOLVER') || btn.onclick?.toString().includes('close');
         playSFX(isBack ? 'ui_back' : 'ui_click', 0.4);
     });
     document.addEventListener('mouseover', e => {
-        const btn = e.target.closest('.menu-btn, .option-btn, .buy-btn, .sell-btn, .depart-btn, .shop-btn');
+        const btn = e.target.closest('.menu-btn, .option-btn, .buy-btn, .sell-btn, .depart-btn, .shop-btn, .nav-card, .quickbar-btn');
         if (btn) playSFX('ui_hover', 0.15, 0.05);
     });
 });

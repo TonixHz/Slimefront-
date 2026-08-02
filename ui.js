@@ -28,8 +28,20 @@ const Settings = {
 };
 applyPerfClass();
 
-game.startFromLobby = function() {
+// #lobby-screen usa CSS grid (ver assets/style.css → .lobby-screen-v2), no
+// flex: todo lo que lo vuelve a mostrar debe usar 'grid', nunca 'flex'.
+function showLobbyScreen() {
+    document.body.classList.add('lobby-active');
+    document.getElementById('lobby-screen').style.display = 'grid';
+    if (typeof game.refreshLobbyPanels === 'function') game.refreshLobbyPanels();
+}
+function hideLobbyScreen() {
+    document.body.classList.remove('lobby-active');
     document.getElementById('lobby-screen').style.display = 'none';
+}
+
+game.startFromLobby = function() {
+    hideLobbyScreen();
     MusicManager.duck(500);
     MusicManager.tracks = MusicManager.combatTracks;
     MusicManager.currentIndex = -1;
@@ -74,18 +86,22 @@ game.goToMainMenu = function() {
     if (this.floatingTexts) this.floatingTexts.forEach(t => t.active = false);
     if (typeof EventManager !== 'undefined') EventManager.deactivate();
 
+    const uiLayer = document.getElementById('ui-layer');
+    if (uiLayer) uiLayer.style.display = 'none';
+
     MusicManager.duck(400);
     MusicManager.tracks = MusicManager.mainTracks;
     MusicManager.currentIndex = -1;
     setTimeout(() => { if (!game.started) MusicManager.start(); }, 450);
 
-    document.getElementById('lobby-screen').style.display = 'flex';
+    showLobbyScreen();
 };
 
 // Arranca una partida nueva directo desde la pantalla de Game Over (sin pasar
 // por el menú principal).
 game.playAgain = function() {
     document.getElementById('gameover-screen').style.display = 'none';
+    hideLobbyScreen();
     MusicManager.duck(300);
     this.init();
 };
@@ -125,7 +141,7 @@ game.confirmDeleteProgress = async function() {
 
 game.openSettings = function(from) {
     this.settingsOrigin = from;
-    document.getElementById(from === 'lobby' ? 'lobby-screen' : 'esc-menu').style.display = 'none';
+    if (from === 'lobby') hideLobbyScreen(); else document.getElementById('esc-menu').style.display = 'none';
     document.getElementById('settings-panel').style.display = 'flex';
     const sfxSlider = document.getElementById('sfx-vol-slider');
     const musicSlider = document.getElementById('music-vol-slider');
@@ -138,7 +154,7 @@ game.openSettings = function(from) {
 
 game.closeSettings = function() {
     document.getElementById('settings-panel').style.display = 'none';
-    document.getElementById(this.settingsOrigin === 'lobby' ? 'lobby-screen' : 'esc-menu').style.display = 'flex';
+    if (this.settingsOrigin === 'lobby') showLobbyScreen(); else document.getElementById('esc-menu').style.display = 'flex';
 };
 
 game.setGraphics = function(tier) {
@@ -158,7 +174,7 @@ game.setMusicVolume = function(v) {
 };
 
 game.toggleControls = function(show) {
-    document.getElementById('lobby-screen').style.display = show ? 'none' : 'flex';
+    if (show) hideLobbyScreen(); else showLobbyScreen();
     const panel = document.getElementById('controls-panel');
     if (panel) panel.style.display = show ? 'flex' : 'none';
 };
@@ -205,11 +221,11 @@ game.gameOver = function() {
 
 // === CRÉDITOS ===
 game.openCredits = function() {
-    document.getElementById('lobby-screen').style.display = 'none';
+    hideLobbyScreen();
     document.getElementById('credits-screen').style.display = 'flex';
 };
 
 game.closeCredits = function() {
     document.getElementById('credits-screen').style.display = 'none';
-    document.getElementById('lobby-screen').style.display = 'flex';
+    showLobbyScreen();
 };

@@ -64,7 +64,11 @@
     <div id="event-badge" class="hud-box" style="display:none; position:absolute; top:20px; right:20px; border-left-color:#8e44ad; z-index:11;"></div>
     <div id="levelup-toast" class="levelup-toast"></div>
     <div id="achievement-toast" class="achv-toast"></div>
-    <div id="ui-layer">
+    <div id="lobby-toast" class="achv-toast" style="top:220px;"></div>
+
+    <!-- #ui-layer arranca oculto: solo tiene sentido mientras hay una partida en curso.
+         game.init() lo muestra; goToMainMenu() (ui.js) lo vuelve a ocultar. -->
+    <div id="ui-layer" style="display:none;">
         <div class="stats-top">
             <div class="hud-box">
                 <div id="health-container">
@@ -109,14 +113,12 @@
         </div>
     </div>
 
-    <div id="lobby-screen" class="menu-screen" style="display:none;">
-        <div class="menu-panel">
-            <h1 class="menu-title">SLIMEFRONT</h1>
-            <p class="menu-subtitle">Enhanced Edition</p>
-            <button class="menu-btn primary" onclick="game.startFromLobby()">JUGAR</button>
-            <button class="menu-btn" onclick="game.openSettings('lobby')">AJUSTES</button>
-        </div>
-    </div>
+    <!-- LOBBY — el contenido de las 3 zonas + barra inferior lo arma main.js
+         (game.buildLobby / game.refreshLobbyPanels), así puede leer datos en
+         vivo de PlayerProfile / Settings / AchievementManager cada vez que se
+         vuelve a mostrar. El fondo es transparente a propósito: el canvas del
+         juego se ve detrás, dibujando la escena viva (ver lobbyscene.js). -->
+    <div id="lobby-screen" class="lobby-screen-v2" style="display:none;"></div>
 
     <div id="esc-menu" class="menu-screen" style="display:none;">
         <div class="menu-panel">
@@ -211,7 +213,7 @@
     </div>
 
     <canvas id="gameCanvas"></canvas>
-    
+
     <!-- MODAL DE CRÉDITOS (oculto por defecto) -->
     <div id="credits-screen" class="menu-screen" style="display:none;">
         <div class="menu-panel" style="max-height: 80vh; overflow-y: auto; width: 500px;">
@@ -219,27 +221,27 @@
             <div style="text-align: left; font-size: 18px; color: #ccc; line-height: 1.8;">
                 <p style="color: #2ecc71; font-weight: bold; margin-bottom: 10px;">SLIMEFRONT v0.9</p>
                 <p>Juego de defensa en tiempo real</p>
-                
+
                 <hr style="border-color: #333; margin: 20px 0;">
-                
+
                 <p style="color: #f1c40f; font-weight: bold;">🎮 DESARROLLO</p>
                 <p>Código y Diseño</p>
-                
+
                 <p style="color: #3498db; font-weight: bold; margin-top: 15px;">🎵 MÚSICA</p>
                 <p>Tetuano - Abyss<br>
                 Pufino - Metal Is Trash<br>
                 Pufino - Digital Mayham<br>
                 Zambolino - Imperator<br>
                 (freetouse.com)</p>
-                
+
                 <p style="color: #9b59b6; font-weight: bold; margin-top: 15px;">🔊 EFECTOS DE SONIDO</p>
                 <p>Google Sounds<br>
                 Freesound.org<br>
                 Zapsplat.com</p>
-                
+
                 <p style="color: #e67e22; font-weight: bold; margin-top: 15px;">🎨 TIPOGRAFÍA</p>
                 <p>Teko (Google Fonts)</p>
-                
+
                 <hr style="border-color: #333; margin: 20px 0;">
                 <p style="color: #888; font-size: 14px; margin-top: 15px;">
                     Gracias por jugar. <br>
@@ -270,6 +272,15 @@
     </div>
 </div>
 
+<div id="confirm-exit-modal" class="menu-screen" style="display:none; z-index:110;">
+    <div class="menu-panel">
+        <h1 class="menu-title" style="font-size:36px;">SALIR</h1>
+        <p class="menu-subtitle">¿Seguro que deseas salir de SLIMEFRONT?</p>
+        <button class="menu-btn" onclick="game.closeExitConfirm()">CANCELAR</button>
+        <button class="menu-btn danger" onclick="game.confirmExit()">SALIR</button>
+    </div>
+</div>
+
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -279,6 +290,7 @@
 <script src="FirebaseSaveSystem.js"></script>
 
 <script src="main.js"></script>
+<script src="lobbyscene.js"></script>
 <script src="ui.js"></script>
 <script src="effects.js"></script>
 <script src="events.js"></script>
@@ -292,3 +304,5 @@
 <script src="auth-ui.js"></script>
 <script src="mobile.js"></script>
 <script src="boot.js"></script>
+</body>
+</html>
