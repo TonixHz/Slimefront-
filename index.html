@@ -104,13 +104,6 @@
         </div>
 
         <div id="hotbar"></div>
-
-        <div id="mobile-controls">
-            <div id="aim-zone"></div>
-            <div id="joystick-zone"><div id="joystick-knob"></div></div>
-            <button id="mobile-dash-btn">DASH</button>
-            <button id="mobile-reload-btn">R</button>
-        </div>
     </div>
 
     <!-- LOBBY — el contenido de las 3 zonas + barra inferior lo arma main.js
@@ -281,10 +274,24 @@
     </div>
 </div>
 
+<!-- PANTALLA DE ERROR FATAL — la muestra game.showFatalError() (main.js) cuando
+     el game loop atrapa una excepción no controlada, en vez de dejar el canvas
+     congelado sin ninguna explicación. z-index alto (ver style.css) para quedar
+     por encima de cualquier otro modal que estuviera abierto en ese momento. -->
+<div id="fatal-error-screen" class="menu-screen" style="display:none;">
+    <div class="menu-panel">
+        <h1 class="menu-title" style="font-size:34px; color:#e74c3c;">⚠️ ERROR INESPERADO</h1>
+        <p class="menu-subtitle">SLIMEFRONT encontró un problema y no puede continuar de forma segura.</p>
+        <p id="fatal-error-message"></p>
+        <button class="menu-btn primary" onclick="location.reload()">🔁 RECARGAR JUEGO</button>
+    </div>
+</div>
+
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
 
 <script src="FirebaseSaveSystem.js"></script>
@@ -302,7 +309,6 @@
 <script src="progression.js"></script>
 <script src="achievements.js"></script>
 <script src="auth-ui.js"></script>
-<script src="mobile.js"></script>
 <script src="boot.js"></script>
 </body>
 </html>

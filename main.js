@@ -16,6 +16,10 @@ const game = {
     keys: {}, mouse: { x: 0, y: 0, down: false },
     lastShot: 0, particleScale: 1, lowEnemyMode: false,
     _inputBound: false,
+    _loopCrashed: false, // ver showFatalError() / loop(): una vez en true, el
+                          // loop deja de reprogramarse a sí mismo con
+                          // requestAnimationFrame, así un error no se repite
+                          // 60 veces por segundo en la consola.
 
     init() {
         // Reset completo: init() ahora puede llamarse más de una vez en la misma
@@ -99,14 +103,60 @@ const game = {
         }
     },
 
+    /**
+     * ÚNICO punto de entrada del ciclo de juego. Envuelve toda la actualización
+     * y el dibujado (_frame()) en un try/catch: si una excepción no controlada
+     * ocurre en cualquier parte de la lógica o el renderizado, antes el juego
+     * simplemente se quedaba congelado en silencio (requestAnimationFrame deja
+     * de reprogramarse solo si el callback tira una excepción, sin ningún aviso
+     * para quien está jugando).
+     *
+     * Ahora, ante cualquier error:
+     *   1. Se registra en consola con console.error (con el stack completo) para
+     *      poder depurarlo.
+     *   2. Se marca _loopCrashed = true, así este mismo error no se repite en
+     *      bucle intentando seguir el loop en el estado roto.
+     *   3. Se muestra una pantalla de error clara (#fatal-error-screen) con un
+     *      botón para recargar el juego, en vez de dejar un canvas congelado
+     *      sin ninguna explicación.
+     */
     loop() {
+        if (this._loopCrashed) return;
+        try {
+            this._frame();
+        } catch (err) {
+            console.error('[GameLoop] Excepción no controlada, el loop se detiene:', err);
+            this._loopCrashed = true;
+            this.showFatalError(err);
+            return;
+        }
+        requestAnimationFrame(() => this.loop());
+    },
+
+    // Muestra la pantalla de error fatal con el botón de recarga. Si por algún
+    // motivo el HTML de esa pantalla no existiera (versión vieja de index.html
+    // sin actualizar), cae a un alert() para que el usuario igual se entere.
+    showFatalError(err) {
+        const el = document.getElementById('fatal-error-screen');
+        if (!el) {
+            alert('SLIMEFRONT encontró un error inesperado y debe recargarse.');
+            return;
+        }
+        const msgEl = document.getElementById('fatal-error-message');
+        if (msgEl) msgEl.innerText = (err && err.message) ? err.message : 'Error desconocido.';
+        el.style.display = 'flex';
+    },
+
+    // Un solo frame de juego (lógica + dibujado). Separado de loop() para que
+    // el try/catch de arriba cubra absolutamente todo lo que pasa en un frame,
+    // tanto si hay partida en curso como si solo se está dibujando el lobby.
+    _frame() {
         // Mientras no haya partida activa (menú, login, etc.) el loop no actualiza
         // lógica de juego, pero SÍ dibuja la escena viva del lobby (LobbyScene,
         // en lobbyscene.js) directamente sobre este mismo canvas, así el centro
         // de la pantalla nunca se ve en negro/vacío detrás del menú.
         if (!this.started || !this.player || !this.camera) {
             if (typeof LobbyScene !== 'undefined') LobbyScene.render();
-            requestAnimationFrame(() => this.loop());
             return;
         }
 
@@ -239,8 +289,6 @@ const game = {
         }
         EventManager.drawOverlay();
         // UI Updates
-        const mobileControls = document.getElementById('mobile-controls');
-        if(mobileControls) mobileControls.style.pointerEvents = this.paused ? 'none' : 'auto';
         document.getElementById('health-inner').style.width = (this.player.hp / this.player.maxHp * 100) + "%";
         document.getElementById('health-text').innerText = `${Math.floor(this.player.hp)} / ${this.player.maxHp}`;
         document.getElementById('money-display').innerText = "CASH: $" + this.player.money;
@@ -270,8 +318,6 @@ const game = {
             this.updateShop();
             document.getElementById('shop-menu').style.display = "block";
         }
-
-        requestAnimationFrame(() => this.loop());
     },
 
     // ======================================================================
@@ -489,7 +535,7 @@ window.addEventListener('resize', () => {
 });
 
 // Arranca el único loop de renderizado del juego. Gracias al guard agregado al
-// principio de loop(), esto no dibuja nada hasta que exista game.player (o sea,
+// principio de _frame(), esto no dibuja nada hasta que exista game.player (o sea,
 // hasta el primer game.init()), así que es seguro llamarlo ya mismo.
 game.loop();
 

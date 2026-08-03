@@ -150,15 +150,6 @@ canvas { display: block; }
 .achv-claimed { color: #2ecc71; font-weight: 700; font-size: 14px; letter-spacing: 1px; }
 .achv-locked { font-size: 22px; opacity: 0.5; }
 
-/* Controles Táctiles - DESHABILITADOS (solo PC) */
-#mobile-controls { display: none !important; visibility: hidden !important; pointer-events: none !important; }
-#aim-zone { position: absolute; top: 0; right: 0; width: 55%; height: 100%; pointer-events: all; touch-action: none; }
-#joystick-zone { position: absolute; bottom: 30px; left: 30px; width: 130px; height: 130px; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.35); border-radius: 50%; pointer-events: all; touch-action: none; }
-#joystick-knob { position: absolute; top: 40px; left: 40px; width: 50px; height: 50px; background: rgba(46, 204, 113, 0.6); border: 2px solid #2ecc71; border-radius: 50%; pointer-events: none; transition: transform 0.05s linear; }
-#mobile-dash-btn, #mobile-reload-btn { position: absolute; bottom: 40px; width: 65px; height: 65px; border-radius: 50%; pointer-events: all; border: 2px solid #444; background: rgba(20,25,20,0.85); color: #fff; font-family: 'Teko', sans-serif; font-size: 16px; letter-spacing: 1px; }
-#mobile-dash-btn { right: 100px; border-color: #2ecc71; }
-#mobile-reload-btn { right: 20px; border-color: #f1c40f; }
-
 /* ---- Login (Firebase Auth) en el lobby ---- */
 .auth-box { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 18px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid #333; border-radius: 8px; }
 .auth-box #auth-status { font-size: 15px; color: #ccc; text-align: center; }
@@ -449,3 +440,11 @@ body.lobby-active #damage-overlay { display: none; }
     .lobby-center { display: none; }
     .lobby-right { flex-direction: row; overflow-x: auto; overflow-y: hidden; }
 }
+
+/* ==========================================================================
+   PANTALLA DE ERROR FATAL (game loop) — reutiliza .menu-screen/.menu-panel,
+   solo se agrega z-index alto para quedar por encima de cualquier otra
+   pantalla modal que estuviera abierta en el momento del error.
+   ========================================================================== */
+#fatal-error-screen { z-index: 500; }
+#fatal-error-message { color: #ccc; font-size: 16px; word-break: break-word; margin: 10px 0 20px 0; }

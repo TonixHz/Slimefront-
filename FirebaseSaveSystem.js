@@ -8,21 +8,41 @@
  *
  *     SaveSystem.get(key, fallback)   -> SIEMPRE síncrono, nunca bloquea el juego
  *     SaveSystem.set(key, value)      -> SIEMPRE síncrono en apariencia (escribe en
- *                                         caché local al toque; Firestore se sincroniza
- *                                         solo, en segundo plano, con reintentos)
+ *                                         caché local al toque; el backend se
+ *                                         sincroniza solo, en segundo plano, con
+ *                                         reintentos)
  *
- * Toda la comunicación real con Firebase (Auth + Firestore) vive ÚNICAMENTE acá.
- * Ningún otro archivo importa firebase.* directamente.
+ * Toda la comunicación real con Firebase (Auth + Firestore + Functions) vive
+ * ÚNICAMENTE acá. Ningún otro archivo importa firebase.* directamente.
+ *
+ * === SEGURIDAD (IMPORTANTE) ===
+ * Antes este archivo escribía directamente en Firestore (`_db.collection(...)
+ * .doc(uid).set(patch, {merge:true})`), y las Rules solo chequeaban que el uid
+ * coincidiera. Eso significa que cualquiera podía abrir la consola del
+ * navegador, hacer `SaveSystem.set('profile', {money: 99999999, ...})` y ese
+ * valor se subía tal cual a la nube: sin validar tipos, rangos, ni que el
+ * cambio tuviera sentido.
+ *
+ * Ahora las Firestore Rules (firestore.rules) bloquean TODA escritura directa
+ * del cliente a /players/{uid} y /leaderboard/{uid} ("allow write: if false").
+ * El único camino de escritura es la Cloud Function `syncProgress`
+ * (functions/index.js), que corre con el Admin SDK (ignora las Rules) y
+ * valida cada campo antes de guardarlo. `clearProgress` (borrar progreso)
+ * pasa por el mismo esquema con su propia función `clearProgress`.
+ *
+ * La estrategia "offline-first" no cambia: localStorage sigue siendo la
+ * fuente de verdad inmediata para que el juego nunca se bloquee esperando
+ * a la red; lo único que cambió es A DÓNDE va la sincronización remota.
  *
  * ESTRATEGIA "OFFLINE-FIRST":
  *   1. Lectura: primero memoria (this._cache), si no está, localStorage. Firestore
  *      NUNCA se consulta de forma síncrona (no se puede: es una promesa).
  *   2. Escritura: se guarda en memoria + localStorage al instante (el juego sigue
  *      andando igual que con el SaveSystem viejo) y se marca la key como "sucia".
- *      Cada ~2.5s (debounce) se empuja el lote de keys sucias a Firestore. Si
- *      Firestore falla (sin red, reglas, etc.) el error se traga con un console.warn
- *      y las keys quedan pendientes para el próximo intento: el juego JAMÁS se rompe
- *      ni se bloquea por un fallo de red.
+ *      Cada ~2.5s (debounce) se empuja el lote de keys sucias a la Cloud Function
+ *      `syncProgress`. Si falla (sin red, función caída, etc.) el error se traga
+ *      con un console.warn y las keys quedan pendientes para el próximo intento:
+ *      el juego JAMÁS se rompe ni se bloquea por un fallo de red.
  *   3. Login: al iniciar sesión con Google, se descarga el documento del usuario
  *      (players/{uid}) UNA vez y se mergea sobre la caché local + localStorage. Como
  *      PlayerProfile/Progression/AchievementStats/AchievementState ya existen para
@@ -32,10 +52,9 @@
  *      más nuevos desde la nube.
  *
  * PREPARADO PARA RANKINGS ONLINE A FUTURO:
- *   pushLeaderboardEntry() ya deja escrito un documento liviano y consultable en la
- *   colección top-level `leaderboard` (uid, nombre, nivel, mejor oleada, fecha). Hoy
- *   nadie la llama todavía: es la base para una futura pantalla de "Top jugadores"
- *   sin tener que rediseñar nada de este archivo.
+ *   El leaderboard ahora lo escribe únicamente `syncProgress` (Cloud Function),
+ *   a partir del documento de `players/{uid}` ya validado en ese mismo request.
+ *   El cliente nunca escribe el leaderboard directamente.
  *
  * NUEVO (boot flow): SaveSystem.ready es una Promise que resuelve cuando Firebase
  * Auth ya resolvió su primer estado (logueado o no) y, si había sesión, ya se bajó
@@ -45,7 +64,8 @@
  * usado desde Ajustes → Borrar progreso.
  *
  * Debe cargarse:
- *   - DESPUÉS de los <script> del SDK de Firebase (compat) en index.html.
+ *   - DESPUÉS de los <script> del SDK de Firebase (compat, incluyendo
+ *     firebase-functions-compat) en index.html.
  *   - ANTES de level.js / progression.js / achievements.js (que consumen SaveSystem).
  */
 
@@ -62,6 +82,11 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const _auth = firebase.auth();
 const _db = firebase.firestore();
+// Solo se usa para LEER el propio documento (players/{uid}) al iniciar sesión.
+// Ninguna escritura pasa por acá: ver _syncProgressFn / _clearProgressFn más abajo.
+const _functions = firebase.functions();
+const _syncProgressFn = _functions.httpsCallable('syncProgress');
+const _clearProgressFn = _functions.httpsCallable('clearProgress');
 
 // Analytics es opcional y no debe poder romper el arranque del juego si el navegador
 // bloquea el script (adblockers, iOS privado, etc.)
@@ -78,7 +103,6 @@ try {
 const _LOCAL_PREFIX = 'slime_';
 const _SYNC_DEBOUNCE_MS = 2500;
 const PLAYERS_COLLECTION = 'players';
-const LEADERBOARD_COLLECTION = 'leaderboard';
 
 const SaveSystem = {
     _cache: {},
@@ -127,7 +151,12 @@ const SaveSystem = {
         });
     },
 
-    // ================= SINCRONIZACIÓN CON FIRESTORE (nunca bloquea, nunca rompe) =================
+    // ================= SINCRONIZACIÓN (nunca bloquea, nunca rompe) =================
+    // IMPORTANTE: esto YA NO escribe directo en Firestore. Llama a la Cloud
+    // Function `syncProgress`, que valida tipos/rangos/campos permitidos antes
+    // de guardar nada (ver functions/index.js). Las Firestore Rules bloquean
+    // cualquier otro camino de escritura, así que modificar `this._cache` a
+    // mano desde la consola del navegador ya no tiene ningún efecto en la nube.
 
     _scheduleSync() {
         clearTimeout(this._pushTimer);
@@ -140,23 +169,19 @@ const SaveSystem = {
         this._dirty.clear();
         const patch = {};
         keys.forEach(k => {
-            // Firestore rechaza con "invalid-argument" cualquier valor no serializable
-            // (funciones, undefined, etc.). PlayerProfile, por ejemplo, tiene su propio
-            // método .save colgando del mismo objeto que se cachea acá (ver level.js:
-            // "PlayerProfile.save = function(){...}"), y localStorage lo tolera porque
-            // JSON.stringify ignora funciones en silencio, pero el SDK de Firestore no.
-            // Pasamos todo por el mismo ciclo JSON para quedarnos solo con datos planos.
+            // La Cloud Function espera datos planos (JSON serializable). Igual
+            // que antes, pasamos todo por un ciclo JSON para descartar
+            // funciones u otros valores no serializables antes de mandarlos.
             try {
                 patch[k] = JSON.parse(JSON.stringify(this._cache[k]));
             } catch (e) {
                 console.warn(`[FirebaseSaveSystem] No se pudo serializar la key "${k}", se omite este ciclo de sync:`, e);
             }
         });
-        patch._updatedAt = firebase.firestore.FieldValue.serverTimestamp();
         try {
-            await _db.collection(PLAYERS_COLLECTION).doc(this._uid).set(patch, { merge: true });
+            await _syncProgressFn(patch);
         } catch (e) {
-            console.warn('[FirebaseSaveSystem] Firestore no disponible, se sigue jugando con la caché local. Reintentará:', e.code || e);
+            console.warn('[FirebaseSaveSystem] No se pudo sincronizar con el servidor, se sigue jugando con la caché local. Reintentará:', e.code || e);
             keys.forEach(k => this._dirty.add(k));
         }
     },
@@ -168,11 +193,14 @@ const SaveSystem = {
     },
 
     // ================= CARGA INICIAL AL INICIAR SESIÓN =================
+    // Esto sigue siendo una LECTURA directa a Firestore (permitida por las
+    // Rules: cada usuario puede leer su propio documento). Ninguna escritura
+    // pasa por acá.
 
     async _pullRemote(uid) {
         try {
             const snap = await _db.collection(PLAYERS_COLLECTION).doc(uid).get();
-            if (!snap.exists) return; // usuario nuevo en Firestore: se queda con lo que ya tenía local (o default)
+            if (!snap.exists) return; // usuario nuevo: se queda con lo que ya tenía local (o default)
             const data = snap.data();
             const changedKeys = [];
             Object.keys(data).forEach(k => {
@@ -187,9 +215,10 @@ const SaveSystem = {
         }
     },
 
-    // ================= BORRADO TOTAL DE PROGRESO (nuevo) =================
-    // Borra localStorage + caché en memoria + el documento en Firestore (si hay
-    // sesión). NO toca la sesión de auth ni las preferencias de gráficos/volumen
+    // ================= BORRADO TOTAL DE PROGRESO =================
+    // Borra localStorage + caché en memoria, y pide a la Cloud Function
+    // `clearProgress` que borre el documento en Firestore (si hay sesión).
+    // NO toca la sesión de auth ni las preferencias de gráficos/volumen
     // (esas viven aparte, en Settings de ui.js).
     async clearProgress() {
         const keys = ['profile', 'progression', 'achv_stats', 'achv_state'];
@@ -201,9 +230,7 @@ const SaveSystem = {
         clearTimeout(this._pushTimer);
         if (this._uid) {
             try {
-                // set con merge:false reemplaza el documento entero por uno vacío,
-                // borrando cualquier campo viejo que hubiera en la nube.
-                await _db.collection(PLAYERS_COLLECTION).doc(this._uid).set({}, { merge: false });
+                await _clearProgressFn();
             } catch (e) {
                 console.warn('[FirebaseSaveSystem] No se pudo borrar el progreso en la nube:', e.code || e);
             }
@@ -227,22 +254,6 @@ const SaveSystem = {
     },
 
     get currentUser() { return _auth.currentUser; },
-
-    // ================= RANKINGS ONLINE (preparado para el futuro, no se usa aún) =================
-    // Documento liviano y fácil de indexar/ordenar en Firestore (nivel, mejor oleada, nombre),
-    // separado del documento grande de progreso (players/{uid}) para no tener que leer todo
-    // el perfil de cada jugador solo para armar una tabla de posiciones.
-    async pushLeaderboardEntry(fields) {
-        if (!this._uid) return;
-        try {
-            await _db.collection(LEADERBOARD_COLLECTION).doc(this._uid).set({
-                ...fields,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-        } catch (e) {
-            console.warn('[FirebaseSaveSystem] No se pudo actualizar el leaderboard (no crítico):', e.code || e);
-        }
-    },
 
     init() {
         this.ready = new Promise(resolve => { this._readyResolve = resolve; });
