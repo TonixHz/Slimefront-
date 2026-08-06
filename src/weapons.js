@@ -7,7 +7,7 @@ const WEAPONS_DB = {
     // --- MELÉ ---
     KNIFE:    { name: 'KNIFE', damage: 60, fireRate: 250, capacity: Infinity, reloadTime: 0, speed: 5, range: 65, type: 'melee', color: '#bdc3c7', shake: 2, spread: 0 },
     MACHETE:  { name: 'MACHETE', damage: 100, fireRate: 320, capacity: Infinity, reloadTime: 0, speed: 5, range: 95, type: 'melee', color: '#ecf0f1', shake: 4, spread: 0 },
-    CHAINSAW: { name: 'CHAINSAW', damage: 9, fireRate: 90, capacity: Infinity, reloadTime: 0, speed: 5, range: 65, type: 'melee', color: '#7f8c8d', shake: 3, spread: 0, fuel: 100, fuelDrain: 2.2, sfx: 'chainsaw' },
+    CHAINSAW: { name: 'CHAINSAW', damage: 9, fireRate: 10, capacity: Infinity, reloadTime: 0, speed: 5, range: 65, type: 'melee', color: '#7f8c8d', shake: 3, spread: 0, fuel: 100, fuelDrain: 2.2, sfx: 'chainsaw' },
     // --- PISTOLAS ---
     G18:      { name: 'G18', damage: 25, fireRate: 200, capacity: 15, reloadTime: 1000, speed: 18, type: 'range', color: '#f1c40f', shake: 3, spread: 0.05, casing: true, smoke: 1, sfx: 'shoot_G18' },
     REVOLVER: { name: 'REVOLVER', damage: 45, fireRate: 500, capacity: 6, reloadTime: 1400, speed: 22, type: 'range', color: '#95a5a6', shake: 5, spread: 0.03, casing: true, smoke: 1, sfx: 'shoot_G18', pierce: 3 },
