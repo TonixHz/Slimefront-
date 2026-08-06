@@ -8,18 +8,15 @@ body {
 }
 canvas { display: block; }
 
-/* Animación Logo */
 @keyframes breathe {
     0%, 100% { transform: scale(1); filter: brightness(1); }
     50% { transform: scale(1.02); filter: brightness(1.2); }
 }
 
-/* Overlays Visuales */
 #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
 #vignette { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.85) 100%); pointer-events: none; z-index: 5; mix-blend-mode: multiply;}
 #damage-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, transparent 30%, rgba(200,0,0,0.4) 100%); opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 6; }
 
-/* HUD Modernizado */
 .stats-top { position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; }
 .hud-box { background: rgba(15, 20, 15, 0.85); border: 2px solid #2d3436; padding: 10px 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); backdrop-filter: blur(4px); border-left: 4px solid #2ecc71; }
 #health-container { width: 300px; height: 24px; background: rgba(30,0,0,0.8); border: 2px solid #555; border-radius: 4px; position: relative; overflow: hidden; }
@@ -34,24 +31,20 @@ canvas { display: block; }
 #ammo-hud { color: #f1c40f; font-size: 40px; font-weight: 700; line-height: 1; text-shadow: 2px 2px 5px rgba(0,0,0,0.8); }
 #ammo-icon { font-size: 30px; filter: grayscale(100%) brightness(200%); }
 
-/* Nivel / XP */
 .level-box { border-left-color: #3498db; width: 260px; }
 #level-display { font-size: 20px; color: #3498db; margin-bottom: 6px; }
 #xp-container { width: 100%; height: 12px; background: rgba(0,0,0,0.6); border: 1px solid #555; border-radius: 4px; overflow: hidden; }
 #xp-inner { width: 0%; height: 100%; background: linear-gradient(90deg, #3498db, #2980b9); transition: width 0.3s ease-out; }
 
-/* Toast: Subida de Nivel */
 .levelup-toast { position: fixed; top: 90px; left: 50%; transform: translate(-50%, -20px); z-index: 70; pointer-events: none; background: linear-gradient(135deg, #1a2a1a, #0c140c); border: 2px solid #2ecc71; border-radius: 10px; padding: 14px 30px; font-size: 30px; text-align: center; color: #2ecc71; text-shadow: 2px 2px #000; opacity: 0; transition: opacity 0.3s, transform 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
 .levelup-toast span { display: block; font-size: 18px; color: #f1c40f; margin-top: 4px; }
 .levelup-toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-/* Toast: Logro Desbloqueado */
 .achv-toast { position: fixed; top: 160px; left: 50%; transform: translate(-50%, -20px); z-index: 70; pointer-events: none; background: linear-gradient(135deg, #1a1a1a, #0c0c0c); border: 2px solid var(--rarity-color, #f1c40f); border-radius: 10px; padding: 12px 26px; text-align: center; opacity: 0; transition: opacity 0.3s, transform 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
 .achv-toast-header { font-size: 16px; letter-spacing: 1px; }
 .achv-toast-name { font-size: 24px; color: #fff; text-shadow: 2px 2px #000; }
 .achv-toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-/* Hotbar */
 #hotbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: all; }
 .slot { width: 70px; height: 70px; background: rgba(20, 25, 20, 0.9); border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; color: #aaa; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
 .slot.active { border-color: #f1c40f; background: rgba(40, 45, 20, 0.9); transform: translateY(-10px) scale(1.1); box-shadow: 0 10px 20px rgba(241, 196, 15, 0.3), inset 0 0 15px rgba(241, 196, 15, 0.2); color: white; }
@@ -59,7 +52,6 @@ canvas { display: block; }
 .name { font-size: 18px; margin-top: 10px; text-transform: uppercase; text-shadow: 1px 1px 2px black; }
 .slot-ammo { font-size: 16px; color: #f1c40f; font-weight: bold; position: absolute; bottom: 5px; right: 8px; }
 
-/* Tienda Militar */
 #shop-menu { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(135deg, #111a11 0%, #080c08 100%); padding: 30px; border: 2px solid #333; pointer-events: all; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 0 0 4px #2ecc71; width: 600px; }
 .shop-header h2 { color: #2ecc71; margin: 0 0 5px 0; font-size: 35px; text-transform: uppercase; letter-spacing: 2px; }
 .shop-header p { color: #888; margin: 0 0 20px 0; font-size: 18px; border-bottom: 1px solid #333; padding-bottom: 15px; }
@@ -86,7 +78,6 @@ canvas { display: block; }
 .depart-btn:hover { background: #ff7675; transform: translateY(2px); box-shadow: 0 3px 0 #c0392b; }
 .depart-btn:active { transform: translateY(5px); box-shadow: none; }
 
-/* Menú / UI Principal (pantallas modales opacas: pausa, ajustes, perfil, etc.) */
 .menu-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5,8,5,0.96); z-index: 100; display: flex; align-items: center; justify-content: center; pointer-events: all; }
 .menu-panel { background: linear-gradient(135deg, #111a11 0%, #080c08 100%); border: 2px solid #333; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 0 0 4px #2ecc71; padding: 40px 50px; width: 420px; text-align: center; }
 .menu-title { font-size: 54px; color: #2ecc71; margin: 0; letter-spacing: 4px; text-shadow: 3px 3px #000; animation: breathe 3s infinite ease-in-out; }
@@ -114,12 +105,10 @@ canvas { display: block; }
 .control-key { color: #2ecc71; font-weight: bold; }
 .version-tag { color: #555; font-size: 14px; margin-top: 10px; }
 
-/* Alerta de Evento Dinámico */
 .event-alert { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 60; display: none; align-items: center; justify-content: center; flex-direction: column; pointer-events: none; }
 .event-alert-title { font-size: 64px; color: #fff; text-shadow: 3px 3px 0 #000; letter-spacing: 2px; text-align: center; animation: breathe 1s infinite ease-in-out; }
 .event-alert-subtitle { font-size: 22px; color: #ccc; margin-top: 10px; letter-spacing: 1px; }
 
-/* ---- Perfil / Logros ---- */
 .profile-panel { width: 640px; }
 .profile-tabs { display: flex; gap: 8px; margin-bottom: 18px; }
 .profile-tabs .option-btn { font-size: 20px; padding: 10px; }
@@ -150,18 +139,10 @@ canvas { display: block; }
 .achv-claimed { color: #2ecc71; font-weight: 700; font-size: 14px; letter-spacing: 1px; }
 .achv-locked { font-size: 22px; opacity: 0.5; }
 
-/* ---- Login (Firebase Auth) en el lobby ---- */
 .auth-box { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 18px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid #333; border-radius: 8px; }
 .auth-box #auth-status { font-size: 15px; color: #ccc; text-align: center; }
 .auth-box .menu-btn { margin-top: 0; font-size: 18px; padding: 10px; }
 
-/* ==========================================================================
-   ULTRA RENDIMIENTO — único punto de control para toda la UI (HTML/CSS).
-   Se activa/desactiva agregando o quitando la clase "ultra-mode" en <body>
-   (ver applyPerfClass() en ui.js), así que ningún otro selector de este
-   archivo necesita tocarse ni duplicarse: esta única regla apaga animaciones,
-   transiciones, sombras y blur en TODA la interfaz de una sola vez.
-   ========================================================================== */
 body.ultra-mode * {
     animation: none !important;
     transition: none !important;
@@ -170,19 +151,6 @@ body.ultra-mode * {
     backdrop-filter: none !important;
     filter: none !important;
 }
-
-/* ==========================================================================
-   ===========================  LOBBY v2 — DISEÑO  ==========================
-   ==========================================================================
-   Sistema de diseño para el lobby "living menu". Todo vive bajo un único
-   namespace (.lobby-*) para no pisar ninguna regla de arriba. Paleta y
-   tipografía heredan del resto del juego (Teko + verde slime #2ecc71 +
-   dorado #f1c40f sobre negro) para que el menú se sienta parte del mismo
-   juego y no un rediseño de marca; lo "pixel art" se resuelve con sombras
-   duras (sin blur, con offset), bordes de esquina cuadrada y una tipografía
-   monoespaciada de 8 bits (Press Start 2P) reservada a etiquetas pequeñas
-   (eyebrows/badges), nunca a bloques largos de texto.
-   ========================================================================== */
 
 :root {
     --lf-void:        #050505;
@@ -214,9 +182,6 @@ body.ultra-mode * {
     0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
 }
 
-/* El menú se vuelve completamente transparente e "invisible" salvo en sus
-   3 zonas interactivas: el canvas del juego (lobbyscene.js) se ve por
-   completo en el hueco del centro. */
 #lobby-screen.lobby-screen-v2 {
     position: fixed; inset: 0; z-index: 50;
     background: transparent;
@@ -233,14 +198,10 @@ body.ultra-mode * {
     font-family: 'Teko', sans-serif;
 }
 
-/* Cuando el lobby está activo, ocultamos el HUD de partida y oscurecemos
-   levemente el centro con una viñeta propia para que el texto lateral
-   siempre sea legible, sin tapar la escena. */
 body.lobby-active #ui-layer,
 body.lobby-active #vignette,
 body.lobby-active #damage-overlay { display: none; }
 
-/* -------------------------------- IZQUIERDA ------------------------------ */
 .lobby-left {
     grid-area: left;
     position: relative;
@@ -250,8 +211,6 @@ body.lobby-active #damage-overlay { display: none; }
     gap: 26px;
     padding: 8px 22px 22px 8px;
 }
-/* Scrim: oscurece de izquierda a centro para que el texto flote sobre el
-   juego sin un panel sólido "plano". */
 .lobby-left::before {
     content: "";
     position: absolute;
@@ -278,8 +237,6 @@ body.lobby-active #damage-overlay { display: none; }
 
 .lobby-nav { display: flex; flex-direction: column; gap: 12px; }
 
-/* Tarjetas de navegación: icono + título + subtítulo, con esquinas
-   cuadradas (pixel), sombra dura y glow al hover. */
 .nav-card {
     all: unset;
     box-sizing: border-box;
@@ -328,10 +285,8 @@ body.lobby-active #damage-overlay { display: none; }
 .lobby-auth { margin-top: auto; animation: lf-fade-up 0.6s ease-out 0.32s both; opacity: 0; }
 .lobby-auth.lf-in { opacity: 1; }
 
-/* -------------------------------- CENTRO ---------------------------------- */
 .lobby-center { grid-area: center; pointer-events: none; }
 
-/* -------------------------------- DERECHA --------------------------------- */
 .lobby-right {
     grid-area: right;
     pointer-events: auto;
@@ -345,9 +300,6 @@ body.lobby-active #damage-overlay { display: none; }
 .lobby-right::-webkit-scrollbar { width: 6px; }
 .lobby-right::-webkit-scrollbar-thumb { background: var(--lf-green-dark); border-radius: 3px; }
 
-/* Glassmorphism: fondo translúcido + blur + borde luminoso + doble sombra
-   (una dura/oscura para profundidad "pixel", otra difusa de color para el
-   glow). */
 .glass-panel {
     background: var(--lf-glass-bg);
     backdrop-filter: blur(10px) saturate(140%);
@@ -375,7 +327,6 @@ body.lobby-active #damage-overlay { display: none; }
 .panel-eyebrow::before { content: ""; width: 6px; height: 6px; background: var(--lf-gold); animation: lf-badge-blink 1.6s infinite; }
 .panel-title { font-size: 24px; color: #fff; letter-spacing: 1px; margin: 0 0 10px 0; text-shadow: 2px 2px 0 rgba(0,0,0,0.6); }
 
-/* Panel de perfil */
 .profile-panel-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .pixel-avatar {
     width: 46px; height: 46px; border-radius: 8px;
@@ -390,17 +341,14 @@ body.lobby-active #damage-overlay { display: none; }
 .lf-stat-row span:last-child { color: var(--lf-ink); font-weight: 600; }
 .lf-stat-row:last-child { border-bottom: none; }
 
-/* Panel de noticias */
 .news-item { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .news-item:last-child { border-bottom: none; }
 .news-item-title { font-size: 17px; color: var(--lf-ink); }
 .news-item-date { font-size: 12px; color: var(--lf-ink-dim); letter-spacing: 0.5px; }
 
-/* Panel de desafío diario */
 .daily-goal { font-size: 18px; color: var(--lf-ink); line-height: 1.35; margin-bottom: 8px; }
 .daily-reward { font-size: 14px; color: var(--lf-gold); letter-spacing: 0.5px; }
 
-/* -------------------------------- BARRA INFERIOR -------------------------- */
 .lobby-bottombar {
     grid-area: bottom;
     pointer-events: auto;
@@ -427,11 +375,8 @@ body.lobby-active #damage-overlay { display: none; }
 }
 .quickbar-btn .qb-icon { font-size: 18px; }
 
-/* Toast liviano reusado para el lobby (placeholders de Tienda/Colección/Taller) */
 #lobby-toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-/* Responsive: por debajo de cierto ancho, colapsamos a una sola columna
-   (el centro pierde protagonismo, pero el juego sigue de fondo). */
 @media (max-width: 1100px) {
     #lobby-screen.lobby-screen-v2 {
         grid-template-columns: 1fr;
@@ -441,10 +386,5 @@ body.lobby-active #damage-overlay { display: none; }
     .lobby-right { flex-direction: row; overflow-x: auto; overflow-y: hidden; }
 }
 
-/* ==========================================================================
-   PANTALLA DE ERROR FATAL (game loop) — reutiliza .menu-screen/.menu-panel,
-   solo se agrega z-index alto para quedar por encima de cualquier otra
-   pantalla modal que estuviera abierta en el momento del error.
-   ========================================================================== */
 #fatal-error-screen { z-index: 500; }
 #fatal-error-message { color: #ccc; font-size: 16px; word-break: break-word; margin: 10px 0 20px 0; }

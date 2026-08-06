@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLIMEFRONT — Eliminación de datos</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/patch.css">
+</head>
+<body class="legal-page">
+<div class="legal-doc">
+<h1 class="menu-title" style="font-size:36px;">Eliminación de tu progreso y datos</h1>
+<p class="legal-updated">Última actualización: 2 de agosto de 2026</p>
+
+<h2>Opción 1 — Autoservicio, inmediato (recomendado)</h2>
+<p>Desde dentro del Juego: <strong>Ajustes → Cuenta → 🗑️ Borrar progreso</strong>. Esto elimina de inmediato y de forma permanente:</p>
+<ul>
+    <li>Tu documento de progreso en Firestore (<code>players/&#123;uid&#125;</code>): nivel, XP, estadísticas, mejoras, logros</li>
+    <li>Tu entrada en la tabla de posiciones pública (<code>leaderboard/&#123;uid&#125;</code>)</li>
+    <li>La copia local guardada en tu navegador (<code>localStorage</code>)</li>
+</ul>
+<p>Esta acción <strong>no</strong> cierra tu sesión de Google ni elimina tu cuenta de Google — solo borra el progreso propio de SLIMEFRONT.</p>
+
+<h2>Opción 2 — Eliminar también tu cuenta de inicio de sesión</h2>
+<p>Primero usá la Opción 1 para borrar tu progreso. Luego, para dejar de estar registrado en Firebase Authentication, cerrá sesión desde <strong>Ajustes → Cuenta → 🚪 Cerrar sesión</strong>. Si querés que eliminemos por completo el registro de autenticación asociado a tu cuenta (no solo el progreso), escribinos por el canal de contacto de la página del juego en itch.io indicando el correo con el que iniciaste sesión; lo procesaremos en un plazo razonable.</p>
+
+<h2>Opción 3 — Jugaste como invitado</h2>
+<p>Si nunca iniciaste sesión con Google, tu progreso vivió únicamente en tu navegador. Alcanza con borrar los datos del sitio desde la configuración de tu navegador, o usar el mismo botón <strong>Ajustes → Cuenta → 🗑️ Borrar progreso</strong>, que también limpia la copia local aunque no haya sesión activa.</p>
+
+<h2>¿Qué NO se elimina automáticamente?</h2>
+<p>Los eventos ya enviados a Firebase Analytics (si aceptaste su uso) son anónimos y agregados por diseño: no están vinculados a tu identidad de forma que permitan un borrado individual dirigido, de la misma manera que estadísticas de tráfico agregadas de cualquier sitio web. Podés desactivar Analytics hacia adelante en cualquier momento desde <strong>Ajustes → Privacidad</strong>.</p>
+
+<a class="menu-btn primary" href="../index.html">&larr; Volver al juego</a>
+</div>
+</body>
+</html>

@@ -1,17 +1,14 @@
 /**
  * AUDIO SYSTEM
  * Rutas relativas a la carpeta Sounds/ (debe estar en la raíz del repo, junto a index.html).
- * Estructura esperada:
- *   Sounds/SFX/Shoots/...
- *   Sounds/SFX/Variados/...
- *   Sounds/SFX/Events/...
- *   Sounds/Music/Main/...
- *   Sounds/Music/Combat/...
- *   Sounds/Music/Boss/...
  *
- * Todo el audio (SFX puntuales, música y ambiente climático) es 100% local:
- * no hay ninguna URL externa ni fallback a servicios online. Si falta un
- * archivo, se avisa por consola con console.warn y el juego sigue andando.
+ * NOTA (timers): los timers de MusicManager (fundidos de volumen / duck /
+ * resume) se dejan deliberadamente como setInterval/setTimeout nativos, no
+ * pasan por TimerManager (src/timers.js). Son efectos de audio transversales
+ * a menús y partidas (no referencian game.player/game.enemies), así que no
+ * hay riesgo de "callback sobre estado destruido", y cancelarlos a mitad de
+ * partida (por ejemplo, cada vez que se abre el menú de pausa) cortaría la
+ * música de forma audible. Ver razonamiento completo en src/timers.js.
  */
 const SFX = {
     // --- Disparos ---
@@ -61,15 +58,8 @@ const SFX = {
     rain: 'Sounds/SFX/Events/soundsforyou-light-rain-ambient-114354.mp3'
 };
 
-/**
- * POOL DE SFX (un-shot, superponibles: disparos, golpes, monedas, etc.)
- * Cada clave de SFX tiene varias instancias <audio> reutilizables, así reproducir
- * ráfagas de disparos o varios enemigos a la vez no crea un `new Audio()` por evento.
- * Nunca se descarga nada de Internet: si el archivo local no existe, se deja
- * constancia en consola (console.warn) y esa clave queda muda, sin romper el juego.
- */
 const sfxPools = {};
-const SFX_POOL_SIZE = 14; // varias armas comparten la misma clave de sonido; un pool chico causaba latencia perceptible en oleadas con mucho fuego simultáneo
+const SFX_POOL_SIZE = 14;
 const _missingSfxWarned = new Set();
 
 function getSfxPool(key) {
@@ -85,14 +75,13 @@ function getSfxPool(key) {
             const a = new Audio(SFX[key]);
             a.preservesPitch = false;
             a.preload = 'auto';
-            // Sin fallback online: si el archivo local falta o falla, solo avisamos por consola.
             a.onerror = () => {
                 if (!_missingSfxWarned.has(key)) {
                     console.warn(`[Audio] No se pudo cargar el sonido local: ${SFX[key]}`);
                     _missingSfxWarned.add(key);
                 }
             };
-            a.load(); // fuerza la descarga/decodificación ahora y no en el primer disparo
+            a.load();
             return a;
         });
         sfxPools[key].cursor = 0;
@@ -100,25 +89,6 @@ function getSfxPool(key) {
     return sfxPools[key];
 }
 
-/**
- * playSFX(key, volume, pitchVariance)
- * ÚNICO punto del juego que reproduce un efecto de sonido puntual/superponible.
- * Restaurada acá (vivía implícitamente antes de separar el sistema de precarga) para
- * que TODO el código existente (player.js, level.js, achievements.js, progression.js,
- * world.js, main.js, events.js) que ya la llama siga funcionando sin ningún cambio.
- *
- * Firma usada en todo el proyecto:
- *   playSFX('reload')                        -> solo la clave, volumen y pitch por defecto
- *   playSFX('death', 0.5)                    -> clave + volumen relativo (0-1)
- *   playSFX('chainsaw_hit', 0.2, 0.05)       -> clave + volumen + variación de pitch (+/- ese %)
- *
- * - Toma la siguiente instancia <audio> libre del pool (round-robin vía pool.cursor),
- *   así varios disparos/golpes simultáneos con la misma clave no se cortan entre sí.
- * - El volumen final respeta además el volumen general de efectos (Settings.sfxVolume),
- *   igual que ya hace AmbientAudio en este mismo archivo.
- * - Si la clave no existe en SFX, getSfxPool ya deja el warning en consola y acá
- *   simplemente no se reproduce nada (el juego nunca se rompe por un sonido faltante).
- */
 function playSFX(key, volume = 1, pitchVariance = 0) {
     const pool = getSfxPool(key);
     if (!pool) return;
@@ -132,22 +102,16 @@ function playSFX(key, volume = 1, pitchVariance = 0) {
     a.volume = Math.max(0, Math.min(1, volume * generalVol));
     a.playbackRate = pitchVariance > 0 ? (1 + (Math.random() * 2 - 1) * pitchVariance) : 1;
 
-    a.play().catch(() => {
-        // Bloqueado por autoplay policy o interrumpido por otro play(): no rompe el juego.
-    });
+    a.play().catch(() => {});
 }
 
-// Precarga TODOS los sonidos y devuelve una Promise que resuelve cuando cada uno
-// terminó de cargar (o falló / venció el timeout de seguridad, para que un sonido
-// roto o lento nunca cuelgue el arranque del juego para siempre).
-// onProgress(cargados, total, key) se llama por cada sonido que termina.
 function preloadSFX(onProgress) {
     return new Promise(resolve => {
         const keys = Object.keys(SFX);
         if (keys.length === 0) { resolve(); return; }
         let loaded = 0;
         keys.forEach(key => {
-            const pool = getSfxPool(key); // ya crea y llama .load() en todo el pool
+            const pool = getSfxPool(key);
             const a = pool ? pool[0] : null;
             const done = () => {
                 loaded++;
@@ -155,24 +119,16 @@ function preloadSFX(onProgress) {
                 if (loaded === keys.length) resolve();
             };
             if (!a) { done(); return; }
-            if (a.readyState >= 3) { done(); return; } // ya tiene suficiente data
+            if (a.readyState >= 3) { done(); return; }
             let settled = false;
             const finish = () => { if (settled) return; settled = true; done(); };
             a.addEventListener('canplaythrough', finish, { once: true });
             a.addEventListener('error', finish, { once: true });
-            setTimeout(finish, 5000); // seguridad: nunca bloquear el arranque
+            setTimeout(finish, 5000);
         });
     });
 }
 
-/**
- * MÚSICA
- * Listas de archivos LOCALES por contexto (lobby/combate/jefe). Para agregar canciones
- * nuevas alcanza con sumar rutas a estos arrays; se elige una al azar de la carpeta
- * correspondiente y, al terminar, se encadena automáticamente otra (nunca se queda
- * sin música). Los nombres de archivo abajo siguen los créditos de LICENSE.md —
- * si tus archivos reales tienen otro nombre, solo hay que ajustar estas rutas.
- */
 const MUSIC_TRACKS = {
     main: [
         'Sounds/Music/Main/Tetuano - Abyss (freetouse.com).mp3'
@@ -193,9 +149,6 @@ const MUSIC_TRACKS = {
     ]
 };
 
-// Precarga (metadata) de todas las canciones de las 3 categorías (main/combat/boss).
-// Solo se pide 'loadedmetadata' (no el archivo entero) para no gastar mucho ancho de
-// banda antes de jugar, pero sí confirmar que cada pista es alcanzable.
 function preloadMusic(onProgress) {
     return new Promise(resolve => {
         const allTracks = [...MUSIC_TRACKS.main, ...MUSIC_TRACKS.combat, ...MUSIC_TRACKS.boss];
@@ -220,7 +173,6 @@ function preloadMusic(onProgress) {
 }
 
 const MusicManager = {
-    // Se mantienen estos 3 nombres porque otros archivos (world.js) los referencian directamente.
     mainTracks: MUSIC_TRACKS.main,
     combatTracks: MUSIC_TRACKS.combat,
     bossTracks: MUSIC_TRACKS.boss,
@@ -236,12 +188,9 @@ const MusicManager = {
         this.audio.addEventListener('ended', () => this.next());
         this.audio.addEventListener('error', () => {
             if (this.audio.src) console.warn(`[Audio] No se pudo cargar la música: ${this.audio.src}`);
-            // Nunca sin música: si una pista falla, se intenta con otra del mismo contexto.
             this.next();
         });
     },
-    // Cambia de categoría de música (main/combate/jefe) solo si es distinta a la actual,
-    // así no corta una canción de combate a mitad para volver a poner... la misma categoría.
     switchContext(trackList, fadeMs = 1500) {
         if (this.tracks === trackList) return;
         this.tracks = trackList;
@@ -290,11 +239,6 @@ const MusicManager = {
     }
 };
 
-/**
- * AMBIENTE (lluvia/viento/arena en loop). Reutiliza las MISMAS claves y rutas locales que
- * ya viven en SFX (rain/wind/sandstorm) en vez de mantener un catálogo paralelo.
- * Respeta el volumen general de SFX, pero es independiente del volumen de cada disparo.
- */
 const AmbientAudio = {
     audio: null,
     play(key, volume = 0.35) {
@@ -312,18 +256,12 @@ const AmbientAudio = {
     }
 };
 
-/**
- * CULLING: Función de optimización para renderizado
- */
 function isVisible(x, y, radius, cam) {
     const padding = 50;
     return (x + radius + padding > cam.x && x - radius - padding < cam.x + canvas.width &&
             y + radius + padding > cam.y && y - radius - padding < cam.y + canvas.height);
 }
 
-/**
- * ENTIDADES Y EFECTOS
- */
 class Trail {
     init(x, y, radius) {
         this.x = x; this.y = y; 
@@ -448,10 +386,6 @@ class Camera {
         this.x = Math.max(0, Math.min(this.x, MAP_SIZE - canvas.width));
         this.y = Math.max(0, Math.min(this.y, MAP_SIZE - canvas.height));
         
-        // Screen shake: único punto que aplica el shake acumulado por armas/explosiones/etc.
-        // (todas esas asignaciones directas a game.camera.shake siguen intactas, simplemente
-        // no se traducen en desplazamiento de cámara cuando game.fxEnabled está apagado, como
-        // ocurre con el preset ULTRA).
         if (game.fxEnabled && this.shake > 0.1) {
             this.x += (Math.random() - 0.5) * this.shake;
             this.y += (Math.random() - 0.5) * this.shake;
@@ -462,7 +396,6 @@ class Camera {
     }
 }
 
-// Funciones de Pool de Efectos
 game.spawnParticle = function(x, y, color, speed, size, type) {
     let p = this.particles.find(p => !p.active);
     if(p) p.init(x, y, color, speed, size, type);
@@ -478,12 +411,11 @@ game.spawnTrail = function(x, y, radius) {
     if(t) t.init(x, y, radius);
 };
 
-// Explosión genérica en área (RPG y cualquier arma explosiva futura reutiliza esto)
 game.explode = function(x, y, radius, dmg) {
     this.enemies.forEach(e => { if(!e.invulnerable && Math.hypot(e.x - x, e.y - y) < radius) this.hitEnemy(e, dmg); });
     if (Math.hypot(this.player.x - x, this.player.y - y) < radius) this.player.takeDamage(dmg * 0.4);
     for(let i=0; i<Math.ceil(24*this.particleScale); i++) this.spawnParticle(x, y, i % 2 === 0 ? '#e67e22' : '#f1c40f', 8, 5, 'normal');
     for(let i=0; i<Math.ceil(6*this.particleScale); i++) this.spawnParticle(x, y, '#555', 3, 6, 'smoke');
     this.camera.shake = 20;
-    playSFX('rpg_explosion', 0.5, 0.1); // corregido: 'rpg' no existía en SFX, usaba fallback silencioso
+    playSFX('rpg_explosion', 0.5, 0.1);
 };

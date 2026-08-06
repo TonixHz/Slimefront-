@@ -1,22 +1,10 @@
 /**
  * SISTEMA DE NIVEL / XP + PERFIL DEL JUGADOR
+ * XP_CONFIG / xpToNextLevel / XP_PER_KILL / xpForWaveClear ahora viven en
+ * src/xp-formula.js (cargado justo antes que este archivo), para poder
+ * testear la fórmula de progresión con Node sin depender de DOM/Firebase.
+ * Mismos valores, mismo comportamiento; solo cambió dónde viven.
  */
-const XP_CONFIG = {
-    curveBase: 150,
-    curveGrowth: 1.22,
-    perKill: { BOSS: 40, TANK: 3, RANGED: 2, FAST: 1, BASIC: 1, INVISIBLE: 2, KAMIKAZE: 1, GHOST: 2 },
-    perKillDefault: 1,
-    waveClearBase: 8,
-    waveClearPerWave: 2
-};
-
-function xpToNextLevel(level) {
-    return Math.floor(XP_CONFIG.curveBase * Math.pow(XP_CONFIG.curveGrowth, level - 1));
-}
-
-const XP_PER_KILL = XP_CONFIG.perKill;
-const XP_PER_KILL_DEFAULT = XP_CONFIG.perKillDefault;
-function xpForWaveClear(wave) { return XP_CONFIG.waveClearBase + wave * XP_CONFIG.waveClearPerWave; }
 
 const LEVEL_REWARDS = {
     5:  { type: 'money', amount: 300, label: '+$300' },
@@ -88,15 +76,18 @@ game.showLevelUp = function(level) {
     el.classList.remove('show');
     void el.offsetWidth;
     el.classList.add('show');
-    clearTimeout(game._levelupToastTimer);
-    game._levelupToastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+    // Timer del toast: pasa por TimerManager (ver src/timers.js) así un level-up
+    // ocurrido justo antes de un reinicio de partida no deja un callback
+    // huérfano ocultando el toast en el estado equivocado.
+    TimerManager.clearTimeout(game._levelupToastTimer);
+    game._levelupToastTimer = TimerManager.setTimeout(() => el.classList.remove('show'), 2400);
 };
 
 game.updateLevelHUD = function() {
     const lvlEl = document.getElementById('level-display');
     const xpEl = document.getElementById('xp-inner');
     if (!lvlEl || !xpEl) return;
-    lvlEl.innerText = "NIVEL " + PlayerProfile.level;
+    lvlEl.innerText = (typeof I18N !== 'undefined' ? I18N.t('hud.level', { n: PlayerProfile.level }) : "NIVEL " + PlayerProfile.level);
     xpEl.style.width = Math.min(100, (PlayerProfile.xp / xpToNextLevel(PlayerProfile.level)) * 100) + "%";
 };
 

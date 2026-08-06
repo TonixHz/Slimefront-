@@ -296,8 +296,11 @@ const AchievementManager = {
         el.innerHTML = `<div class="achv-toast-header" style="color:${rarity.color}">🏆 LOGRO DESBLOQUEADO — ${rarity.label}</div><div class="achv-toast-name">${def.icon} ${def.name}</div>`;
         el.style.setProperty('--rarity-color', rarity.color);
         el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-        clearTimeout(this._toastTimer);
-        this._toastTimer = setTimeout(() => el.classList.remove('show'), 3800);
+        // Timer del toast: pasa por TimerManager (ver src/timers.js) para que un
+        // logro desbloqueado justo antes de reiniciar partida no deje un timer
+        // huérfano ocultando un toast de una sesión distinta.
+        TimerManager.clearTimeout(this._toastTimer);
+        this._toastTimer = TimerManager.setTimeout(() => el.classList.remove('show'), 3800);
     },
     getTotalPlaySeconds() {
         const live = game.started ? Math.floor((Date.now() - game.startTime) / 1000) : 0;

@@ -6,6 +6,11 @@
  * Nota sobre "imágenes": este juego no usa archivos de imagen (todo el arte se
  * dibuja con canvas/vectores), así que ese paso se traduce en preparar
  * tipografía/gráficos, que es el recurso visual real que hace falta cargar.
+ *
+ * NOTA (timers): los setTimeout de este archivo son deliberadamente nativos,
+ * no pasan por TimerManager (src/timers.js): corren ANTES de que exista
+ * ninguna partida, así que no hay ningún estado de juego que puedan referenciar
+ * de forma inválida.
  */
 function withTimeout(promise, ms) {
     return Promise.race([promise, new Promise(resolve => setTimeout(resolve, ms))]);
@@ -79,12 +84,8 @@ const BootFlow = {
         const clickstart = document.getElementById('clickstart-screen');
         if (clickstart) clickstart.style.display = 'none';
 
-        // Único punto del juego donde se reproduce audio por primera vez: siempre
-        // detrás de una interacción real del usuario (este click).
         if (typeof MusicManager !== 'undefined') MusicManager.playLobby();
 
-        // #lobby-screen es un CSS grid (ver .lobby-screen-v2 en assets/style.css),
-        // no un flexbox: 'flex' aquí dejaría el layout de 3 zonas roto.
         const lobbyScreen = document.getElementById('lobby-screen');
         if (lobbyScreen) lobbyScreen.style.display = 'grid';
         if (typeof AuthUI !== 'undefined') AuthUI.refresh();

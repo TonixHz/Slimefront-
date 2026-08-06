@@ -8,13 +8,12 @@ class Projectile {
         this.color = isEnemy ? '#ff4d4d' : weapon.color;
         this.active = true; this.isEnemy = isEnemy;
         this.trail = [];
-        // Rasgos opcionales de arma (0/undefined = sin efecto, no rompe armas viejas)
         this.pierce = weapon.pierce || 0;
         this.knockback = weapon.knockback || 0;
         this.burn = weapon.burn || false;
         this.explosive = weapon.explosive || false;
         this.explosionRadius = weapon.explosionRadius || 0;
-        this.maxRange = weapon.maxRange || 1800; // recicla el proyectil aunque la wapon no defina un rango propio
+        this.maxRange = weapon.maxRange || 1800;
         this.traveled = 0;
         this.hitEnemies = this.hitEnemies || new Set();
         if (this.hitEnemies.size) this.hitEnemies.clear();
@@ -69,7 +68,6 @@ class Enemy {
             this.dashTargetAngle = 0; this.shootCount = 0;
         } 
         else { this.maxHp = 70 * m; this.speed = 2.4; this.radius = 22; this.color = '#27ae60'; }
-        // Modificadores de eventos dinámicos (Mutación agranda/fortalece, etc. Ver events.js)
         this.speed *= (game.enemySpeedMult || 1);
         if (game.enemySizeMult) this.radius *= game.enemySizeMult;
         if (game.enemyHpMult) this.maxHp *= game.enemyHpMult;
@@ -86,7 +84,7 @@ class Enemy {
                 this.kamikazeTimer++;
                 this.color = this.kamikazeTimer % 6 < 3 ? '#fff' : this.baseColor;
                 this.explodeScale = 1 + Math.min(0.4, (this.kamikazeTimer / 60) * 0.4);
-                if (this.kamikazeTimer > 60) { // ~1s de cuenta regresiva antes de explotar
+                if (this.kamikazeTimer > 60) {
                     const blastRadius = 120;
                     if (d < blastRadius) player.takeDamage(35);
                     game.enemies.forEach(other => {
@@ -94,32 +92,31 @@ class Enemy {
                     });
                     game.camera.shake = 12;
                     for(let i=0; i<Math.ceil(20*game.particleScale); i++) game.spawnParticle(this.x, this.y, '#e74c3c', 6, 4, 'normal');
-                    game.hitEnemy(this, this.hp); // se autodestruye reutilizando la lógica de muerte existente
+                    game.hitEnemy(this, this.hp);
                 }
             }
         }
         if (this.type === 'INVISIBLE') {
             const onScreen = isVisible(this.x, this.y, this.radius, game.camera);
-            if (onScreen && !this.wasOnScreen) this.onscreenVisibleTimer = 120; // ~2s a 60fps
+            if (onScreen && !this.wasOnScreen) this.onscreenVisibleTimer = 120;
             this.wasOnScreen = onScreen;
             if (this.onscreenVisibleTimer > 0) { this.invisAlpha = Math.min(1, this.invisAlpha + 0.08); this.onscreenVisibleTimer--; }
             else this.invisAlpha = Math.max(0, this.invisAlpha - 0.05);
-            if (Math.random() > 0.9) game.spawnTrail(this.x, this.y, this.radius * 0.5); // rastro tenue
+            if (Math.random() > 0.9) game.spawnTrail(this.x, this.y, this.radius * 0.5);
         }
         if (this.type === 'GHOST') {
             this.ghostTimer++;
             if (this.ghostState === 'GHOST' && this.ghostTimer > 180) { this.ghostState = 'SOLID'; this.ghostTimer = 0; this.invulnerable = false; }
             else if (this.ghostState === 'SOLID' && this.ghostTimer > 120) { this.ghostState = 'GHOST'; this.ghostTimer = 0; this.invulnerable = true; }
             const targetGhostAlpha = this.ghostState === 'GHOST' ? 0.18 : 1;
-            this.ghostAlpha += (targetGhostAlpha - this.ghostAlpha) * 0.08; // transición suave
+            this.ghostAlpha += (targetGhostAlpha - this.ghostAlpha) * 0.08;
         }
 
         if (this.type === 'BOSS') {
             this.stateTimer++;
             this.summonTimer++;
             
-            // Invocación (Boss Wave 30+)
-            if (this.bossWave >= 30 && this.summonTimer > 60 * 12) { // Cada ~12 segundos
+            if (this.bossWave >= 30 && this.summonTimer > 60 * 12) {
                 this.summonTimer = 0;
                 game.enemies.push(new Enemy(this.x + 100, this.y, 'TANK'));
                 game.enemies.push(new Enemy(this.x - 100, this.y, 'TANK'));
@@ -142,7 +139,6 @@ class Enemy {
                     }
                 }
             } else if (this.state === 'TELEGRAPH') {
-                // Temblor y cambio de color para avisar que va a dashear
                 this.x += (Math.random() - 0.5) * 4;
                 this.y += (Math.random() - 0.5) * 4;
                 this.color = this.stateTimer % 8 < 4 ? '#fff' : '#c0392b';
@@ -152,7 +148,7 @@ class Enemy {
                     this.state = 'DASH';
                     this.stateTimer = 0;
                     this.dashTargetAngle = angle;
-                    this.dashSpeed = this.bossWave >= 30 ? 25 : 18; // Dash buffeado si es 30+
+                    this.dashSpeed = this.bossWave >= 30 ? 25 : 18;
                     this.color = '#c0392b';
                 }
             } else if (this.state === 'DASH') {
@@ -171,14 +167,12 @@ class Enemy {
                 
                 if (this.stateTimer % 20 === 0) {
                     if (this.bossWave >= 30) {
-                        // Muchos más patrones de disparo
                         let offset = this.stateTimer * 0.1;
                         for(let i=0; i<12; i++) {
                             let a = (Math.PI*2/12) * i + offset;
                             game.spawnProjectile(this.x, this.y, a, {speed: 7, damage: 20 * (game.enemyDamageMult || 1), color: '#f39c12'}, true);
                         }
                     } else {
-                        // Disparos wave 15
                         for(let i=0; i<6; i++) {
                             let a = (Math.PI*2/6) * i;
                             game.spawnProjectile(this.x, this.y, a, {speed: 5, damage: 15 * (game.enemyDamageMult || 1), color: '#f39c12'}, true);
@@ -208,7 +202,6 @@ class Enemy {
 
         if(d < this.radius + player.radius) player.takeDamage(0.5 * (game.enemyDamageMult || 1));
         if(this.flash > 0) this.flash--;
-        // Quemadura (Lanzallamas): tic de daño periódico independiente del flash de golpe
         if (this.burnTicks > 0) {
             this.burnTicks--;
             if (this.burnTicks % 20 === 0 && !this.isDying) {
@@ -304,9 +297,6 @@ class Enemy {
                 ctx.beginPath(); ctx.moveTo(-20, 20); ctx.quadraticCurveTo(0, 40, 20, 20); ctx.stroke();
             }
         }
-        // Anillo de brillo del evento MUTACIÓN: puramente decorativo (el efecto real en
-        // el juego ya lo aplican los multiplicadores de tamaño/vida/daño del evento, no
-        // este anillo), se apaga en ULTRA.
         if (game.fxEnabled && game.activeEvent === 'MUTATION') {
             ctx.globalAlpha = 0.35;
             ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 4;

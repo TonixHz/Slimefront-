@@ -1,34 +1,14 @@
 /**
  * CLOUD FUNCTIONS — Único camino de escritura hacia /players/{uid} y /leaderboard/{uid}.
- *
- * Las Firestore Rules (firestore.rules) bloquean CUALQUIER escritura directa
- * del cliente a esas colecciones ("allow write: if false"). El Admin SDK que
- * usan estas funciones ignora las Rules, así que este archivo es el ÚNICO
- * lugar del proyecto donde el progreso del jugador realmente se guarda.
- *
- * Esto cierra el hueco de seguridad que existía antes: abrir la consola del
- * navegador y llamar a SaveSystem.set('profile', {money: 999999999, ...})
- * seguía funcionando localmente (localStorage), pero ya NO tiene ningún
- * efecto sobre lo que queda guardado en la nube ni sobre el leaderboard
- * público, porque acá se valida cada campo antes de escribir.
- *
- * FirebaseSaveSystem.js (cliente) llama a `syncProgress` en vez de escribir
- * directo en Firestore; sigue siendo "offline-first" (localStorage no
- * cambia), solo cambia A DÓNDE va la sincronización remota.
+ * (Sin cambios de contenido respecto a la versión original del proyecto;
+ * movido a functions/ para coincidir con "source": "functions" en firebase.json.)
  */
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 admin.initializeApp();
 const db = admin.firestore();
 
-// Únicas claves que el juego usa hoy (ver SaveSystem.get/set en el resto del
-// proyecto). Cualquier otra clave que llegue en el payload se descarta en
-// silencio: el cliente no puede inventarse una clave nueva para esquivar
-// la validación.
 const ALLOWED_KEYS = ['profile', 'progression', 'achv_stats', 'achv_state'];
-
-// Debe coincidir con UPGRADES_DB en progression.js (maxLevel: 5 para todas
-// las mejoras actuales).
 const MAX_UPGRADE_LEVEL = 5;
 
 function clampNum(v, min, max, fallback = min) {
@@ -40,17 +20,6 @@ function str(v, maxLen = 60) {
     return (typeof v === 'string') ? v.slice(0, maxLen) : '';
 }
 
-/**
- * Cada validador recibe (incoming, previous) — el dato que mandó el cliente
- * y lo que YA había guardado en Firestore antes de este sync — y devuelve
- * el objeto saneado/clampeado a guardar, o null si hay que descartar toda
- * la clave (payload con forma inválida).
- *
- * La estrategia de "nunca más de X respecto a lo anterior" es deliberada:
- * no intenta recalcular el juego entero server-side, pero sí vuelve inútil
- * escribir un valor arbitrariamente alto de un sync a otro (el salto queda
- * recortado al máximo plausible para ese período).
- */
 const VALIDATORS = {
     profile(incoming, previous) {
         if (typeof incoming !== 'object' || incoming === null) return null;
@@ -58,9 +27,9 @@ const VALIDATORS = {
         const prevLevel = clampNum(prev.level, 1, 5000, 1);
 
         const out = {};
-        out.level = clampNum(incoming.level, 1, prevLevel + 20, prevLevel); // máx. +20 niveles por sync
+        out.level = clampNum(incoming.level, 1, prevLevel + 20, prevLevel);
         out.xp = clampNum(incoming.xp, 0, 10_000_000, 0);
-        out.playTimeSec = clampNum(incoming.playTimeSec, 0, clampNum(prev.playTimeSec, 0, 1e9, 0) + 60 * 60 * 6, prev.playTimeSec || 0); // +6h por sync
+        out.playTimeSec = clampNum(incoming.playTimeSec, 0, clampNum(prev.playTimeSec, 0, 1e9, 0) + 60 * 60 * 6, prev.playTimeSec || 0);
         out.kills = clampNum(incoming.kills, 0, clampNum(prev.kills, 0, 1e12, 0) + 100000, prev.kills || 0);
         out.deaths = clampNum(incoming.deaths, 0, clampNum(prev.deaths, 0, 1e9, 0) + 5000, prev.deaths || 0);
         out.shotsFired = clampNum(incoming.shotsFired, 0, clampNum(prev.shotsFired, 0, 1e12, 0) + 500000, prev.shotsFired || 0);
@@ -90,8 +59,6 @@ const VALIDATORS = {
         const src = (incoming.levels && typeof incoming.levels === 'object') ? incoming.levels : {};
         Object.keys(src).slice(0, 20).forEach(k => {
             const prevLvl = clampNum(prevLevels[k], 0, MAX_UPGRADE_LEVEL, 0);
-            // Comprar una mejora sube de a 1 nivel por vez (ver Progression.buy
-            // en progression.js): nunca aceptamos más de +1 por sync.
             levels[k] = clampNum(src[k], 0, Math.min(MAX_UPGRADE_LEVEL, prevLvl + 1), prevLvl);
         });
         return { levels };
@@ -161,9 +128,6 @@ exports.syncProgress = functions.https.onCall(async (data, context) => {
     patch._updatedAt = admin.firestore.FieldValue.serverTimestamp();
     await docRef.set(patch, { merge: true });
 
-    // El leaderboard se recalcula a partir del documento YA validado en este
-    // mismo request, nunca a partir de lo que mandó el cliente sin pasar por
-    // los validadores de arriba.
     if (patch.profile) {
         await db.collection('leaderboard').doc(uid).set({
             name: str(context.auth.token.name || context.auth.token.email || 'Jugador', 40),

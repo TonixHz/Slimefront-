@@ -24,7 +24,6 @@ if (isTouchDevice) {
         const ky = Math.sin(angle) * dist;
         joystickKnob.style.transform = `translate(${kx}px, ${ky}px)`;
 
-        // Traducimos la posición del joystick a las mismas teclas que usa el juego (WASD)
         const threshold = maxDist * 0.25;
         game.keys['KeyW'] = ky < -threshold;
         game.keys['KeyS'] = ky > threshold;
@@ -52,7 +51,6 @@ if (isTouchDevice) {
         for (const t of e.changedTouches) if (t.identifier === joystickTouchId) { joystickTouchId = null; resetJoystick(); }
     });
 
-    // Zona derecha: arrastrar para apuntar, mientras se toca se dispara
     aimZone.addEventListener('touchstart', e => {
         if (game.paused) return;
         e.preventDefault();

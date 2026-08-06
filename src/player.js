@@ -3,6 +3,12 @@
  * boca (WEAPON_MUZZLE_X) ahora viven en weapons.js, que se carga antes que este
  * archivo. Nada cambia en tiempo de ejecución: siguen siendo variables globales
  * con exactamente los mismos valores.
+ *
+ * NOTA (timers): todos los setTimeout de este archivo (overlay de daño, pasos
+ * de recarga, disparos en ráfaga) pasan por TimerManager (src/timers.js) en
+ * vez de setTimeout nativo, así game.goToMainMenu / game.gameOver / game.init
+ * pueden cancelarlos con TimerManager.clearAll() y ningún callback viejo
+ * termina ejecutándose sobre un `game.player` de una partida anterior.
  */
 
 // Regeneración/consumo de stamina precalculados una sola vez (antes se hacían
@@ -39,7 +45,7 @@ class Player {
         this.hp = Math.max(0, this.hp - amt);
         game.camera.shake = 10;
         document.getElementById('damage-overlay').style.opacity = "1";
-        setTimeout(() => document.getElementById('damage-overlay').style.opacity = "0", 150);
+        TimerManager.setTimeout(() => document.getElementById('damage-overlay').style.opacity = "0", 150);
         if(this.hp <= 0) { playSFX('muerte_player', 0.6); game.gameOver(); }
     }
 
@@ -309,12 +315,12 @@ game.reload = function() {
             if (this.player.weapon !== w) { this.player.isReloading = false; return; } // cambiaron de arma
             w.ammo = Math.min(w.capacity, w.ammo + 1);
             playSFX('reload', 0.25);
-            if (w.ammo < w.capacity) setTimeout(step, w.reloadTime);
+            if (w.ammo < w.capacity) TimerManager.setTimeout(step, w.reloadTime);
             else this.player.isReloading = false;
         };
-        setTimeout(step, w.reloadTime);
+        TimerManager.setTimeout(step, w.reloadTime);
     } else {
-        setTimeout(() => { w.ammo = w.capacity; this.player.isReloading = false; }, w.reloadTime);
+        TimerManager.setTimeout(() => { w.ammo = w.capacity; this.player.isReloading = false; }, w.reloadTime);
     }
 };
 
@@ -390,7 +396,7 @@ game.shoot = function() {
         const nextShot = () => {
             if (w.ammo <= 0 || shots >= w.burst) { this.player.burstBusy = false; return; }
             fireOnce(); shots++;
-            if (shots < w.burst && w.ammo > 0) setTimeout(nextShot, w.burstDelay);
+            if (shots < w.burst && w.ammo > 0) TimerManager.setTimeout(nextShot, w.burstDelay);
             else this.player.burstBusy = false;
         };
         nextShot();

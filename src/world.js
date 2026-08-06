@@ -127,10 +127,6 @@ class Prop {
 game.buildPropGrid = function() {
     this.propGridSize = 200;
     this.propGrid = new Map();
-    // Array reutilizable devuelto por getNearbyProps: se consume siempre de forma
-    // síncrona e inmediata en cada call site, así que evitar crear un array nuevo
-    // por cada consulta (jugador + cada enemigo cercano + cada proyectil activo,
-    // todos los frames) reduce mucho la basura generada para el Garbage Collector.
     this._nearbyPropsScratch = [];
     this.props.forEach(p => {
         if (!p.isSolid) return;
@@ -140,12 +136,8 @@ game.buildPropGrid = function() {
     });
 };
 game.propGridKey = function(x, y) {
-    // Clave numérica en vez de template string: mismo resultado (una celda = una
-    // clave única), pero sin la asignación de memoria que implica construir un
-    // string nuevo en cada llamada (se llama muchas veces por frame).
     return Math.floor(x / this.propGridSize) * 100000 + Math.floor(y / this.propGridSize);
 };
-// Devuelve solo los props sólidos cercanos (celda actual + 8 vecinas)
 game.getNearbyProps = function(x, y) {
     const gx = Math.floor(x / this.propGridSize);
     const gy = Math.floor(y / this.propGridSize);
@@ -186,7 +178,7 @@ game._launchWave = function() {
     MusicManager.next(1200);
     
     let count = 15 + (this.wave * 8);
-    if (this.activeEvent === 'INVASION') count *= 2; // el doble de enemigos durante la invasión
+    if (this.activeEvent === 'INVASION') count *= 2;
     for(let i=0; i<count; i++) {
         let a = Math.random() * Math.PI * 2;
         let d = 800 + Math.random() * 600;
@@ -195,7 +187,6 @@ game._launchWave = function() {
         this.enemies.push(new Enemy(pos.x, pos.y, type));
     }
 
-    // Configurar si aparecerá un jefe en base a la wave
     if (this.wave === 5 || this.wave === 15 || this.wave === 30 || (this.wave > 30 && (this.wave - 30) % 10 === 0)) {
         this.bossPending = true;
     } else {

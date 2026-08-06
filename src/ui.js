@@ -86,6 +86,12 @@ game.goToMainMenu = function() {
     if (this.floatingTexts) this.floatingTexts.forEach(t => t.active = false);
     if (typeof EventManager !== 'undefined') EventManager.deactivate();
 
+    // Cancela cualquier timer de partida pendiente (recargas en curso, ráfagas,
+    // rayos de tormenta, toasts de logro/nivel) para que no se ejecute nada
+    // sobre esta partida ya descartada. Ver src/timers.js para qué NO pasa
+    // por acá (sync de guardado, fundidos de música).
+    if (typeof TimerManager !== 'undefined') TimerManager.clearAll();
+
     const uiLayer = document.getElementById('ui-layer');
     if (uiLayer) uiLayer.style.display = 'none';
 
@@ -103,6 +109,7 @@ game.playAgain = function() {
     document.getElementById('gameover-screen').style.display = 'none';
     hideLobbyScreen();
     MusicManager.duck(300);
+    if (typeof TimerManager !== 'undefined') TimerManager.clearAll();
     this.init();
 };
 
@@ -150,6 +157,10 @@ game.openSettings = function(from) {
     document.getElementById('sfx-vol-value').innerText = Settings.sfxVolume;
     document.getElementById('music-vol-value').innerText = Settings.musicVolume;
     document.querySelectorAll('#graphics-options .option-btn').forEach(b => b.classList.toggle('active', b.dataset.value === Settings.graphics));
+
+    const colorblindToggle = document.getElementById('colorblind-toggle');
+    if (colorblindToggle && typeof Accessibility !== 'undefined') colorblindToggle.checked = Accessibility.isColorblindMode();
+    if (typeof ConsentManager !== 'undefined') ConsentManager._updateSettingsLabel();
 };
 
 game.closeSettings = function() {
@@ -228,4 +239,73 @@ game.openCredits = function() {
 game.closeCredits = function() {
     document.getElementById('credits-screen').style.display = 'none';
     showLobbyScreen();
+};
+
+// ======================================================================
+// ACCESIBILIDAD — modal de reconfiguración de teclas + toggle daltónico.
+// Construye el modal dinámicamente (ver #keybind-panel vacío en index.html),
+// reutilizando el mismo lenguaje visual (.menu-screen/.menu-panel) del resto
+// de pantallas modales.
+// ======================================================================
+game.toggleColorblindMode = function(checked) {
+    if (typeof Accessibility !== 'undefined') Accessibility.setColorblindMode(checked);
+};
+
+game.openKeybindPanel = function() {
+    document.getElementById('settings-panel').style.display = 'none';
+    const panel = document.getElementById('keybind-panel');
+    const ACTION_LABELS = {
+        moveUp: 'Mover arriba', moveDown: 'Mover abajo', moveLeft: 'Mover izquierda', moveRight: 'Mover derecha',
+        dash: 'Dash', reload: 'Recargar', pause: 'Pausa',
+        slot1: 'Slot 1', slot2: 'Slot 2', slot3: 'Slot 3', slot4: 'Slot 4', slot5: 'Slot 5'
+    };
+    const bindings = KeyBindings.load();
+    panel.innerHTML = `
+        <div class="menu-panel" style="width:460px;">
+            <h1 class="menu-title" style="font-size:34px;">CONTROLES</h1>
+            <div class="controls-list" id="keybind-rows">
+                ${Object.keys(ACTION_LABELS).map(action => `
+                    <div class="keybind-row">
+                        <span>${ACTION_LABELS[action]}</span>
+                        <span class="keybind-key" data-action="${action}">${bindings[action]}</span>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="menu-btn" onclick="game.resetKeybinds()">RESTAURAR VALORES POR DEFECTO</button>
+            <button class="menu-btn primary" onclick="game.closeKeybindPanel()">VOLVER</button>
+        </div>`;
+    panel.style.display = 'flex';
+    panel.querySelectorAll('.keybind-key').forEach(el => {
+        el.addEventListener('click', () => game._listenForRebind(el, el.dataset.action));
+    });
+};
+
+game._listenForRebind = function(el, action) {
+    el.classList.add('listening');
+    el.innerText = 'Presioná una tecla...';
+    const onKey = (e) => {
+        e.preventDefault();
+        KeyBindings.rebind(action, e.code);
+        el.innerText = e.code;
+        el.classList.remove('listening');
+        window.removeEventListener('keydown', onKey, true);
+    };
+    window.addEventListener('keydown', onKey, true);
+};
+
+game.resetKeybinds = function() {
+    KeyBindings.resetToDefaults();
+    game.openKeybindPanel();
+};
+
+game.closeKeybindPanel = function() {
+    document.getElementById('keybind-panel').style.display = 'none';
+    document.getElementById('settings-panel').style.display = 'flex';
+};
+
+// ======================================================================
+// PRIVACIDAD — reabrir el banner de consentimiento de Analytics desde Ajustes.
+// ======================================================================
+game.reconsiderConsent = function() {
+    if (typeof ConsentManager !== 'undefined') ConsentManager.reconsider();
 };

@@ -1,22 +1,5 @@
 /**
  * LOBBYSCENE.js — Escena viva de fondo para el lobby.
- *
- * Se dibuja directamente sobre el MISMO <canvas> del juego (usa las mismas
- * variables globales `canvas`/`ctx` declaradas en main.js, por eso este
- * script debe cargarse DESPUÉS de main.js). No depende de player.js/world.js
- * ni de ninguna clase del juego real: es deliberadamente autocontenido para
- * poder dibujarse ANTES de que exista game.player/game.camera (es decir,
- * mientras game.started === false).
- *
- * game.loop() (main.js) llama a LobbyScene.render() en su rama de guarda
- * ("todavía no hay partida"), en vez de dejar el canvas en blanco.
- *
- * Capas (de atrás hacia adelante = parallax):
- *   0. Cielo con gradiente + nubes lentas
- *   1. Siluetas de árboles lejanos (parallax lento)
- *   2. Suelo + árboles/rocas de mediodistancia (parallax medio)
- *   3. Slime protagonista (rebote idle) + mini slimes vagando
- *   4. Partículas flotantes: hojas y luciérnagas (parallax rápido, primer plano)
  */
 const LobbyScene = {
     _built: false,
@@ -33,7 +16,6 @@ const LobbyScene = {
         this._built = true;
         const w = canvas.width, h = canvas.height;
 
-        // Nubes: rectángulos redondeados suaves, muy lentas (capa más lejana)
         this.clouds = Array.from({ length: 6 }, () => ({
             x: Math.random() * w,
             y: 40 + Math.random() * (h * 0.28),
@@ -42,14 +24,12 @@ const LobbyScene = {
             alpha: 0.10 + Math.random() * 0.10
         }));
 
-        // Siluetas de árboles lejanos: triángulos simples a lo largo del horizonte
         this.farTrees = Array.from({ length: 16 }, (_, i) => ({
             x: (i / 16) * (w + 200) - 100 + (Math.random() - 0.5) * 40,
             h: 90 + Math.random() * 70,
             wobble: Math.random() * Math.PI * 2
         }));
 
-        // Props de mediodistancia (árboles/rocas), fijos por sesión
         const propTypes = ['tree', 'tree_pine', 'rock', 'rock_tall', 'bush'];
         this.midProps = Array.from({ length: 10 }, () => ({
             x: Math.random() * (w + 400) - 200,
@@ -58,7 +38,6 @@ const LobbyScene = {
             scale: 0.8 + Math.random() * 0.6
         })).sort((a, b) => a.baseY - b.baseY);
 
-        // Mini slimes vagando en el fondo
         this.minis = Array.from({ length: 3 }, () => ({
             x: w * 0.15 + Math.random() * w * 0.6,
             y: h * 0.72 + Math.random() * (h * 0.18),
@@ -68,9 +47,7 @@ const LobbyScene = {
             tick: Math.random() * 10
         }));
 
-        // Hojas flotando (primer plano, parallax rápido)
         this.leaves = Array.from({ length: 18 }, () => this._newLeaf(w, h, true));
-        // Luciérnagas / brillos ambientales
         this.fireflies = Array.from({ length: 14 }, () => ({
             x: Math.random() * w, y: h * 0.4 + Math.random() * h * 0.55,
             r: 1.5 + Math.random() * 1.8,
@@ -96,7 +73,6 @@ const LobbyScene = {
     },
 
     reset() {
-        // Fuerza reconstruir la próxima vez (por ejemplo tras un resize grande)
         this._built = false;
     },
 
@@ -105,7 +81,6 @@ const LobbyScene = {
         this.build();
         this._t += 1;
 
-        // ---- Capa 0: cielo ----
         const sky = ctx.createLinearGradient(0, 0, 0, h);
         sky.addColorStop(0, '#0d1f14');
         sky.addColorStop(0.55, '#0a1710');
@@ -113,7 +88,6 @@ const LobbyScene = {
         ctx.fillStyle = sky;
         ctx.fillRect(0, 0, w, h);
 
-        // Nubes
         this.clouds.forEach(c => {
             c.x -= c.speed;
             if (c.x < -160 * c.scale) c.x = w + 160 * c.scale;
@@ -125,7 +99,6 @@ const LobbyScene = {
             ctx.fill();
         });
 
-        // ---- Capa 1: árboles lejanos (parallax lento) ----
         const farOffset = (this._t * 0.10) % (w + 200);
         ctx.fillStyle = '#0d2416';
         this.farTrees.forEach(t => {
@@ -140,14 +113,12 @@ const LobbyScene = {
             ctx.fill();
         });
 
-        // Línea de suelo
         const groundGrad = ctx.createLinearGradient(0, h * 0.6, 0, h);
         groundGrad.addColorStop(0, '#16301c');
         groundGrad.addColorStop(1, '#0a160c');
         ctx.fillStyle = groundGrad;
         ctx.fillRect(0, h * 0.62, w, h * 0.38);
 
-        // ---- Capa 2: props de mediodistancia (parallax medio) ----
         const midOffset = (this._t * 0.28) % (w + 400);
         this.midProps.forEach(p => {
             let x = p.x - midOffset;
@@ -155,7 +126,6 @@ const LobbyScene = {
             this._drawMidProp(x, p.baseY, p.type, p.scale);
         });
 
-        // ---- Capa 3: mini slimes vagando ----
         this.minis.forEach(m => {
             m.timer++;
             m.tick += 0.15;
@@ -178,10 +148,8 @@ const LobbyScene = {
             ctx.restore();
         });
 
-        // ---- Slime protagonista: rebote idle centrado, apuntando hacia el centro ----
         this._drawHero(w * 0.5, h * 0.8);
 
-        // ---- Capa 4: primer plano — hojas y luciérnagas ----
         this.leaves.forEach(l => {
             l.x += l.vx; l.y += l.vy + Math.sin(this._t * 0.03 + l.sway) * 0.3;
             l.rot += l.vrot;
@@ -213,8 +181,6 @@ const LobbyScene = {
             ctx.restore();
         });
 
-        // Viñeta propia y sutil, para que los paneles laterales sigan legibles
-        // sin depender de #vignette (oculto durante el lobby).
         const vig = ctx.createRadialGradient(w * 0.5, h * 0.55, h * 0.25, w * 0.5, h * 0.55, h * 0.85);
         vig.addColorStop(0, 'rgba(0,0,0,0)');
         vig.addColorStop(1, 'rgba(0,0,0,0.55)');
@@ -262,7 +228,7 @@ const LobbyScene = {
         const bounce = Math.abs(Math.sin(this._heroTick)) * 10;
         const stretchX = 1 - Math.abs(Math.cos(this._heroTick)) * 0.08;
         const stretchY = 1 + Math.abs(Math.cos(this._heroTick)) * 0.08;
-        const angle = Math.sin(this._heroTick * 0.4) * 0.5; // "mira" de lado a lado
+        const angle = Math.sin(this._heroTick * 0.4) * 0.5;
 
         ctx.save();
         ctx.fillStyle = 'rgba(0,0,0,0.4)';

@@ -8,5 +8,9 @@
       "codebase": "default",
       "runtime": "nodejs18"
     }
-  ]
+  ],
+  "hosting": {
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+  }
 }

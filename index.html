@@ -12,6 +12,7 @@
     <title>SLIMEFRONT v0.9</title>
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%232ecc71'/><text x='16' y='20' font-size='20' font-weight='bold' text-anchor='middle' fill='%23050505'>S</text></svg>">
     <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/patch.css">
     <style>
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #050505; display: flex; align-items: center; justify-content: center; z-index: 200; flex-direction: column; }
@@ -45,6 +46,12 @@
             <p class="menu-subtitle">Inicia sesión para guardar tu progreso</p>
             <button class="menu-btn primary" id="login-google-btn">🔑 CONTINUAR CON GOOGLE</button>
             <button class="menu-btn" id="login-guest-btn">👤 CONTINUAR COMO INVITADO</button>
+            <p style="font-size:12px;color:#777;margin-top:16px;line-height:1.5;">
+                Al continuar aceptás nuestros
+                <a href="legal/terms-of-service.html" target="_blank" rel="noopener" style="color:#3498db;">Términos de Servicio</a>
+                y nuestra
+                <a href="legal/privacy-policy.html" target="_blank" rel="noopener" style="color:#3498db;">Política de Privacidad</a>.
+            </p>
         </div>
     </div>
 
@@ -161,14 +168,39 @@
             </div>
 
             <div class="settings-group">
+                <label class="settings-label">Accesibilidad</label>
+                <button class="menu-btn" onclick="game.openKeybindPanel()">⌨️ Reconfigurar controles</button>
+                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:16px; color:#ccc;">
+                    <input type="checkbox" id="colorblind-toggle" onchange="game.toggleColorblindMode(this.checked)">
+                    Modo daltónico (filtro de color asistido)
+                </label>
+                <p class="settings-hint">El juego también admite mando/gamepad de forma automática si hay uno conectado.</p>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Privacidad y estadísticas</label>
+                <p class="settings-hint" id="consent-current-status" style="color:#ccc;">Cargando...</p>
+                <button class="menu-btn" onclick="game.reconsiderConsent()">🔎 Gestionar consentimiento de estadísticas</button>
+            </div>
+
+            <div class="settings-group">
                 <label class="settings-label">Cuenta</label>
                 <button class="menu-btn" onclick="game.openLogoutConfirm()">🚪 CERRAR SESIÓN</button>
                 <button class="menu-btn danger" onclick="game.openDeleteConfirm()">🗑️ BORRAR PROGRESO</button>
             </div>
 
+            <div class="legal-links-row">
+                <a href="legal/privacy-policy.html" target="_blank" rel="noopener">Privacidad</a>
+                <a href="legal/terms-of-service.html" target="_blank" rel="noopener">Términos</a>
+                <a href="legal/data-deletion.html" target="_blank" rel="noopener">Borrar mis datos</a>
+            </div>
+
             <button class="menu-btn primary" onclick="game.closeSettings()">VOLVER</button>
         </div>
     </div>
+
+    <!-- Modal de reconfiguración de controles (ver game.openKeybindPanel en src/ui.js) -->
+    <div id="keybind-panel" class="menu-screen" style="display:none; z-index:120;"></div>
 
     <div id="profile-screen" class="menu-screen" style="display:none;">
         <div class="menu-panel profile-panel">
@@ -240,6 +272,11 @@
                     Gracias por jugar. <br>
                     Feedback: usa el botón 👎 en el navegador.
                 </p>
+                <p style="margin-top:10px;">
+                    <a href="legal/privacy-policy.html" target="_blank" rel="noopener" style="color:#3498db;">Privacidad</a> ·
+                    <a href="legal/terms-of-service.html" target="_blank" rel="noopener" style="color:#3498db;">Términos</a> ·
+                    <a href="legal/data-deletion.html" target="_blank" rel="noopener" style="color:#3498db;">Borrar mis datos</a>
+                </p>
             </div>
             <button class="menu-btn primary" style="margin-top: 20px;" onclick="game.closeCredits()">VOLVER</button>
         </div>
@@ -294,21 +331,34 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
 
-<script src="FirebaseSaveSystem.js"></script>
+<!-- Config de Firebase (DEV): build.js sustituye esta línea por
+     firebase-config.prod.js al generar dist/ para publicar. Ver build.js. -->
+<script src="firebase-config.dev.js"></script>
+<script src="src/FirebaseSaveSystem.js"></script>
 
-<script src="main.js"></script>
-<script src="lobbyscene.js"></script>
-<script src="ui.js"></script>
-<script src="effects.js"></script>
-<script src="events.js"></script>
-<script src="world.js"></script>
-<script src="weapons.js"></script>
-<script src="player.js"></script>
-<script src="enemies.js"></script>
-<script src="level.js"></script>
-<script src="progression.js"></script>
-<script src="achievements.js"></script>
-<script src="auth-ui.js"></script>
-<script src="boot.js"></script>
+<!-- Infraestructura transversal: debe cargarse ANTES de main.js, que ya
+     consulta TimerManager/KeyBindings/GamepadInput/I18N en su cuerpo. -->
+<script src="src/timers.js"></script>
+<script src="src/i18n.js"></script>
+<script src="src/i18n/es.js"></script>
+<script src="src/accessibility.js"></script>
+<script src="src/consent.js"></script>
+<script src="src/save-indicator.js"></script>
+
+<script src="src/main.js"></script>
+<script src="src/lobbyscene.js"></script>
+<script src="src/ui.js"></script>
+<script src="src/effects.js"></script>
+<script src="src/events.js"></script>
+<script src="src/world.js"></script>
+<script src="src/weapons.js"></script>
+<script src="src/player.js"></script>
+<script src="src/enemies.js"></script>
+<script src="src/xp-formula.js"></script>
+<script src="src/level.js"></script>
+<script src="src/progression.js"></script>
+<script src="src/achievements.js"></script>
+<script src="src/auth-ui.js"></script>
+<script src="src/boot.js"></script>
 </body>
 </html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLIMEFRONT — Política de Privacidad</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/patch.css">
+</head>
+<body class="legal-page">
+<div class="legal-doc">
+<h1 class="menu-title" style="font-size:40px;">Política de Privacidad</h1>
+<p class="legal-updated">Última actualización: 2 de agosto de 2026</p>
+
+<p>Esta política explica, en términos concretos y sin plantillas genéricas, qué datos usa <strong>SLIMEFRONT</strong> (el "Juego"), un juego web de defensa contra oleadas, distribuido en itch.io. El Juego se ejecuta enteramente en tu navegador y usa los siguientes servicios de Google/Firebase:</p>
+
+<h2>1. Qué datos recopilamos y por qué</h2>
+
+<h3>1.1 Autenticación (Firebase Authentication + Google Sign-In)</h3>
+<p>Si elegís "Continuar con Google" en la pantalla de inicio, Firebase Authentication recibe de Google tu identificador de cuenta (UID), tu nombre visible y tu correo electrónico, únicamente para identificar tu partida y permitirte recuperar tu progreso desde cualquier dispositivo. Podés jugar sin iniciar sesión eligiendo "Continuar como invitado"; en ese caso tu progreso se guarda solo en tu propio navegador (ver sección 2) y nunca se envía a nuestros servidores.</p>
+
+<h3>1.2 Progreso de partida (Cloud Firestore)</h3>
+<p>Si iniciaste sesión, guardamos en un documento de Firestore identificado por tu UID los siguientes datos de progreso, y ningún otro:</p>
+<ul>
+    <li>Nivel, experiencia, diamantes y desbloqueos cosméticos de tu perfil</li>
+    <li>Estadísticas de partida: oleada máxima alcanzada, tiempo jugado, eliminaciones, muertes, disparos realizados/acertados, distancia recorrida, arma más usada</li>
+    <li>Mejoras permanentes compradas (Vitalidad, Resistencia, Velocidad, Poder, Fortuna)</li>
+    <li>Progreso de logros (cuáles desbloqueaste y reclamaste)</li>
+</ul>
+<p>Estos datos se validan y escriben únicamente a través de una Cloud Function (<code>syncProgress</code>) que corre en nuestros servidores; ningún cliente puede escribir estos documentos directamente. Podés ver el detalle técnico en el archivo <code>firestore.rules</code> y <code>functions/index.js</code> del proyecto, que son de código abierto.</p>
+
+<h3>1.3 Tabla de posiciones (leaderboard)</h3>
+<p>Si iniciás sesión, tu nombre visible, nivel y mejor oleada se publican en una colección <code>leaderboard</code> de lectura pública, pensada para una futura tabla de posiciones. Cualquier persona (incluso sin cuenta) puede leer esta colección; solo vos podés escribir tu propia entrada, y solo a través de la misma Cloud Function validada.</p>
+
+<h3>1.4 Estadísticas de uso anónimas (Firebase Analytics)</h3>
+<p>Analytics recopila eventos anónimos de uso (por ejemplo: oleadas alcanzadas, armas usadas, tiempo de sesión, errores técnicos) para entender cómo se juega SLIMEFRONT y mejorarlo. <strong>Analytics no se activa automáticamente</strong>: la primera vez que abrís el Juego te preguntamos explícitamente si aceptás o rechazás su uso, y podés cambiar esa decisión en cualquier momento desde Ajustes → Privacidad. Si rechazás, no se carga ningún código de medición.</p>
+
+<h3>1.5 Almacenamiento local (localStorage)</h3>
+<p>Independientemente de si iniciaste sesión, el Juego guarda una copia de tu progreso y tus preferencias (gráficos, volumen, idioma, controles remapeados, tu decisión de consentimiento de Analytics) en el almacenamiento local de tu navegador (<code>localStorage</code>), para que el Juego funcione incluso sin conexión y para no volver a preguntarte cosas ya respondidas.</p>
+
+<h2>2. Qué NO recopilamos</h2>
+<p>No recopilamos contraseñas (el inicio de sesión lo maneja Google directamente), datos de pago, ubicación precisa, contactos, ni ningún dato biométrico. No vendemos datos a terceros ni los usamos con fines publicitarios.</p>
+
+<h2>3. Con quién compartimos datos</h2>
+<p>Los datos se procesan mediante infraestructura de Google (Firebase). No compartimos tus datos con ningún otro tercero. itch.io, como plataforma de distribución, puede recopilar sus propios datos de acceso según su propia política de privacidad, ajena a este documento.</p>
+
+<h2>4. Cuánto tiempo conservamos tus datos</h2>
+<p>Tu progreso se conserva mientras mantengas tu cuenta activa. Podés eliminarlo en cualquier momento (ver <a href="data-deletion.html">Eliminación de datos</a>).</p>
+
+<h2>5. Menores de edad</h2>
+<p>SLIMEFRONT no está dirigido específicamente a menores de 13 años y no solicitamos deliberadamente datos de menores de esa edad más allá de lo estrictamente necesario para el funcionamiento descrito arriba.</p>
+
+<h2>6. Tus derechos</h2>
+<p>Podés acceder, corregir o eliminar tu progreso en cualquier momento desde Ajustes, o solicitarlo por contacto directo (ver <a href="data-deletion.html">Eliminación de datos</a>).</p>
+
+<h2>7. Contacto</h2>
+<p>Para consultas sobre privacidad, usá el mismo canal de contacto listado en la página del juego en itch.io.</p>
+
+<a class="menu-btn primary legal-back" href="../index.html">&larr; Volver al juego</a>
+</div>
+</body>
+</html>

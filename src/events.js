@@ -3,6 +3,10 @@
  * Modular: para agregar un evento nuevo alcanza con sumar una entrada a RANDOM_EVENTS
  * (label + onStart/onUpdate/onDraw) y, si necesita un modificador nuevo, leerlo donde
  * corresponda con un "|| 1" / "|| 0" por defecto, tal como ya hacen los existentes.
+ *
+ * NOTA (timers): el setTimeout del rayo de STORM pasa por TimerManager, así si
+ * el jugador muere o vuelve al menú justo entre el aviso del rayo y el
+ * impacto, el impacto no se dispara igual sobre una partida ya terminada.
  */
 // AmbientAudio (lluvia/viento/arena en loop) vive ahora en effects.js: reutiliza las
 // mismas claves y rutas locales que el resto de los SFX (SFX.rain/wind/sandstorm) en
@@ -102,7 +106,7 @@ const RANDOM_EVENTS = {
             if (game._lightningTimer <= 0) {
                 playSFX('thunder', 0.6, 0.1);
                 game._lightningTimer = 300 + Math.random() * 300;
-                setTimeout(() => { if (game.activeEvent === 'STORM') triggerLightningStrike(); }, 1200);
+                TimerManager.setTimeout(() => { if (game.activeEvent === 'STORM') triggerLightningStrike(); }, 1200);
             }
         },
         onDraw() { drawFlatTint('rgba(5,5,15,0.35)'); }
@@ -214,7 +218,7 @@ const EventManager = {
             alertEl.querySelector('.event-alert-title').innerText = def.label;
             alertEl.style.display = 'flex';
         }
-        setTimeout(() => {
+        TimerManager.setTimeout(() => {
             if (alertEl) alertEl.style.display = 'none';
             onComplete();
         }, 5000);

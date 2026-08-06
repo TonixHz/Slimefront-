@@ -25,6 +25,11 @@ const game = {
         // Reset completo: init() ahora puede llamarse más de una vez en la misma
         // sesión de página (Jugar de Nuevo / Volver al Menú y volver a jugar), así
         // que hay que vaciar todo lo que antes solo se llenaba una vez.
+        // Cancela también cualquier timer de partida que hubiera quedado pendiente
+        // de una sesión previa (ver src/timers.js): cubre TODOS los caminos que
+        // llegan acá (startFromLobby, playAgain, etc.), no solo goToMainMenu.
+        if (typeof TimerManager !== 'undefined') TimerManager.clearAll();
+
         this.enemies = []; this.props = []; this.floatingTexts = [];
         this.particles = []; this.casings = []; this.projectiles = []; this.trails = [];
         this.wave = 1; this.isWaveActive = false; this.paused = false;
@@ -71,17 +76,31 @@ const game = {
 
         if (!this._inputBound) {
             this._inputBound = true;
+            // NOTA (accesibilidad/remapeo — src/accessibility.js):
+            // Guardamos la tecla física tal cual (compatibilidad con Shift/mobile.js)
+            // Y ADEMÁS, si esa tecla física está atada a una acción remapeable
+            // (moveUp/moveDown/moveLeft/moveRight), reflejamos el flag bajo el
+            // código POR DEFECTO de esa acción (ej: 'KeyW'). Así el resto del
+            // juego (player.js: `keys['KeyW']`, etc.) no necesita saber nada de
+            // KeyBindings ni cambiar ni una línea: sigue funcionando igual,
+            // remapeado o no.
+            const mirrorAction = (code, isDown) => {
+                if (typeof KeyBindings === 'undefined') return;
+                const action = KeyBindings.action(code);
+                if (action && DEFAULT_KEYBINDINGS[action]) this.keys[DEFAULT_KEYBINDINGS[action]] = isDown;
+            };
             window.addEventListener('keydown', e => {
                 this.keys[e.code] = true;
+                mirrorAction(e.code, true);
                 if(e.key >= 1 && e.key <= 5) this.player.activeSlot = e.key - 1;
-                if(e.code === 'KeyR') this.reload();
-                if(e.code === 'Space') {
+                if(typeof KeyBindings !== 'undefined' && e.code === KeyBindings.codeFor('reload')) this.reload();
+                if(typeof KeyBindings !== 'undefined' && e.code === KeyBindings.codeFor('dash')) {
                     e.preventDefault(); // evita que la página scrollee con la barra espaciadora
                     if(!this.paused) this.player.dash();
                 }
-                if(e.code === 'Escape') this.toggleEscMenu();
+                if(typeof KeyBindings !== 'undefined' && e.code === KeyBindings.codeFor('pause')) this.toggleEscMenu();
             });
-            window.addEventListener('keyup', e => this.keys[e.code] = false);
+            window.addEventListener('keyup', e => { this.keys[e.code] = false; mirrorAction(e.code, false); });
             window.addEventListener('mousemove', e => { this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
             window.addEventListener('mousedown', () => this.mouse.down = true);
             window.addEventListener('mouseup', () => this.mouse.down = false);
@@ -123,6 +142,7 @@ const game = {
     loop() {
         if (this._loopCrashed) return;
         try {
+            if (typeof GamepadInput !== 'undefined') GamepadInput.poll();
             this._frame();
         } catch (err) {
             console.error('[GameLoop] Excepción no controlada, el loop se detiene:', err);
@@ -291,8 +311,8 @@ const game = {
         // UI Updates
         document.getElementById('health-inner').style.width = (this.player.hp / this.player.maxHp * 100) + "%";
         document.getElementById('health-text').innerText = `${Math.floor(this.player.hp)} / ${this.player.maxHp}`;
-        document.getElementById('money-display').innerText = "CASH: $" + this.player.money;
-        document.getElementById('wave-display').innerText = "WAVE: " + this.wave;
+        document.getElementById('money-display').innerText = (typeof I18N !== 'undefined' ? I18N.t('hud.cash', { n: this.player.money }) : "CASH: $" + this.player.money);
+        document.getElementById('wave-display').innerText = (typeof I18N !== 'undefined' ? I18N.t('hud.wave', { n: this.wave }) : "WAVE: " + this.wave);
         
         let w = this.player.weapon;
         document.getElementById('ammo-hud').innerText = w ? (w.ammo === Infinity ? "∞" : w.ammo) : "--";
@@ -340,35 +360,40 @@ const game = {
                     <button class="nav-card nav-card-primary" onclick="game.startFromLobby()">
                         <span class="nav-card-icon">▶</span>
                         <span class="nav-card-text">
-                            <span class="nav-card-title">Jugar</span>
-                            <span class="nav-card-sub">Empieza una nueva incursión</span>
+                            <span class="nav-card-title" data-i18n="menu.play">Jugar</span>
+                            <span class="nav-card-sub" data-i18n="menu.play_sub">Empieza una nueva incursión</span>
                         </span>
                     </button>
                     <button class="nav-card" onclick="game.openAchievementsFromLobby()">
                         <span class="nav-card-icon">🏆</span>
                         <span class="nav-card-text">
-                            <span class="nav-card-title">Logros</span>
+                            <span class="nav-card-title" data-i18n="menu.achievements">Logros</span>
                             <span class="nav-card-sub" id="lobby-nav-achv-sub">Cargando...</span>
                         </span>
                     </button>
                     <button class="nav-card" onclick="game.openSettings('lobby')">
                         <span class="nav-card-icon">⚙</span>
                         <span class="nav-card-text">
-                            <span class="nav-card-title">Opciones</span>
-                            <span class="nav-card-sub">Gráficos, audio y cuenta</span>
+                            <span class="nav-card-title" data-i18n="menu.settings">Opciones</span>
+                            <span class="nav-card-sub" data-i18n="menu.settings_sub">Gráficos, audio y cuenta</span>
                         </span>
                     </button>
                     <button class="nav-card nav-card-danger" onclick="game.openExitConfirm()">
                         <span class="nav-card-icon">⏻</span>
                         <span class="nav-card-text">
-                            <span class="nav-card-title">Salir</span>
-                            <span class="nav-card-sub">Cerrar SLIMEFRONT</span>
+                            <span class="nav-card-title" data-i18n="menu.exit">Salir</span>
+                            <span class="nav-card-sub" data-i18n="menu.exit_sub">Cerrar SLIMEFRONT</span>
                         </span>
                     </button>
                 </nav>
                 <div id="auth-box" class="auth-box lobby-auth">
                     <span id="auth-status" class="hud-text"></span>
                     <button id="auth-btn" class="menu-btn" onclick="AuthUI.handleClick()"></button>
+                </div>
+                <div class="legal-links-row">
+                    <a href="legal/privacy-policy.html" target="_blank" rel="noopener">Privacidad</a>
+                    <a href="legal/terms-of-service.html" target="_blank" rel="noopener">Términos</a>
+                    <a href="legal/data-deletion.html" target="_blank" rel="noopener">Borrar mis datos</a>
                 </div>
             </div>
 
@@ -414,6 +439,7 @@ const game = {
             </div>
         `;
         if (typeof AuthUI !== 'undefined') AuthUI.refresh();
+        if (typeof I18N !== 'undefined') I18N.applyDOM(root);
         this.refreshLobbyPanels();
     },
 
@@ -558,6 +584,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <div class="control-item"><span>ESPACIO</span><span class="control-key">DASH</span></div>
                     <div class="control-item"><span>ESC</span><span class="control-key">PAUSA</span></div>
                 </div>
+                <p style="font-size:13px;color:#888;margin-top:10px;">También podés jugar con gamepad, o reconfigurar teclas desde Ajustes → Accesibilidad → Reconfigurar controles.</p>
                 <button class="menu-btn" onclick="game.toggleControls(false)">← VOLVER</button>
             </div>
         `;
