@@ -144,7 +144,6 @@ canvas { display: block; }
 .auth-box .menu-btn { margin-top: 0; font-size: 18px; padding: 10px; }
 
 body.ultra-mode * {
-    animation: none !important;
     transition: none !important;
     box-shadow: none !important;
     text-shadow: none !important;
@@ -152,16 +151,30 @@ body.ultra-mode * {
     filter: none !important;
 }
 
-/* FIX (bug HUD invisible en ULTRA): .glass-panel, .nav-card y .lobby-auth
-   arrancan con "opacity: 0" como estilo BASE (no solo dentro del keyframe),
-   y es la propia animación de entrada (lf-fade-up, con fill-mode "both") la
-   que los lleva a opacity:1. La regla de arriba (body.ultra-mode *) apaga
-   TODAS las animaciones con !important, así que en modo ULTRA esos
-   elementos quedaban clavados en opacity:0 para siempre, y todo el HUD del
-   lobby (perfil, noticias, desafío diario, estadísticas, tarjetas de
-   navegación, caja de login) desaparecía por completo.
-   Se fuerza opacity:1 específicamente para estos elementos en ULTRA (sin
-   reactivar la animación, que sigue apagada a propósito por rendimiento). */
+/* FIX (bug HUD invisible en ULTRA):
+   .glass-panel, .nav-card y .lobby-auth arrancan con "opacity: 0" como
+   ESTILO BASE (no solo dentro del @keyframes), y es justamente la animación
+   de entrada (lf-fade-up, con fill-mode "both") la que en su keyframe final
+   los lleva a opacity:1. Antes, "animation: none !important" vivía en la
+   regla universal de arriba (body.ultra-mode *), así que en modo ULTRA
+   TODAS las animaciones se cortaban de raíz — incluida esta, que es de un
+   solo disparo (no un loop continuo) y corre una única vez al construirse
+   el lobby. Sin ella, esos elementos quedaban clavados en opacity:0 para
+   siempre y todo el HUD del lobby (perfil, noticias, desafío diario,
+   estadísticas, tarjetas de navegación, caja de login) desaparecía.
+   Solución: excluir estos 3 selectores de "animation: none", así su
+   animación de entrada sigue corriendo (una sola vez, costo insignificante)
+   y llegan a opacity:1 con normalidad. Las animaciones EN LOOP que sí
+   justifican apagarse por rendimiento en ULTRA (respiración del logo,
+   parpadeo del badge de noticias, "breathe" de títulos) siguen
+   desactivadas, porque no están en esta lista de exclusión. */
+body.ultra-mode *:not(.nav-card):not(.glass-panel):not(.lobby-auth) {
+    animation: none !important;
+}
+/* Red de seguridad adicional: si por cualquier motivo la animación de
+   entrada no llegara a dispararse (ej. el elemento se inserta en el DOM
+   después de que el body ya tenía la clase ultra-mode, en algún navegador
+   con timing distinto), esto garantiza igual que queden visibles. */
 body.ultra-mode .glass-panel,
 body.ultra-mode .nav-card,
 body.ultra-mode .lobby-auth {
