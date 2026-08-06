@@ -476,9 +476,9 @@ const game = {
         const newsList = document.getElementById('lobby-news-list');
         if (newsList) {
             const news = [
-                { title: 'Sistema de logros y guardado en la nube', date: 'v0.9' },
-                { title: 'Nuevo evento dinámico: Bombardeo', date: 'v0.9' },
-                { title: '20 armas balanceadas, del cuchillo al RPG', date: 'v0.9' }
+                { title: 'Gracias a la banda de Kyu', date: 'v0.9' },
+                { title: 'ZKD Nino es mía', date: 'v0.9' },
+                { title: 'Rojuu te amo', date: 'v0.9' }
             ];
             newsList.innerHTML = news.map(n => `
                 <div class="news-item">
