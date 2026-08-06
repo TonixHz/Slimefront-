@@ -152,6 +152,22 @@ body.ultra-mode * {
     filter: none !important;
 }
 
+/* FIX (bug HUD invisible en ULTRA): .glass-panel, .nav-card y .lobby-auth
+   arrancan con "opacity: 0" como estilo BASE (no solo dentro del keyframe),
+   y es la propia animación de entrada (lf-fade-up, con fill-mode "both") la
+   que los lleva a opacity:1. La regla de arriba (body.ultra-mode *) apaga
+   TODAS las animaciones con !important, así que en modo ULTRA esos
+   elementos quedaban clavados en opacity:0 para siempre, y todo el HUD del
+   lobby (perfil, noticias, desafío diario, estadísticas, tarjetas de
+   navegación, caja de login) desaparecía por completo.
+   Se fuerza opacity:1 específicamente para estos elementos en ULTRA (sin
+   reactivar la animación, que sigue apagada a propósito por rendimiento). */
+body.ultra-mode .glass-panel,
+body.ultra-mode .nav-card,
+body.ultra-mode .lobby-auth {
+    opacity: 1 !important;
+}
+
 :root {
     --lf-void:        #050505;
     --lf-forest:      #0a130b;
