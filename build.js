@@ -11,6 +11,10 @@
  * comportamiento en producción es idéntico al de desarrollo, solo que en un
  * único archivo minificado y sin sentencias de consola/depuración.
  *
+ * Ya no existe distinción DEV/PROD de Firebase: hay una única
+ * `firebase-config.js` que se usa tanto en desarrollo como en dist/, así que
+ * este script NO la modifica ni la sustituye, solo la copia tal cual.
+ *
  * Qué hace, paso a paso:
  *   1. Lee SRC_ORDER (el mismo orden que <script> tags en index.html).
  *   2. Concatena esos archivos con un separador que preserva los números de
@@ -19,13 +23,11 @@
  *      drop:['console','debugger'] (ver DROP_CONSOLE_LOG más abajo si en
  *      algún momento se necesita loguear algo crítico en producción).
  *   4. Escribe dist/bundle.min.js.
- *   5. Genera dist/index.html: mismo HTML que el de desarrollo, pero:
- *        - <script src="firebase-config.dev.js"> -> firebase-config.prod.js
- *        - todos los <script src="src/..."> se reemplazan por un único
- *          <script src="bundle.min.js">
- *   6. Copia tal cual: assets/, legal/, firebase-config.prod.js, y (si existen
- *      en el repo) Sounds/. NO copia firebase-config.dev.js a dist/, así es
- *      estructuralmente imposible publicar apuntando a Firebase de desarrollo.
+ *   5. Genera dist/index.html: mismo HTML que el de desarrollo, pero todos
+ *      los <script src="src/..."> se reemplazan por un único
+ *      <script src="bundle.min.js">.
+ *   6. Copia tal cual: assets/, legal/, firebase-config.js, y (si existen
+ *      en el repo) Sounds/.
  *
  * Uso:
  *   npm install        (una vez, instala esbuild como devDependency)
@@ -112,15 +114,10 @@ async function main() {
     console.log('[build] Generando dist/index.html de producción...');
     let html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
-    // Config de Firebase: dev -> prod
-    html = html.replace(
-        '<script src="firebase-config.dev.js"></script>',
-        '<script src="firebase-config.prod.js"></script>'
-    );
-
     // Reemplaza el bloque de <script src="src/FirebaseSaveSystem.js"> ... <script src="src/boot.js">
     // por un único <script src="bundle.min.js">. Se hace con un recorte de línea
     // a línea (no regex frágil) para no depender de que el HTML no cambie de forma.
+    // firebase-config.js NO se toca: es el mismo archivo en dev y en dist/.
     const lines = html.split('\n');
     const startMarker = '<script src="src/FirebaseSaveSystem.js"></script>';
     const endMarker = '<script src="src/boot.js"></script>';
@@ -138,14 +135,10 @@ async function main() {
     copyIfExists(path.join(ROOT, 'assets'), path.join(DIST_DIR, 'assets'));
     copyIfExists(path.join(ROOT, 'legal'), path.join(DIST_DIR, 'legal'));
     copyIfExists(path.join(ROOT, 'Sounds'), path.join(DIST_DIR, 'Sounds'));
-    copyIfExists(path.join(ROOT, 'firebase-config.prod.js'), path.join(DIST_DIR, 'firebase-config.prod.js'));
-
-    // Salvaguarda extra: si por error firebase-config.dev.js terminara copiado a
-    // dist/ (por ejemplo un cambio futuro que copie todo el root), lo borramos.
-    rmrf(path.join(DIST_DIR, 'firebase-config.dev.js'));
+    copyIfExists(path.join(ROOT, 'firebase-config.js'), path.join(DIST_DIR, 'firebase-config.js'));
 
     console.log('\n[build] Listo. dist/ contiene el build de producción.');
-    console.log('[build] Verificá antes de publicar: dist/firebase-config.prod.js tiene los valores REALES de tu proyecto de producción (ver comentario en ese archivo).');
+    console.log('[build] Verificá antes de publicar: firebase-config.js tiene los valores REALES de tu proyecto Firebase (ver comentario en ese archivo).');
 }
 
 main().catch(err => {

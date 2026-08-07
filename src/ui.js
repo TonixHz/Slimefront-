@@ -193,9 +193,6 @@ game.toggleControls = function(show) {
 game.updateShop = function() {
     const list = document.getElementById('shop-items');
     list.innerHTML = "";
-    ['G18', 'KNIFE'].forEach(k => {
-        list.innerHTML += `<div class="weapon-row"><span class="weapon-row-name">${k}</span><span class="weapon-row-status owned">ADQUIRIDA</span></div>`;
-    });
     Object.keys(WEAPON_COSTS).forEach(k => {
         const owned = this.player.inventory.some(i => i && i.name === k);
         const cost = WEAPON_COSTS[k];
@@ -308,4 +305,26 @@ game.closeKeybindPanel = function() {
 // ======================================================================
 game.reconsiderConsent = function() {
     if (typeof ConsentManager !== 'undefined') ConsentManager.reconsider();
+};
+
+
+// ======================================================================
+// REORGANIZAR INVENTARIO — drag & drop entre slots del hotbar. Solo permitido
+// mientras el shop está abierto (entre oleadas), nunca en combate.
+// ======================================================================
+game.onSlotDragStart = function(e, i) {
+    const shopOpen = this.paused && document.getElementById('shop-menu').style.display === 'block';
+    if (!shopOpen) { e.preventDefault(); return; }
+    e.dataTransfer.setData('text/plain', String(i));
+};
+
+game.onSlotDrop = function(e, i) {
+    e.preventDefault();
+    const shopOpen = this.paused && document.getElementById('shop-menu').style.display === 'block';
+    if (!shopOpen || !this.player) return;
+    const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (Number.isNaN(from) || from === i) return;
+    const inv = this.player.inventory;
+    [inv[from], inv[i]] = [inv[i], inv[from]];
+    playSFX('ui_click', 0.3);
 };

@@ -87,10 +87,12 @@ test('smoke: orden de carga — xp-formula.js antes que level.js', () => {
         'level.js consume XP_CONFIG/xpToNextLevel definidos en xp-formula.js: debe cargarse después');
 });
 
-test('smoke: index.html referencia la config de Firebase de DESARROLLO por defecto (no la de prod)', () => {
+test('smoke: index.html referencia la config única de Firebase (sin distinción dev/prod)', () => {
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-    assert.ok(html.includes('src="firebase-config.dev.js"'),
-        'index.html (fuente de desarrollo) debería apuntar a firebase-config.dev.js; build.js la reemplaza por la de prod solo en dist/');
+    assert.ok(html.includes('src="firebase-config.js"'),
+        'index.html debería cargar firebase-config.js (config única de Firebase)');
+    assert.ok(!html.includes('firebase-config.dev.js') && !html.includes('firebase-config.prod.js'),
+        'no deberían quedar referencias al sistema DEV/PROD de configuración de Firebase');
 });
 
 test('smoke: build.js existe y su SRC_ORDER no está vacío', () => {

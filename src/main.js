@@ -320,8 +320,8 @@ const game = {
 
         const hotbar = document.getElementById('hotbar');
         if(hotbar.children.length === 0) {
-            for(let i=0; i<5; i++) hotbar.innerHTML += `<div class="slot" id="slot-${i}" onclick="game.player.activeSlot=${i}"><span class="slot-key">${i+1}</span><span class="name"></span><span class="slot-ammo"></span></div>`;
-        }
+    for(let i=0; i<5; i++) hotbar.innerHTML += `<div class="slot" id="slot-${i}" draggable="true" ondragstart="game.onSlotDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="game.onSlotDrop(event,${i})" onclick="game.player.activeSlot=${i}"><span class="slot-key">${i+1}</span><span class="name"></span><span class="slot-ammo"></span></div>`;
+}
         for(let i=0; i<5; i++) {
             let s = this.player.inventory[i];
             let el = document.getElementById(`slot-${i}`);

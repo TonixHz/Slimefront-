@@ -22,13 +22,12 @@
  * campo antes de guardarlo. `clearProgress` (borrar progreso) usa el mismo
  * esquema.
  *
- * === CONFIGURACIÓN DEV/PROD (nuevo) ===
+* === CONFIGURACIÓN DE FIREBASE ===
  * El objeto de configuración de Firebase YA NO está hardcodeado acá: se lee
- * de `window.__FIREBASE_CONFIG__`, que define `firebase-config.dev.js` (para
- * abrir el proyecto directo desde src/) o `firebase-config.prod.js` (el que
- * `build.js` empaqueta en dist/ para publicar). Si por algún motivo ninguno
- * de los dos se cargó, este archivo lo avisa fuerte por consola en vez de
- * conectarse en silencio al proyecto equivocado.
+ * de `window.__FIREBASE_CONFIG__`, definido en `firebase-config.js` (único
+ * archivo de configuración, sin distinción dev/prod). Si no se cargó, este
+ * archivo lo avisa fuerte por consola en vez de conectarse en silencio al
+ * proyecto equivocado.
  *
  * === CONSENTIMIENTO DE ANALYTICS (nuevo) ===
  * `firebase.analytics()` YA NO se llama automáticamente al cargar la página.
@@ -42,10 +41,9 @@
  * con `detail.status` en {'saving','saved','offline','retrying','error'}.
  * save-indicator.js lo escucha para mostrar un indicador discreto al jugador.
  *
- * Debe cargarse:
+* Debe cargarse:
  *   - DESPUÉS de los <script> del SDK de Firebase (compat) y de
- *     firebase-config.(dev|prod).js en index.html.
- *   - ANTES de level.js / progression.js / achievements.js (que consumen SaveSystem).
+ *     firebase-config.js en index.html.
  */
 
 if (!window.__FIREBASE_CONFIG__) {
