@@ -3,7 +3,7 @@
   "description": "Cloud Functions de SLIMEFRONT: único punto de escritura validada hacia Firestore (ver index.js).",
   "private": true,
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "main": "index.js",
   "dependencies": {

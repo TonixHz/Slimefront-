@@ -29,17 +29,30 @@
  * archivo lo avisa fuerte por consola en vez de conectarse en silencio al
  * proyecto equivocado.
  *
- * === CONSENTIMIENTO DE ANALYTICS (nuevo) ===
+ * === CONSENTIMIENTO DE ANALYTICS ===
  * `firebase.analytics()` YA NO se llama automáticamente al cargar la página.
  * Se expone `window.__initAnalyticsIfNeeded()`, que consent.js (ConsentManager)
  * invoca únicamente si el usuario aceptó explícitamente el uso de estadísticas.
  * Si el usuario rechaza o no respondió, Analytics nunca se inicializa: no se
  * crea ninguna instancia ni se manda ningún evento.
  *
- * === ESTADO DE GUARDADO (nuevo) ===
+ * === ESTADO DE GUARDADO ===
  * Cada sincronización dispara un evento `savesystem:status` sobre `document`
  * con `detail.status` en {'saving','saved','offline','retrying','error'}.
  * save-indicator.js lo escucha para mostrar un indicador discreto al jugador.
+ *
+ * === FIX: documento no se creaba en Firestore al loguearse ===
+ * Antes, el primer documento en /players/{uid} solo se creaba cuando el
+ * usuario generaba progreso real (SaveSystem.set() en algún .save()), porque
+ * _pushDirty() no hace nada si no hay claves "dirty". Un usuario que entraba,
+ * se logueaba y cerraba sin llegar a jugar una oleada, quedaba con cuenta en
+ * Firebase Authentication pero SIN documento en Firestore.
+ * Ahora, apenas hay sesión activa (nueva o existente), _ensureRemoteDocument()
+ * fuerza el guardado inmediato (sin esperar el debounce) de los objetos de
+ * progreso ya presentes en memoria (PlayerProfile/Progression/AchievementManager,
+ * cargados por level.js/progression.js/achievements.js antes de que este
+ * listener asíncrono llegue a ejecutarse), garantizando que el documento
+ * exista desde el primer login.
  *
 * Debe cargarse:
  *   - DESPUÉS de los <script> del SDK de Firebase (compat) y de
@@ -48,7 +61,7 @@
 
 if (!window.__FIREBASE_CONFIG__) {
     console.error('[FirebaseSaveSystem] No se encontró window.__FIREBASE_CONFIG__. ' +
-        'Verificá que index.html cargue firebase-config.dev.js (o .prod.js) ANTES de este script.');
+        'Verificá que index.html cargue firebase-config.js ANTES de este script.');
 }
 const firebaseConfig = window.__FIREBASE_CONFIG__ || {};
 
@@ -126,7 +139,7 @@ const SaveSystem = {
         });
     },
 
-    // ================= ESTADO DE GUARDADO (nuevo) =================
+    // ================= ESTADO DE GUARDADO =================
     // Único punto que emite el evento que escucha save-indicator.js.
     _setStatus(status) {
         document.dispatchEvent(new CustomEvent('savesystem:status', { detail: { status } }));
@@ -199,6 +212,28 @@ const SaveSystem = {
         }
     },
 
+    // ================= FIX: asegurar que exista el documento remoto =================
+    // Se llama SIEMPRE tras un login exitoso (nuevo o existente). Si el
+    // usuario nunca generó progreso (o generó progreso mientras jugaba de
+    // invitado y recién ahora inicia sesión), fuerza un guardado inmediato
+    // de lo que haya en memoria para que /players/{uid} exista desde el
+    // primer momento, en vez de esperar al primer .save() real del gameplay.
+    async _ensureRemoteDocument() {
+        try {
+            if (typeof PlayerProfile !== 'undefined' && typeof PlayerProfile.save === 'function') PlayerProfile.save();
+            if (typeof Progression !== 'undefined' && typeof Progression.save === 'function') Progression.save();
+            if (typeof AchievementManager !== 'undefined') {
+                if (typeof AchievementManager.saveStats === 'function') AchievementManager.saveStats();
+                if (typeof AchievementManager.saveState === 'function') AchievementManager.saveState();
+            }
+        } catch (e) {
+            console.warn('[FirebaseSaveSystem] No se pudo preparar el guardado inicial:', e);
+        }
+        // .save() de arriba ya marcó las keys como dirty vía SaveSystem.set();
+        // acá forzamos que se empuje YA, sin esperar los 2.5s de debounce.
+        await this.flush();
+    },
+
     // ================= BORRADO TOTAL DE PROGRESO =================
     async clearProgress() {
         const keys = ['profile', 'progression', 'achv_stats', 'achv_state'];
@@ -241,6 +276,9 @@ const SaveSystem = {
             this._uid = user ? user.uid : null;
             if (user) {
                 await this._pullRemote(user.uid);
+                // FIX: garantiza que el doc en /players/{uid} exista siempre,
+                // aunque el usuario todavía no haya jugado nada.
+                await this._ensureRemoteDocument();
                 document.dispatchEvent(new CustomEvent('savesystem:login', { detail: { uid: user.uid, user } }));
             } else {
                 document.dispatchEvent(new CustomEvent('savesystem:logout'));
