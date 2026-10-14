@@ -279,3 +279,144 @@ button, a, input, select, textarea {
     #mobile-reload-btn { margin-bottom: 18px; }
     #aim-zone { height: 108px; }
 }
+
+
+/* ---- Diseño móvil para carga, login, lobby y pantallas secundarias ---- */
+#loading-screen {
+    min-height: 100svh;
+    min-height: 100dvh;
+    box-sizing: border-box;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+}
+#loading-screen .loading-content { width: min(100%, 460px); box-sizing: border-box; }
+#loading-screen .loading-content h1 { overflow-wrap: anywhere; }
+#loading-screen #boot-progress-container { max-width: 100%; box-sizing: border-box; }
+.menu-screen {
+    box-sizing: border-box;
+    min-height: 100svh;
+    min-height: 100dvh;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.menu-screen > .menu-panel {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin: auto;
+}
+#settings-panel .menu-panel,
+#keybind-panel .menu-panel,
+#profile-screen .menu-panel,
+#credits-screen .menu-panel,
+#controls-panel .menu-panel,
+#confirm-logout-modal .menu-panel,
+#confirm-delete-modal .menu-panel,
+#confirm-exit-modal .menu-panel {
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+#login-screen .menu-panel { max-width: 100%; }
+#fatal-error-screen { padding: 16px; overflow-y: auto; box-sizing: border-box; }
+#fatal-error-screen .menu-panel { width: min(100%, 560px); min-width: 0; box-sizing: border-box; }
+#fatal-error-message { overflow-wrap: anywhere; }
+.save-indicator { max-width: calc(100vw - 32px); box-sizing: border-box; }
+.consent-banner { padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom)); }
+.consent-panel { box-sizing: border-box; max-height: calc(100dvh - 20px); overflow-y: auto; }
+
+@media (max-width: 700px), (pointer: coarse) {
+    #loading-screen .loading-content h1 { font-size: clamp(32px, 10vw, 48px); letter-spacing: clamp(1px, 1vw, 3px); }
+    #loading-screen .loading-content small { margin-top: 20px; line-height: 1.5; }
+    #boot-progress-container { margin-top: 22px; }
+    #boot-progress-label { font-size: clamp(14px, 4vw, 18px); line-height: 1.25; }
+    .menu-screen { align-items: flex-start; }
+    .menu-screen > .menu-panel {
+        width: min(100%, 500px) !important;
+        max-width: 100%;
+        max-height: calc(100dvh - max(24px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+        padding: clamp(14px, 4vw, 22px);
+        margin-top: auto;
+        margin-bottom: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+    .menu-title { font-size: clamp(26px, 8vw, 40px); letter-spacing: clamp(1px, 1vw, 3px); line-height: 1.05; overflow-wrap: anywhere; }
+    .menu-subtitle { font-size: clamp(14px, 4vw, 18px); letter-spacing: 1px; margin-bottom: 18px; line-height: 1.3; }
+    .menu-btn, .option-btn, .shop-btn, .depart-btn { max-width: 100%; box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; font-size: clamp(17px, 4.8vw, 23px); letter-spacing: 1px; padding: 10px 12px; }
+    .settings-group { margin: 14px 0; }
+    .settings-options, .profile-tabs, .achv-filters { flex-wrap: wrap; }
+    .profile-panel { width: 100% !important; }
+    .profile-tabs .option-btn { flex: 1 1 auto; min-width: 0; }
+    .gameover-stats .hud-text { font-size: clamp(14px, 4vw, 18px); line-height: 1.35; }
+    .legal-links-row { flex-wrap: wrap; gap: 8px 12px; }
+    .consent-panel { padding: 16px; }
+    .consent-title { font-size: 20px; }
+    .consent-body { font-size: 14px; }
+    .consent-actions { flex-wrap: wrap; }
+    .consent-actions .menu-btn { flex: 1 1 120px; padding: 10px; }
+}
+
+/* El lobby tiene tres columnas en escritorio; en móvil pasa a una página
+   desplazable, con navegación primero y paneles debajo, sin solaparse. */
+@media (max-width: 700px), (pointer: coarse) {
+    html:has(body.lobby-active), body.lobby-active { height: 100%; overflow: hidden; }
+    body.lobby-active #lobby-screen.lobby-screen-v2 {
+        position: fixed;
+        inset: 0;
+        height: 100%;
+        height: 100dvh;
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto auto;
+        grid-template-areas: "left" "right" "bottom";
+        align-content: start;
+        gap: 14px;
+        padding: max(16px, env(safe-area-inset-top)) 12px max(18px, env(safe-area-inset-bottom));
+        pointer-events: auto;
+    }
+    body.lobby-active .lobby-left {
+        min-width: 0;
+        padding: 0;
+        gap: 14px;
+    }
+    body.lobby-active .lobby-left::before { inset: -16px -12px; }
+    body.lobby-active .lobby-logo-title { font-size: clamp(36px, 10vw, 50px); letter-spacing: 2px; overflow-wrap: anywhere; }
+    body.lobby-active .lobby-logo-eyebrow { font-size: 8px; letter-spacing: 1px; }
+    body.lobby-active .lobby-logo-sub { font-size: 15px; letter-spacing: .5px; }
+    body.lobby-active .lobby-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    body.lobby-active .nav-card { min-width: 0; padding: 10px; gap: 8px; border-left-width: 3px; }
+    body.lobby-active .nav-card-icon { width: 32px; height: 32px; font-size: 18px; border-width: 1px; }
+    body.lobby-active .nav-card-title { font-size: clamp(15px, 4.4vw, 20px); letter-spacing: .5px; line-height: 1.05; overflow-wrap: anywhere; }
+    body.lobby-active .nav-card-sub { font-size: 11px; line-height: 1.2; overflow-wrap: anywhere; }
+    body.lobby-active .lobby-auth { margin-top: 0; }
+    body.lobby-active .lobby-center { display: none !important; }
+    body.lobby-active .lobby-right {
+        min-width: 0;
+        max-height: none;
+        overflow: visible;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 0;
+    }
+    body.lobby-active .glass-panel { padding: 12px; border-radius: 8px; }
+    body.lobby-active .panel-title { font-size: 21px; line-height: 1.15; }
+    body.lobby-active .panel-eyebrow { font-size: 8px; letter-spacing: 1px; flex-wrap: wrap; }
+    body.lobby-active .lobby-bottombar { flex-wrap: wrap; gap: 8px; padding-top: 2px; }
+    body.lobby-active .quickbar-btn { justify-content: center; flex: 1 1 40%; min-width: 0; padding: 9px 10px; font-size: 15px; letter-spacing: .5px; }
+    body.lobby-active .quickbar-btn .qb-icon { font-size: 16px; }
+    body.lobby-active #lobby-toast { top: max(12px, env(safe-area-inset-top)) !important; }
+}
+
+@media (max-width: 380px) {
+    .menu-screen > .menu-panel { padding: 12px; }
+    .menu-title { font-size: clamp(24px, 7.5vw, 30px); }
+    .menu-btn, .option-btn, .shop-btn, .depart-btn { font-size: 17px; padding: 9px 10px; }
+    body.lobby-active .lobby-nav { grid-template-columns: minmax(0, 1fr); }
+    body.lobby-active .nav-card { padding: 9px 12px; }
+}
