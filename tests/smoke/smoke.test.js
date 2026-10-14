@@ -180,3 +180,18 @@ test('smoke: cloud sync merges stale device snapshots without rolling progress b
     assert.match(cloud, /out\.pendingMoney = clampNum\(incoming\.pendingMoney/);
     assert.doesNotMatch(cloud, /'moneyEarned', 'lowHpClears', 'pendingMoney'/);
 });
+
+
+test('smoke: diamond currency changes are server-transactional and idempotent', () => {
+    const cloud = fs.readFileSync(path.join(ROOT, 'functions', 'index.js'), 'utf8');
+    const save = fs.readFileSync(path.join(ROOT, 'src', 'FirebaseSaveSystem.js'), 'utf8');
+    const level = fs.readFileSync(path.join(ROOT, 'src', 'level.js'), 'utf8');
+    assert.match(cloud, /exports\.changeDiamonds = functions\.https\.onCall/);
+    assert.match(cloud, /playerRef\.collection\('currencyOperations'\)\.doc\(operationId\)/);
+    assert.match(cloud, /if \(operationSnap\.exists\) return \{ ok: true, balance, duplicate: true \}/);
+    assert.match(cloud, /profile: \{ \.\.\.profile, diamonds: nextBalance \}/);
+    assert.match(save, /_changeDiamondsFn = _functions\.httpsCallable\('changeDiamonds'\)/);
+    assert.match(save, /_diamondQueue/);
+    assert.match(level, /SaveSystem\.changeDiamonds\(amount\)/);
+    assert.match(cloud, /out\.diamonds = clampNum\(prev\.diamonds/);
+});
