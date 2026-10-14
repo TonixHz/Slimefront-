@@ -121,3 +121,17 @@ test('smoke: el zoom de cámara móvil se adapta a horizontal y no afecta PC', (
     assert.match(effects, /const viewWidth = canvas\.width \/ zoom/);
     assert.match(effects, /const viewHeight = canvas\.height \/ zoom/);
 });
+
+
+test('smoke: pantallas de menú, carga y lobby tienen layout responsive para móvil', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const css = fs.readFileSync(path.join(ROOT, 'assets', 'patch.css'), 'utf8');
+    assert.match(html, /id="loading-screen"/);
+    assert.match(html, /id="lobby-screen"/);
+    assert.match(css, /#loading-screen \.loading-content/);
+    assert.match(css, /\.menu-screen > \.menu-panel/);
+    assert.match(css, /body\.lobby-active #lobby-screen\.lobby-screen-v2/);
+    assert.match(css, /grid-template-areas: "left" "right" "bottom"/);
+    assert.match(css, /max-height: calc\(100dvh/);
+    assert.match(css, /env\(safe-area-inset-top\)/);
+});
