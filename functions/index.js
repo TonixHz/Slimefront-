@@ -223,11 +223,18 @@ exports.clearProgress = functions.https.onCall(async (data, context) => {
     }
     const uid = context.auth.uid;
     const playerRef = db.collection('players').doc(uid);
-    const operations = await playerRef.collection('currencyOperations').get();
-    const batch = db.batch();
-    operations.docs.forEach(doc => batch.delete(doc.ref));
-    batch.delete(playerRef);
-    await batch.commit();
+    const operationsRef = playerRef.collection('currencyOperations');
+    // Firestore batches are limited to 500 writes; clean old idempotency
+    // records in chunks so accounts with long histories can still be reset.
+    while (true) {
+        const operations = await operationsRef.limit(400).get();
+        if (operations.empty) break;
+        const batch = db.batch();
+        operations.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        if (operations.size < 400) break;
+    }
+    await playerRef.delete();
     await db.collection('leaderboard').doc(uid).delete().catch(() => {});
     return { ok: true };
 });
