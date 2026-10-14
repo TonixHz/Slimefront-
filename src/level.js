@@ -55,8 +55,11 @@ game.grantXP = function(amount) {
 game.grantDiamonds = function(amount) {
     amount = Math.floor(amount);
     if (amount <= 0) return;
+    // Optimistic UI update; the authoritative balance is committed by a
+    // server transaction and reconciled when the operation succeeds.
     PlayerProfile.diamonds += amount;
     PlayerProfile.save();
+    if (typeof SaveSystem.changeDiamonds === 'function') SaveSystem.changeDiamonds(amount);
 };
 
 game.applyLevelReward = function(level) {
