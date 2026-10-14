@@ -135,3 +135,13 @@ test('smoke: pantallas de menú, carga y lobby tienen layout responsive para mó
     assert.match(css, /max-height: calc\(100dvh/);
     assert.match(css, /env\(safe-area-inset-top\)/);
 });
+
+
+test('smoke: HUD de partida ultracompacto en móvil horizontal', () => {
+    const css = fs.readFileSync(path.join(ROOT, 'assets', 'patch.css'), 'utf8');
+    assert.match(css, /orientation: landscape\) and \(max-height: 500px\) and \(pointer: coarse\)/);
+    assert.match(css, /grid-template-columns: minmax\(76px, 1\.05fr\)/);
+    assert.match(css, /#health-container \{ width: 100%; height: 9px/);
+    assert.match(css, /#hotbar \{[\s\S]*?max-width: 42vw/);
+    assert.match(css, /max-height: 380px\) and \(pointer: coarse\)/);
+});
