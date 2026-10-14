@@ -48,8 +48,9 @@ const VALIDATORS = {
             clampNum(incoming.distance, 0, clampNum(prev.distance, 0, 1e12, 0) + 50_000_000, prev.distance || 0));
         out.bestWave = Math.max(clampNum(prev.bestWave, 0, 100000, 0),
             clampNum(incoming.bestWave, 0, clampNum(prev.bestWave, 0, 100000, 0) + 50, prev.bestWave || 0));
-        out.diamonds = Math.max(clampNum(prev.diamonds, 0, 1e9, 0),
-            clampNum(incoming.diamonds, 0, clampNum(prev.diamonds, 0, 1e9, 0) + 100000, prev.diamonds || 0));
+        // Currency is server-authoritative. A client snapshot must never mint
+        // or restore diamonds; only changeDiamonds may mutate this balance.
+        out.diamonds = clampNum(prev.diamonds, 0, 1e9, 0);
 
         out.weaponUsage = {};
         const previousUsage = prev.weaponUsage && typeof prev.weaponUsage === 'object' ? prev.weaponUsage : {};
@@ -179,12 +180,54 @@ exports.syncProgress = functions.https.onCall(async (data, context) => {
     return { ok: true, written: Object.keys(patch).filter(key => key !== '_updatedAt') };
 });
 
+exports.changeDiamonds = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Se requiere iniciar sesión.');
+    }
+    const operationId = typeof data?.operationId === 'string' ? data.operationId : '';
+    const delta = Number(data?.delta);
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(operationId) || !Number.isSafeInteger(delta) || delta === 0 || Math.abs(delta) > 100000) {
+        throw new functions.https.HttpsError('invalid-argument', 'Operación de diamantes inválida.');
+    }
+
+    const uid = context.auth.uid;
+    const playerRef = db.collection('players').doc(uid);
+    const operationRef = playerRef.collection('currencyOperations').doc(operationId);
+    return db.runTransaction(async transaction => {
+        const operationSnap = await transaction.get(operationRef);
+        const playerSnap = await transaction.get(playerRef);
+        const playerData = playerSnap.exists ? playerSnap.data() : {};
+        const profile = playerData.profile && typeof playerData.profile === 'object' ? playerData.profile : {};
+        const balance = clampNum(profile.diamonds, 0, 1e9, 0);
+        if (operationSnap.exists) return { ok: true, balance, duplicate: true };
+
+        const nextBalance = balance + delta;
+        if (nextBalance < 0 || nextBalance > 1e9) {
+            throw new functions.https.HttpsError('failed-precondition', 'Saldo de diamantes insuficiente o fuera de rango.');
+        }
+        transaction.set(playerRef, {
+            profile: { ...profile, diamonds: nextBalance },
+            _updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        transaction.create(operationRef, {
+            delta,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return { ok: true, balance: nextBalance, duplicate: false };
+    });
+});
+
 exports.clearProgress = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Se requiere iniciar sesión.');
     }
     const uid = context.auth.uid;
-    await db.collection('players').doc(uid).delete();
+    const playerRef = db.collection('players').doc(uid);
+    const operations = await playerRef.collection('currencyOperations').get();
+    const batch = db.batch();
+    operations.docs.forEach(doc => batch.delete(doc.ref));
+    batch.delete(playerRef);
+    await batch.commit();
     await db.collection('leaderboard').doc(uid).delete().catch(() => {});
     return { ok: true };
 });
