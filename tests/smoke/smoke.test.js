@@ -103,4 +103,7 @@ test('smoke: los controles móviles están conectados y sus dependencias existen
     assert.ok(buildJs.includes("'mobile.js'"), 'build.js debe incluir mobile.js en el bundle de producción');
     assert.match(mobile, /g\.player\.dash\(\)/, 'el botón de dash debe invocar el método de Player');
     assert.match(mobile, /g\.reload\(\)/, 'el botón de recarga debe invocar el método de recarga del juego');
+    assert.match(mobile, /g\.started && !g\.paused/, 'los controles solo deben mostrarse durante una partida activa y no pausada');
+    assert.match(mobile, /gameover-screen/, 'los controles deben ocultarse en Game Over');
+    assert.match(mobile, /esc-menu/, 'los controles deben ocultarse al abrir el menú de pausa');
 });
