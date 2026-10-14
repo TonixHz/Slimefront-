@@ -76,3 +76,151 @@ body.colorblind-mode {
     padding: 6px 14px; font-size: 15px; cursor: pointer; min-width: 90px; text-align: center;
 }
 .keybind-row .keybind-key.listening { border-color: #2ecc71; color: #2ecc71; animation: pulse 0.8s infinite; }
+
+
+/* ---- Compatibilidad móvil y controles táctiles ---- */
+html, body {
+    min-height: 100%;
+    overscroll-behavior: none;
+}
+body {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+button, a, input, select, textarea {
+    touch-action: manipulation;
+}
+#mobile-controls {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+#mobile-controls.is-active { display: block; }
+#joystick-zone {
+    position: absolute;
+    left: max(14px, env(safe-area-inset-left));
+    bottom: max(22px, env(safe-area-inset-bottom));
+    width: 150px;
+    height: 150px;
+    pointer-events: auto;
+    touch-action: none;
+}
+.mobile-stick-ring {
+    position: absolute;
+    inset: 10px;
+    border: 2px solid rgba(255,255,255,.34);
+    border-radius: 50%;
+    background: rgba(5,10,7,.24);
+    box-shadow: inset 0 0 0 12px rgba(255,255,255,.035);
+}
+#joystick-knob {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    left: 50%;
+    top: 50%;
+    margin: -28px 0 0 -28px;
+    border-radius: 50%;
+    background: rgba(46,204,113,.78);
+    border: 2px solid rgba(220,255,230,.8);
+    box-shadow: 0 0 18px rgba(46,204,113,.22);
+    transform: translate(0,0);
+}
+#aim-zone {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 56%;
+    height: 76%;
+    pointer-events: auto;
+    touch-action: none;
+    background: transparent;
+}
+.mobile-action-buttons {
+    position: absolute;
+    right: max(18px, env(safe-area-inset-right));
+    bottom: max(20px, env(safe-area-inset-bottom));
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    pointer-events: none;
+}
+.mobile-action-buttons button {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    width: 68px;
+    height: 68px;
+    padding: 4px;
+    border: 2px solid rgba(255,255,255,.5);
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(8,18,11,.76);
+    font: 700 26px/1 sans-serif;
+    box-shadow: 0 3px 12px rgba(0,0,0,.35);
+}
+.mobile-action-buttons button span {
+    font: 700 9px/1 sans-serif;
+    letter-spacing: .3px;
+}
+#mobile-dash-btn { border-color: rgba(46,204,113,.9); }
+#mobile-reload-btn { margin-bottom: 28px; }
+@media (pointer: fine) {
+    #mobile-controls { display: none !important; }
+}
+@media (max-width: 700px) {
+    #loading-screen .loading-content h1 { font-size: clamp(36px, 10vw, 54px); }
+    #boot-progress-container { width: min(82vw, 320px); }
+    .menu-panel {
+        width: min(92vw, 500px) !important;
+        max-width: 92vw;
+        max-height: calc(100dvh - 24px);
+        overflow-y: auto;
+        box-sizing: border-box;
+        padding: 18px;
+    }
+    .menu-title { font-size: clamp(28px, 8vw, 42px); }
+    .menu-btn, .shop-btn, .depart-btn, .option-btn { min-height: 44px; }
+    .stats-top {
+        top: max(6px, env(safe-area-inset-top));
+        left: 6px;
+        right: 6px;
+        gap: 4px;
+        transform: none;
+        width: auto;
+        justify-content: space-between;
+    }
+    .stats-top .hud-box { padding: 4px 6px; min-width: 0; }
+    .hud-text { font-size: clamp(10px, 2.8vw, 14px); }
+    #health-container { min-width: 70px; }
+    #health-text { font-size: 10px; }
+    #shop-menu {
+        width: min(94vw, 760px);
+        max-height: 72dvh;
+        overflow-y: auto;
+        box-sizing: border-box;
+        padding: 12px;
+    }
+    .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .shop-header h2 { font-size: 22px; }
+    .shop-header p { font-size: 14px; }
+}
+@media (max-width: 380px) {
+    #joystick-zone { width: 128px; height: 128px; }
+    .mobile-action-buttons button { width: 58px; height: 58px; }
+    .mobile-action-buttons { gap: 8px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+    #joystick-zone { width: 118px; height: 118px; bottom: max(8px, env(safe-area-inset-bottom)); }
+    .mobile-action-buttons { bottom: max(8px, env(safe-area-inset-bottom)); }
+    .mobile-action-buttons button { width: 54px; height: 54px; }
+    #mobile-reload-btn { margin-bottom: 18px; }
+    #aim-zone { height: 65%; }
+}
