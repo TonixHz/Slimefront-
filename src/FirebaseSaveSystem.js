@@ -71,6 +71,8 @@ const _db = firebase.firestore();
 const _functions = firebase.functions();
 const _syncProgressFn = _functions.httpsCallable('syncProgress');
 const _clearProgressFn = _functions.httpsCallable('clearProgress');
+const _changeDiamondsFn = _functions.httpsCallable('changeDiamonds');
+const _DIAMOND_QUEUE_KEY = 'slime_diamond_ops';
 
 // Analytics: instancia diferida hasta que haya consentimiento explícito (ver
 // window.__initAnalyticsIfNeeded más abajo). Antes se llamaba acá mismo sin
@@ -105,8 +107,64 @@ const SaveSystem = {
     _pushTimer: null,
     _clearingProgress: false,
     _remoteListeners: [],
+    _diamondQueue: [],
+    _diamondQueuePromise: null,
     ready: null,
     _readyResolve: null,
+
+    // Currency operations are queued durably and applied by a Firestore
+    // transaction. operationId makes retries idempotent across reconnects.
+    changeDiamonds(delta) {
+        delta = Math.trunc(Number(delta));
+        if (!Number.isSafeInteger(delta) || delta === 0) return Promise.resolve(false);
+        const operationId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID().replace(/-/g, '')
+            : ('op' + Date.now().toString(36) + Math.random().toString(36).slice(2, 18));
+        this._diamondQueue.push({ operationId, delta });
+        this._saveDiamondQueue();
+        return this._flushDiamondQueue();
+    },
+
+    _loadDiamondQueue() {
+        try {
+            const raw = localStorage.getItem(_DIAMOND_QUEUE_KEY);
+            const parsed = raw ? JSON.parse(raw) : [];
+            this._diamondQueue = Array.isArray(parsed) ? parsed.filter(op =>
+                op && typeof op.operationId === 'string' && Number.isSafeInteger(op.delta)) : [];
+        } catch (e) { this._diamondQueue = []; }
+    },
+
+    _saveDiamondQueue() {
+        try { localStorage.setItem(_DIAMOND_QUEUE_KEY, JSON.stringify(this._diamondQueue)); } catch (e) {}
+    },
+
+    async _flushDiamondQueue() {
+        if (this._diamondQueuePromise) return this._diamondQueuePromise;
+        if (!this._uid || (typeof navigator !== 'undefined' && navigator.onLine === false)) return false;
+        this._diamondQueuePromise = (async () => {
+            while (this._uid && this._diamondQueue.length &&
+                !(typeof navigator !== 'undefined' && navigator.onLine === false)) {
+                const operation = this._diamondQueue[0];
+                try {
+                    const response = await _changeDiamondsFn(operation);
+                    const balance = Number(response && response.data && response.data.balance);
+                    if (!Number.isFinite(balance)) throw new Error('El servidor no devolvió el saldo.');
+                    this._diamondQueue.shift();
+                    this._saveDiamondQueue();
+                    const profile = this.get('profile', {});
+                    profile.diamonds = balance;
+                    this.set('profile', profile);
+                    this._notifyRemote(['profile']);
+                } catch (e) {
+                    console.warn('[FirebaseSaveSystem] Operación de diamantes pendiente; se reintentará:', e.code || e);
+                    return false;
+                }
+            }
+            return true;
+        })();
+        try { return await this._diamondQueuePromise; }
+        finally { this._diamondQueuePromise = null; }
+    },
 
     // ================= LECTURA / ESCRITURA =================
 
@@ -344,6 +402,8 @@ const SaveSystem = {
             if (this._uid) await _clearProgressFn();
 
             clearTimeout(this._pushTimer);
+            this._diamondQueue = [];
+            this._saveDiamondQueue();
             keys.forEach(k => {
                 delete this._cache[k];
                 this._dirty.delete(k);
@@ -384,6 +444,7 @@ const SaveSystem = {
         let firstCheck = true;
         _auth.onAuthStateChanged(async user => {
             this._uid = user ? user.uid : null;
+            this._loadDiamondQueue();
             if (user) {
                 const pulled = await this._pullRemote(user.uid);
                 if (pulled) {
@@ -391,6 +452,7 @@ const SaveSystem = {
                     // Solo subimos el estado local después de confirmar que la
                     // lectura remota funcionó (o que el documento aún no existe).
                     await this._ensureRemoteDocument();
+                    await this._flushDiamondQueue();
                 } else {
                     // Si falló la lectura, NO subir caché potencialmente vieja.
                     // Se reintentará al recuperar la conexión.
@@ -415,6 +477,7 @@ const SaveSystem = {
                 }
             }
             if (this._dirty.size > 0) this._pushDirty();
+            this._flushDiamondQueue();
         });
         window.addEventListener('offline', () => this._setStatus('offline'));
     }
