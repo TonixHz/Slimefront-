@@ -52,16 +52,8 @@ test('smoke: todos los archivos de src/*.js parsean como JavaScript válido', ()
 });
 
 test('smoke: index.html carga cada archivo de src/ que existe en disco', () => {
-    // mobile.js es una excepción CONOCIDA y preexistente (no introducida por
-    // este cambio): ni su <script> ni los elementos de DOM que necesita
-    // (#joystick-zone, #aim-zone, #mobile-dash-btn, #mobile-reload-btn) están
-    // en index.html — coherente con "v0.9 • PC Only" en la pantalla de carga.
-    // Se documenta acá en vez de improvisar una UI táctil no pedida; sumar
-    // controles móviles reales es un cambio de producto aparte, no de
-    // preparación para publicación.
-    const KNOWN_UNWIRED = new Set(['mobile.js']);
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-    const files = readSrcFiles().filter(f => !KNOWN_UNWIRED.has(f));
+    const files = readSrcFiles();
     files.forEach(rel => {
         const tag = `src="src/${rel.split(path.sep).join('/')}"`;
         assert.ok(html.includes(tag), `index.html no carga src/${rel} (falta <script ${tag}>)`);
