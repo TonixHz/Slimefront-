@@ -13,6 +13,9 @@
     const dashButton = document.getElementById('mobile-dash-btn');
     const reloadButton = document.getElementById('mobile-reload-btn');
     const uiLayer = document.getElementById('ui-layer');
+    const gameOverScreen = document.getElementById('gameover-screen');
+    const pauseScreen = document.getElementById('esc-menu');
+    const shopScreen = document.getElementById('shop-menu');
 
     // No romper el arranque si se edita el HTML y falta algún elemento.
     if (!controls || !joystickZone || !joystickKnob || !aimZone || !dashButton || !reloadButton || !uiLayer) return;
@@ -27,8 +30,11 @@
 
     function updateVisibility() {
         const g = currentGame();
-        const inGame = !!g && uiLayer.style.display !== 'none' &&
-            !document.body.classList.contains('lobby-active');
+        const inGame = !!g && g.started && !g.paused && uiLayer.style.display !== 'none' &&
+            !document.body.classList.contains('lobby-active') &&
+            (!gameOverScreen || gameOverScreen.style.display !== 'flex') &&
+            (!pauseScreen || pauseScreen.style.display !== 'flex') &&
+            (!shopScreen || shopScreen.style.display !== 'block');
         controls.classList.toggle('is-active', inGame);
         if (!inGame) resetAll();
         gameStarted = inGame;
