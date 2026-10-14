@@ -96,13 +96,15 @@ test('smoke: los controles móviles están conectados y sus dependencias existen
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     const mobile = fs.readFileSync(path.join(SRC_DIR, 'mobile.js'), 'utf8');
     const buildJs = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
-    ['mobile-controls', 'joystick-zone', 'joystick-knob', 'aim-zone', 'mobile-dash-btn', 'mobile-reload-btn'].forEach(id => {
+    ['mobile-controls', 'joystick-zone', 'joystick-knob', 'aim-zone', 'aim-knob', 'mobile-dash-btn', 'mobile-reload-btn'].forEach(id => {
         assert.ok(html.includes(`id="${id}"`), `falta el elemento táctil #${id} en index.html`);
     });
     assert.ok(html.includes('src="src/mobile.js"'), 'index.html debe cargar mobile.js en desarrollo');
     assert.ok(buildJs.includes("'mobile.js'"), 'build.js debe incluir mobile.js en el bundle de producción');
     assert.match(mobile, /g\.player\.dash\(\)/, 'el botón de dash debe invocar el método de Player');
     assert.match(mobile, /g\.reload\(\)/, 'el botón de recarga debe invocar el método de recarga del juego');
+    assert.match(mobile, /function updateAim\(touch\)/, 'el joystick derecho debe definir la dirección de apuntado');
+    assert.match(mobile, /g\.mouse\.down = rawDist > maxDist \* 0\.12/, 'el joystick derecho debe disparar al inclinarse');
     assert.match(mobile, /g\.started && !g\.paused/, 'los controles solo deben mostrarse durante una partida activa y no pausada');
     assert.match(mobile, /gameover-screen/, 'los controles deben ocultarse en Game Over');
     assert.match(mobile, /esc-menu/, 'los controles deben ocultarse al abrir el menú de pausa');
