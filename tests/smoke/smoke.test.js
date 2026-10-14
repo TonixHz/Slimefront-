@@ -167,3 +167,14 @@ test('smoke: borrar progreso bloquea reintentos de sync hasta terminar la elimin
     assert.match(save, /this\._clearingProgress = true;[\s\S]*?await _clearProgressFn\(\)/);
     assert.match(save, /finally \{\s*this\._clearingProgress = false;/);
 });
+
+
+test('smoke: cloud sync merges stale device snapshots without rolling progress back', () => {
+    const cloud = fs.readFileSync(path.join(ROOT, 'functions', 'index.js'), 'utf8');
+    assert.match(cloud, /db\.runTransaction\(async transaction =>/);
+    assert.match(cloud, /Math\.max\(prevLvl, clampNum\(src\[k\]/);
+    assert.match(cloud, /Math\.max\(prevV, clampNum\(incoming\[f\]/);
+    assert.match(cloud, /oldState\.claimed \|\| !!newState\.claimed/);
+    assert.match(cloud, /Math\.max\(clampNum\(previous\.level/);
+    assert.match(cloud, /Math\.max\(clampNum\(previous\.bestWave/);
+});
