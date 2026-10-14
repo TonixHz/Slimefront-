@@ -331,6 +331,11 @@ const SaveSystem = {
             try { localStorage.removeItem(_LOCAL_PREFIX + k); } catch (e) {}
         });
         clearTimeout(this._pushTimer);
+        // Esperar cualquier escritura ya iniciada antes de borrar en la nube;
+        // de lo contrario una respuesta tardía podría restaurar datos viejos.
+        if (this._pushPromise) {
+            try { await this._pushPromise; } catch (e) { /* el borrado remoto decide el resultado final */ }
+        }
         if (this._uid) {
             try {
                 await _clearProgressFn();
