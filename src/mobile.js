@@ -1,79 +1,150 @@
 /**
- * CONTROLES TÁCTILES (solo se activan en dispositivos con pantalla táctil,
- * en PC esto no hace nada y los controles siguen siendo teclado + mouse)
+ * Controles táctiles de SLIMEFRONT.
+ * Se carga después de boot.js y no cambia los controles de teclado/ratón en PC.
  */
-const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+(() => {
+    const touchQuery = window.matchMedia('(pointer: coarse)');
+    if (!touchQuery.matches) return;
 
-if (isTouchDevice) {
+    const controls = document.getElementById('mobile-controls');
     const joystickZone = document.getElementById('joystick-zone');
     const joystickKnob = document.getElementById('joystick-knob');
     const aimZone = document.getElementById('aim-zone');
+    const dashButton = document.getElementById('mobile-dash-btn');
+    const reloadButton = document.getElementById('mobile-reload-btn');
+    const uiLayer = document.getElementById('ui-layer');
+
+    // No romper el arranque si se edita el HTML y falta algún elemento.
+    if (!controls || !joystickZone || !joystickKnob || !aimZone || !dashButton || !reloadButton || !uiLayer) return;
+
     let joystickTouchId = null;
     let aimTouchId = null;
+    let gameStarted = false;
+
+    function currentGame() {
+        return typeof game !== 'undefined' && game && game.player ? game : null;
+    }
+
+    function updateVisibility() {
+        const g = currentGame();
+        const inGame = !!g && uiLayer.style.display !== 'none' &&
+            !document.body.classList.contains('lobby-active');
+        controls.classList.toggle('is-active', inGame);
+        if (!inGame) resetAll();
+        gameStarted = inGame;
+    }
 
     function updateJoystick(touch) {
+        const g = currentGame();
+        if (!g || !gameStarted) return;
         const rect = joystickZone.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
         let dx = touch.clientX - cx;
         let dy = touch.clientY - cy;
-        const maxDist = rect.width / 2;
+        const maxDist = Math.max(1, rect.width * 0.34);
         const dist = Math.min(Math.hypot(dx, dy), maxDist);
         const angle = Math.atan2(dy, dx);
         const kx = Math.cos(angle) * dist;
         const ky = Math.sin(angle) * dist;
         joystickKnob.style.transform = `translate(${kx}px, ${ky}px)`;
-
-        const threshold = maxDist * 0.25;
-        game.keys['KeyW'] = ky < -threshold;
-        game.keys['KeyS'] = ky > threshold;
-        game.keys['KeyA'] = kx < -threshold;
-        game.keys['KeyD'] = kx > threshold;
+        const threshold = maxDist * 0.22;
+        g.keys.KeyW = ky < -threshold;
+        g.keys.KeyS = ky > threshold;
+        g.keys.KeyA = kx < -threshold;
+        g.keys.KeyD = kx > threshold;
     }
 
     function resetJoystick() {
         joystickKnob.style.transform = 'translate(0px, 0px)';
-        game.keys['KeyW'] = game.keys['KeyS'] = game.keys['KeyA'] = game.keys['KeyD'] = false;
+        const g = currentGame();
+        if (g && g.keys) {
+            g.keys.KeyW = false;
+            g.keys.KeyA = false;
+            g.keys.KeyS = false;
+            g.keys.KeyD = false;
+        }
+        joystickTouchId = null;
+    }
+
+    function resetAim() {
+        const g = currentGame();
+        if (g && g.mouse) g.mouse.down = false;
+        aimTouchId = null;
+    }
+
+    function resetAll() {
+        resetJoystick();
+        resetAim();
     }
 
     joystickZone.addEventListener('touchstart', e => {
-        if (game.paused) return;
+        const g = currentGame();
+        if (!g || g.paused || !gameStarted || joystickTouchId !== null) return;
         e.preventDefault();
         joystickTouchId = e.changedTouches[0].identifier;
         updateJoystick(e.changedTouches[0]);
-    });
+    }, { passive: false });
+
     joystickZone.addEventListener('touchmove', e => {
-        if (game.paused) return;
+        if (joystickTouchId === null) return;
         e.preventDefault();
         for (const t of e.changedTouches) if (t.identifier === joystickTouchId) updateJoystick(t);
-    });
-    joystickZone.addEventListener('touchend', e => {
-        for (const t of e.changedTouches) if (t.identifier === joystickTouchId) { joystickTouchId = null; resetJoystick(); }
-    });
+    }, { passive: false });
+
+    const endJoystick = e => {
+        for (const t of e.changedTouches) if (t.identifier === joystickTouchId) resetJoystick();
+    };
+    joystickZone.addEventListener('touchend', endJoystick);
+    joystickZone.addEventListener('touchcancel', endJoystick);
 
     aimZone.addEventListener('touchstart', e => {
-        if (game.paused) return;
+        const g = currentGame();
+        if (!g || g.paused || !gameStarted || aimTouchId !== null) return;
         e.preventDefault();
         const t = e.changedTouches[0];
         aimTouchId = t.identifier;
-        game.mouse.x = t.clientX; game.mouse.y = t.clientY;
-        game.mouse.down = true;
-    });
-    aimZone.addEventListener('touchmove', e => {
-        if (game.paused) return;
-        e.preventDefault();
-        for (const t of e.changedTouches) if (t.identifier === aimTouchId) { game.mouse.x = t.clientX; game.mouse.y = t.clientY; }
-    });
-    aimZone.addEventListener('touchend', e => {
-        for (const t of e.changedTouches) if (t.identifier === aimTouchId) { aimTouchId = null; game.mouse.down = false; }
-    });
+        g.mouse.x = t.clientX;
+        g.mouse.y = t.clientY;
+        g.mouse.down = true;
+    }, { passive: false });
 
-    document.getElementById('mobile-dash-btn').addEventListener('touchstart', e => {
+    aimZone.addEventListener('touchmove', e => {
+        if (aimTouchId === null) return;
         e.preventDefault();
-        if (!game.paused && game.player) game.player.dash();
-    });
-    document.getElementById('mobile-reload-btn').addEventListener('touchstart', e => {
+        const g = currentGame();
+        if (!g || g.paused) return;
+        for (const t of e.changedTouches) {
+            if (t.identifier === aimTouchId) {
+                g.mouse.x = t.clientX;
+                g.mouse.y = t.clientY;
+            }
+        }
+    }, { passive: false });
+
+    const endAim = e => {
+        for (const t of e.changedTouches) if (t.identifier === aimTouchId) resetAim();
+    };
+    aimZone.addEventListener('touchend', endAim);
+    aimZone.addEventListener('touchcancel', endAim);
+
+    dashButton.addEventListener('touchstart', e => {
         e.preventDefault();
-        if (!game.paused) game.reload();
-    });
-}
+        const g = currentGame();
+        if (g && !g.paused) g.player.dash();
+    }, { passive: false });
+    reloadButton.addEventListener('touchstart', e => {
+        e.preventDefault();
+        const g = currentGame();
+        if (g && !g.paused) g.reload();
+    }, { passive: false });
+
+    // Mantiene el estado sincronizado con los cambios de menú/partida.
+    const observer = new MutationObserver(updateVisibility);
+    observer.observe(uiLayer, { attributes: true, attributeFilter: ['style', 'class'] });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('blur', resetAll);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) resetAll(); });
+    updateVisibility();
+    window.setInterval(updateVisibility, 500);
+})();
