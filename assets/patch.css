@@ -94,7 +94,7 @@ button, a, input, select, textarea {
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 40;
+    z-index: 8;
     pointer-events: none;
     user-select: none;
     -webkit-user-select: none;
