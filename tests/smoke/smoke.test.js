@@ -145,3 +145,14 @@ test('smoke: HUD de partida ultracompacto en móvil horizontal', () => {
     assert.match(css, /#hotbar \{[\s\S]*?max-width: 42vw/);
     assert.match(css, /max-height: 380px\) and \(pointer: coarse\)/);
 });
+
+test('smoke: al iniciar sesión se combina el progreso local con el remoto sin perder mejoras', () => {
+    const save = fs.readFileSync(path.join(ROOT, 'src', 'FirebaseSaveSystem.js'), 'utf8');
+    assert.match(save, /_mergeProgress\(key, local, remote\)/);
+    assert.match(save, /if \(key === 'progression'\)/);
+    assert.match(save, /levels\[name\] = mergeMax\(level, levels\[name\]\)/);
+    assert.match(save, /if \(key === 'profile'\)/);
+    assert.match(save, /merged\.unlocks = mergeArrays/);
+    assert.match(save, /if \(key === 'achv_state'\)/);
+    assert.match(save, /this\._dirty\.add\(k\)/);
+});
