@@ -177,4 +177,6 @@ test('smoke: cloud sync merges stale device snapshots without rolling progress b
     assert.match(cloud, /oldState\.claimed \|\| !!newState\.claimed/);
     assert.match(cloud, /Math\.max\(clampNum\(previous\.level/);
     assert.match(cloud, /Math\.max\(clampNum\(previous\.bestWave/);
+    assert.match(cloud, /out\.pendingMoney = clampNum\(incoming\.pendingMoney/);
+    assert.doesNotMatch(cloud, /'moneyEarned', 'lowHpClears', 'pendingMoney'/);
 });
