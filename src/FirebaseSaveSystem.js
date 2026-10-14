@@ -155,7 +155,23 @@ const SaveSystem = {
         this._pushTimer = setTimeout(() => this._pushDirty(), _SYNC_DEBOUNCE_MS);
     },
 
+    // Evita dos sincronizaciones simultáneas que puedan enviar snapshots viejos
+    // y pisar cambios más recientes. Si entran escrituras durante un envío, el
+    // finally programa otro ciclo para las keys que sigan dirty.
     async _pushDirty() {
+        if (this._pushPromise) return this._pushPromise;
+        this._pushPromise = this._pushDirtyImpl();
+        try {
+            return await this._pushPromise;
+        } finally {
+            this._pushPromise = null;
+            if (this._uid && this._dirty.size > 0 && !(typeof navigator !== 'undefined' && navigator.onLine === false)) {
+                this._scheduleSync();
+            }
+        }
+    },
+
+    async _pushDirtyImpl() {
         if (!this._uid || this._dirty.size === 0) return;
 
         if (typeof navigator !== 'undefined' && navigator.onLine === false) {
