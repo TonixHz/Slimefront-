@@ -181,7 +181,16 @@ const game = {
         }
 
         this.camera.follow(this.player);
-        // Tiempo Lento: si el evento está activo, solo la mitad de los frames ejecutan lógica de juego
+        // Zoom de cámara exclusivo para pantallas táctiles: en horizontal muestra
+        // más terreno para anticipar enemigos; en PC se mantiene el zoom original.
+        const mobileLandscape = window.matchMedia('(pointer: coarse) and (orientation: landscape)').matches;
+        const mobilePortrait = window.matchMedia('(pointer: coarse) and (orientation: portrait)').matches;
+        const worldZoom = mobileLandscape ? 0.58 : (mobilePortrait ? 0.72 : 1);
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.scale(worldZoom, worldZoom);
+        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+        // Tiempo Lento: si el evento está activo, solo la mitad de los frames ejecutan lógica
         this._slowToggle = !this._slowToggle;
         const doStep = this.activeEvent !== 'SLOW_TIME' || this._slowToggle;
 
@@ -300,6 +309,7 @@ const game = {
         // Partículas y Textos
         this.particles.forEach(p => { if(p.active) { p.update(); p.draw(this.camera); } });
         this.floatingTexts.forEach(t => { if(t.active) { t.update(); t.draw(this.camera); } });
+        ctx.restore(); // El HUD y los overlays permanecen al tamaño normal de pantalla.
 
         // Tinte ambiental atardecer: puramente cosmético (no aporta información de juego),
         // se apaga en ULTRA para ahorrarse un fillRect de pantalla completa por frame.
