@@ -246,6 +246,21 @@ button, a, input, select, textarea {
         box-sizing: border-box;
         padding: 12px;
     }
+    #hotbar {
+        bottom: max(118px, calc(env(safe-area-inset-bottom) + 108px));
+        gap: 4px;
+        max-width: calc(100vw - 24px);
+    }
+    #hotbar .slot {
+        width: clamp(30px, 9vw, 38px);
+        height: 40px;
+        border-width: 1px;
+        border-radius: 5px;
+    }
+    #hotbar .slot.active { transform: translateY(-3px) scale(1.03); }
+    #hotbar .slot-key { top: 2px; left: 4px; font-size: 10px; }
+    #hotbar .name { font-size: 10px; margin-top: 6px; }
+    #hotbar .slot-ammo { right: 3px; bottom: 2px; font-size: 9px; }
     .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .shop-header h2 { font-size: 22px; }
     .shop-header p { font-size: 14px; }
