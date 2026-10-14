@@ -30,6 +30,10 @@ Progression.buy = function(k) {
     game.player.money -= cost;
     this.levels[k] = lvl + 1;
     this.save();
+    // La Cloud Function limita el avance de cada mejora por sincronización.
+    // Enviar la compra inmediatamente evita que varias compras legítimas hechas
+    // durante el debounce se agrupen y el servidor descarte niveles intermedios.
+    if (typeof SaveSystem.flush === 'function') SaveSystem.flush();
     this.applyToPlayer(game.player);
     playSFX('coin');
     return true;
