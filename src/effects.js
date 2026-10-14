@@ -59,7 +59,10 @@ const SFX = {
 };
 
 const sfxPools = {};
-const SFX_POOL_SIZE = 14;
+// En móviles, crear 14 Audio por cada efecto y llamar load() a todos podía
+// disparar decenas de cargas/decodificaciones justo al disparar o hacer dash.
+// Mantenemos una reserva pequeña y dejamos los canales secundarios bajo demanda.
+const SFX_POOL_SIZE = window.matchMedia('(pointer: coarse)').matches ? 3 : 14;
 const _missingSfxWarned = new Set();
 
 function getSfxPool(key) {
@@ -71,17 +74,19 @@ function getSfxPool(key) {
         return null;
     }
     if (!sfxPools[key]) {
-        sfxPools[key] = Array.from({ length: SFX_POOL_SIZE }, () => {
+        sfxPools[key] = Array.from({ length: SFX_POOL_SIZE }, (_, index) => {
             const a = new Audio(SFX[key]);
             a.preservesPitch = false;
-            a.preload = 'auto';
+            // Precarga solo el primer canal. Los demás se cargan si hace falta
+            // superponer sonidos, evitando multiplicar las peticiones por efecto.
+            a.preload = index === 0 ? 'auto' : 'none';
             a.onerror = () => {
                 if (!_missingSfxWarned.has(key)) {
                     console.warn(`[Audio] No se pudo cargar el sonido local: ${SFX[key]}`);
                     _missingSfxWarned.add(key);
                 }
             };
-            a.load();
+            if (index === 0) a.load();
             return a;
         });
         sfxPools[key].cursor = 0;
