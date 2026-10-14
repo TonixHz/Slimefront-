@@ -258,8 +258,17 @@ const AmbientAudio = {
 
 function isVisible(x, y, radius, cam) {
     const padding = 50;
-    return (x + radius + padding > cam.x && x - radius - padding < cam.x + canvas.width &&
-            y + radius + padding > cam.y && y - radius - padding < cam.y + canvas.height);
+    const mobileLandscape = window.matchMedia('(pointer: coarse) and (orientation: landscape)').matches;
+    const mobilePortrait = window.matchMedia('(pointer: coarse) and (orientation: portrait)').matches;
+    const zoom = mobileLandscape ? 0.58 : (mobilePortrait ? 0.72 : 1);
+    // El mundo se dibuja escalado desde el centro de la pantalla, así que el área
+    // visible en coordenadas del mapa crece inversamente al zoom.
+    const viewWidth = canvas.width / zoom;
+    const viewHeight = canvas.height / zoom;
+    const left = cam.x + (canvas.width - viewWidth) / 2;
+    const top = cam.y + (canvas.height - viewHeight) / 2;
+    return (x + radius + padding > left && x - radius - padding < left + viewWidth &&
+            y + radius + padding > top && y - radius - padding < top + viewHeight);
 }
 
 class Trail {
