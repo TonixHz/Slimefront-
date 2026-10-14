@@ -200,8 +200,12 @@ const game = {
         for(let i=0; i<this.enemies.length; i++) {
             this.enemies[i]._dist = Math.hypot(this.enemies[i].x - this.player.x, this.enemies[i].y - this.player.y);
         }
-        // Escala global de partículas: baja automáticamente con muchas entidades activas para sostener el framerate
-        this.particleScale = this.enemies.length > 150 ? 0.35 : (this.enemies.length > 80 ? 0.6 : 1);
+        // Escala de partículas adaptativa: en pantallas táctiles usamos un límite
+        // más bajo para evitar picos al disparar/dashear en navegadores móviles.
+        const entityParticleScale = this.enemies.length > 150 ? 0.35 : (this.enemies.length > 80 ? 0.6 : 1);
+        this.particleScale = window.matchMedia('(pointer: coarse)').matches
+            ? Math.min(entityParticleScale, 0.6)
+            : entityParticleScale;
         // Modo "cacería final": quedan pocos enemigos, se desactiva el sueño de IA y el
 // frame-skipping para que ninguno quede ignorando al jugador lejos del mapa.
 	this.lowEnemyMode = this.enemies.length > 0 && this.enemies.length < LOW_ENEMY_THRESHOLD;
