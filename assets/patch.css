@@ -163,7 +163,7 @@ button, a, input, select, textarea {
 .mobile-action-buttons {
     position: absolute;
     right: max(18px, env(safe-area-inset-right));
-    bottom: max(20px, env(safe-area-inset-bottom));
+    bottom: max(178px, calc(env(safe-area-inset-bottom) + 166px));
     display: flex;
     align-items: flex-end;
     gap: 12px;
@@ -274,7 +274,7 @@ button, a, input, select, textarea {
 @media (orientation: landscape) and (max-height: 500px) {
     #joystick-zone, #aim-zone { width: 108px; height: 108px; bottom: max(8px, env(safe-area-inset-bottom)); }
     #joystick-knob, #aim-knob { width: 42px; height: 42px; margin: -21px 0 0 -21px; }
-    .mobile-action-buttons { bottom: max(8px, env(safe-area-inset-bottom)); }
+    .mobile-action-buttons { bottom: max(120px, calc(env(safe-area-inset-bottom) + 108px)); }
     .mobile-action-buttons button { width: 54px; height: 54px; }
     #mobile-reload-btn { margin-bottom: 18px; }
     #aim-zone { height: 108px; }
