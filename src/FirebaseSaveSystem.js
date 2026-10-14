@@ -103,6 +103,7 @@ const SaveSystem = {
     _uid: null,
     _dirty: new Set(),
     _pushTimer: null,
+    _clearingProgress: false,
     _remoteListeners: [],
     ready: null,
     _readyResolve: null,
@@ -126,7 +127,7 @@ const SaveSystem = {
         this._cache[key] = value;
         try { localStorage.setItem(_LOCAL_PREFIX + key, JSON.stringify(value)); } catch (e) { /* cuota llena, modo privado, etc. */ }
         this._dirty.add(key);
-        this._scheduleSync();
+        if (!this._clearingProgress) this._scheduleSync();
     },
 
     // ================= SUSCRIPCIÓN A DATOS REMOTOS =================
@@ -147,6 +148,7 @@ const SaveSystem = {
 
     // ================= SINCRONIZACIÓN (nunca bloquea, nunca rompe) =================
     _scheduleSync() {
+        if (this._clearingProgress) return;
         clearTimeout(this._pushTimer);
         // Debounce propio: NO pasa por TimerManager a propósito. Este timer
         // sincroniza progreso con la nube independientemente de que haya una
@@ -165,7 +167,7 @@ const SaveSystem = {
             return await this._pushPromise;
         } finally {
             this._pushPromise = null;
-            if (this._uid && this._dirty.size > 0 && !(typeof navigator !== 'undefined' && navigator.onLine === false)) {
+            if (!this._clearingProgress && this._uid && this._dirty.size > 0 && !(typeof navigator !== 'undefined' && navigator.onLine === false)) {
                 this._scheduleSync();
             }
         }
@@ -325,28 +327,39 @@ const SaveSystem = {
     // ================= BORRADO TOTAL DE PROGRESO =================
     async clearProgress() {
         const keys = ['profile', 'progression', 'achv_stats', 'achv_state'];
+        // Bloquear nuevos timers mientras esperamos y borramos. Si no, el
+        // finally de una sincronización pendiente podría subir datos antiguos
+        // justo después de que la Cloud Function eliminara el documento.
+        this._clearingProgress = true;
         clearTimeout(this._pushTimer);
-        // Esperar cualquier escritura ya iniciada antes de borrar en la nube;
-        // de lo contrario una respuesta tardía podría restaurar datos viejos.
-        if (this._pushPromise) {
-            try { await this._pushPromise; } catch (e) { /* el borrado remoto decide el resultado final */ }
-        }
-        // No tocar la copia local hasta confirmar el borrado remoto. Si falla
-        // la red, el jugador conserva su progreso local y puede volver a intentar.
-        if (this._uid) {
-            try {
-                await _clearProgressFn();
-            } catch (e) {
-                console.error('[FirebaseSaveSystem] No se pudo borrar el progreso en la nube:', e.code || e);
-                throw e;
+        try {
+            // Esperar cualquier escritura ya iniciada antes de borrar en la nube.
+            if (this._pushPromise) {
+                try { await this._pushPromise; } catch (e) { /* el borrado remoto decide el resultado final */ }
+            }
+            clearTimeout(this._pushTimer);
+
+            // No tocar la copia local hasta confirmar el borrado remoto. Si falla
+            // la red, se conserva el progreso local y se puede volver a intentar.
+            if (this._uid) await _clearProgressFn();
+
+            clearTimeout(this._pushTimer);
+            keys.forEach(k => {
+                delete this._cache[k];
+                this._dirty.delete(k);
+                try { localStorage.removeItem(_LOCAL_PREFIX + k); } catch (e) {}
+            });
+        } catch (e) {
+            console.error('[FirebaseSaveSystem] No se pudo borrar el progreso en la nube:', e.code || e);
+            throw e;
+        } finally {
+            this._clearingProgress = false;
+            // Si falló el borrado, el progreso local sigue intacto y puede
+            // volver a sincronizarse; nunca reintentar tras un borrado exitoso.
+            if (this._dirty.size > 0 && this._uid && !(typeof navigator !== 'undefined' && navigator.onLine === false)) {
+                this._scheduleSync();
             }
         }
-        clearTimeout(this._pushTimer);
-        keys.forEach(k => {
-            delete this._cache[k];
-            this._dirty.delete(k);
-            try { localStorage.removeItem(_LOCAL_PREFIX + k); } catch (e) {}
-        });
     },
 
     // ================= AUTENTICACIÓN =================
