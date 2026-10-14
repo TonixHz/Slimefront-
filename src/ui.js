@@ -140,10 +140,15 @@ game.resetAllProgress = async function() {
 game.confirmDeleteProgress = async function() {
     game.closeDeleteConfirm();
     document.getElementById('settings-panel').style.display = 'none';
-    await game.resetAllProgress();
-    // Mantiene la sesión iniciada (no llamamos a signOut) y recarga para volver
-    // al estado inicial sin ningún dato en memoria desincronizado.
-    location.reload();
+    try {
+        await game.resetAllProgress();
+        // Mantiene la sesión iniciada y recarga con el estado ya reiniciado.
+        location.reload();
+    } catch (e) {
+        console.error('[SLIMEFRONT] No se pudo completar el borrado del progreso:', e);
+        alert('No se pudo borrar el progreso en la nube. No se reinició la partida. Revisá tu conexión e intentá de nuevo.');
+        document.getElementById('settings-panel').style.display = 'flex';
+    }
 };
 
 game.openSettings = function(from) {
