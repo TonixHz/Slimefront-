@@ -194,19 +194,90 @@ const SaveSystem = {
     },
 
     // ================= CARGA INICIAL AL INICIAR SESIÓN =================
+    // Combina progreso local de invitado con el remoto sin perder máximos ni
+    // desbloqueos al iniciar sesión en un dispositivo que ya tenía progreso.
+    _mergeProgress(key, local, remote) {
+        if (!local || typeof local !== 'object') return remote;
+        if (!remote || typeof remote !== 'object') return local;
+        const mergeMax = (a, b) => Math.max(Number(a) || 0, Number(b) || 0);
+        const mergeArrays = (a, b, id) => {
+            const result = new Map();
+            [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])].forEach(item => {
+                const key = id(item);
+                if (key !== undefined && key !== null) result.set(String(key), item);
+            });
+            return [...result.values()];
+        };
+
+        if (key === 'progression') {
+            const levels = { ...(remote.levels || {}) };
+            Object.entries(local.levels || {}).forEach(([name, level]) => {
+                levels[name] = mergeMax(level, levels[name]);
+            });
+            return { ...remote, ...local, levels };
+        }
+        if (key === 'profile') {
+            const merged = { ...remote, ...local };
+            ['level', 'xp', 'playTimeSec', 'kills', 'deaths', 'shotsFired', 'shotsHit', 'distance', 'bestWave', 'diamonds']
+                .forEach(field => { merged[field] = mergeMax(local[field], remote[field]); });
+            merged.weaponUsage = { ...(remote.weaponUsage || {}) };
+            Object.entries(local.weaponUsage || {}).forEach(([name, count]) => {
+                merged.weaponUsage[name] = mergeMax(count, merged.weaponUsage[name]);
+            });
+            merged.unlocks = mergeArrays(local.unlocks, remote.unlocks,
+                item => item && [item.level, item.type].join(':'));
+            merged.shotsHit = Math.min(merged.shotsHit, merged.shotsFired);
+            return merged;
+        }
+        if (key === 'achv_stats') {
+            const merged = { ...remote, ...local };
+            Object.keys({ ...remote, ...local }).forEach(field => {
+                const a = local[field], b = remote[field];
+                if (typeof a === 'number' || typeof b === 'number') merged[field] = mergeMax(a, b);
+                else if (Array.isArray(a) || Array.isArray(b)) {
+                    merged[field] = mergeArrays(a, b, item => typeof item === 'object' ? JSON.stringify(item) : item);
+                } else if (a && typeof a === 'object' && b && typeof b === 'object') {
+                    merged[field] = { ...b, ...a };
+                    Object.keys({ ...a, ...b }).forEach(k => { merged[field][k] = mergeMax(a[k], b[k]); });
+                }
+            });
+            merged.heavyWeaponPurchased = !!(local.heavyWeaponPurchased || remote.heavyWeaponPurchased);
+            return merged;
+        }
+        if (key === 'achv_state') {
+            const merged = { ...remote };
+            Object.entries(local).forEach(([id, state]) => {
+                merged[id] = {
+                    notified: !!(state && state.notified) || !!(merged[id] && merged[id].notified),
+                    claimed: !!(state && state.claimed) || !!(merged[id] && merged[id].claimed)
+                };
+            });
+            return merged;
+        }
+        return remote;
+    },
+
     async _pullRemote(uid) {
         try {
             const snap = await _db.collection(PLAYERS_COLLECTION).doc(uid).get();
-            if (!snap.exists) return;
+            if (!snap.exists) {
+                // La cuenta es nueva: el progreso local de invitado se conserva y
+                // _ensureRemoteDocument lo sube después del primer login.
+                return;
+            }
             const data = snap.data();
             const changedKeys = [];
             Object.keys(data).forEach(k => {
                 if (k === '_updatedAt') return;
-                this._cache[k] = data[k];
-                try { localStorage.setItem(_LOCAL_PREFIX + k, JSON.stringify(data[k])); } catch (e) {}
+                const local = this.get(k, undefined);
+                const merged = this._mergeProgress(k, local, data[k]);
+                this._cache[k] = merged;
+                try { localStorage.setItem(_LOCAL_PREFIX + k, JSON.stringify(merged)); } catch (e) {}
+                if (JSON.stringify(merged) !== JSON.stringify(data[k])) this._dirty.add(k);
                 changedKeys.push(k);
             });
             if (changedKeys.length) this._notifyRemote(changedKeys);
+            if (this._dirty.size) this._scheduleSync();
         } catch (e) {
             console.warn('[FirebaseSaveSystem] No se pudo descargar el progreso de la nube, se sigue con la caché local:', e.code || e);
         }
