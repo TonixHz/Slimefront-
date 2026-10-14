@@ -335,7 +335,10 @@ const SaveSystem = {
             try {
                 await _clearProgressFn();
             } catch (e) {
-                console.warn('[FirebaseSaveSystem] No se pudo borrar el progreso en la nube:', e.code || e);
+                // No ocultar el fallo: la UI debe evitar resetear/recrear progreso
+                // local si la copia remota todavía no se pudo borrar.
+                console.error('[FirebaseSaveSystem] No se pudo borrar el progreso en la nube:', e.code || e);
+                throw e;
             }
         }
     },
