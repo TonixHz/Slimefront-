@@ -145,7 +145,7 @@ exports.clearProgress = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('unauthenticated', 'Se requiere iniciar sesión.');
     }
     const uid = context.auth.uid;
-    await db.collection('players').doc(uid).set({}, { merge: false });
+    await db.collection('players').doc(uid).delete();
     await db.collection('leaderboard').doc(uid).delete().catch(() => {});
     return { ok: true };
 });
