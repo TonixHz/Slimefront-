@@ -10,6 +10,7 @@
     const joystickZone = document.getElementById('joystick-zone');
     const joystickKnob = document.getElementById('joystick-knob');
     const aimZone = document.getElementById('aim-zone');
+    const aimKnob = document.getElementById('aim-knob');
     const dashButton = document.getElementById('mobile-dash-btn');
     const reloadButton = document.getElementById('mobile-reload-btn');
     const uiLayer = document.getElementById('ui-layer');
@@ -18,11 +19,12 @@
     const shopScreen = document.getElementById('shop-menu');
 
     // No romper el arranque si se edita el HTML y falta algún elemento.
-    if (!controls || !joystickZone || !joystickKnob || !aimZone || !dashButton || !reloadButton || !uiLayer) return;
+    if (!controls || !joystickZone || !joystickKnob || !aimZone || !aimKnob || !dashButton || !reloadButton || !uiLayer) return;
 
     let joystickTouchId = null;
     let aimTouchId = null;
     let gameStarted = false;
+    let aimOrigin = null;
 
     function currentGame() {
         return typeof game !== 'undefined' && game && game.player ? game : null;
@@ -76,7 +78,36 @@
     function resetAim() {
         const g = currentGame();
         if (g && g.mouse) g.mouse.down = false;
+        aimKnob.style.transform = 'translate(0px, 0px)';
+        aimOrigin = null;
         aimTouchId = null;
+    }
+
+    function updateAim(touch) {
+        const g = currentGame();
+        if (!g || !gameStarted || !g.player || !g.camera) return;
+        const rect = aimZone.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        let dx = touch.clientX - (aimOrigin ? aimOrigin.x : cx);
+        let dy = touch.clientY - (aimOrigin ? aimOrigin.y : cy);
+        const maxDist = Math.max(1, rect.width * 0.34);
+        const rawDist = Math.hypot(dx, dy);
+        const dist = Math.min(rawDist, maxDist);
+        if (rawDist > 0) {
+            const angle = Math.atan2(dy, dx);
+            dx = Math.cos(angle) * dist;
+            dy = Math.sin(angle) * dist;
+            aimKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+            // mouse.x/y son coordenadas de pantalla; el jugador está centrado
+            // por la cámara, por lo que el vector del joystick define la mira.
+            const magnitude = Math.max(90, dist * 3.2);
+            g.mouse.x = (g.player.x - g.camera.x) + Math.cos(angle) * magnitude;
+            g.mouse.y = (g.player.y - g.camera.y) + Math.sin(angle) * magnitude;
+            g.mouse.down = rawDist > maxDist * 0.12;
+        } else {
+            g.mouse.down = false;
+        }
     }
 
     function resetAll() {
@@ -109,22 +140,17 @@
         if (!g || g.paused || !gameStarted || aimTouchId !== null) return;
         e.preventDefault();
         const t = e.changedTouches[0];
+        const rect = aimZone.getBoundingClientRect();
         aimTouchId = t.identifier;
-        g.mouse.x = t.clientX;
-        g.mouse.y = t.clientY;
-        g.mouse.down = true;
+        aimOrigin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        updateAim(t);
     }, { passive: false });
 
     aimZone.addEventListener('touchmove', e => {
         if (aimTouchId === null) return;
         e.preventDefault();
-        const g = currentGame();
-        if (!g || g.paused) return;
         for (const t of e.changedTouches) {
-            if (t.identifier === aimTouchId) {
-                g.mouse.x = t.clientX;
-                g.mouse.y = t.clientY;
-            }
+            if (t.identifier === aimTouchId) updateAim(t);
         }
     }, { passive: false });
 
