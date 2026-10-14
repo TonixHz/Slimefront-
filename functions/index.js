@@ -86,13 +86,19 @@ const VALIDATORS = {
         if (typeof incoming !== 'object' || incoming === null) return null;
         const prev = previous || {};
         const out = {};
+        // These fields are cumulative counters. pendingMoney is intentionally
+        // excluded: it is a consumable queue that is cleared after claiming, not
+        // a lifetime statistic, so max-merging it can re-grant already claimed money.
         const numFields = ['bossKills', 'reloads', 'killStreakNoDeath', 'bestKillStreak', 'meleeBossKills',
             'perfectWaves', 'eventsCompleted', 'weaponsPurchased', 'weaponsSold', 'upgradesBuys',
-            'healthPackUses', 'dashUses', 'proWavesCleared', 'moneyEarned', 'lowHpClears', 'pendingMoney'];
+            'healthPackUses', 'dashUses', 'proWavesCleared', 'moneyEarned', 'lowHpClears'];
         numFields.forEach(f => {
             const prevV = clampNum(prev[f], 0, 1e12, 0);
             out[f] = Math.max(prevV, clampNum(incoming[f], 0, prevV + 100000, prevV));
         });
+        // Pending rewards are mutable. Accept a validated snapshot instead of
+        // forcing it upward, otherwise a stale cloud value can resurrect a claim.
+        out.pendingMoney = clampNum(incoming.pendingMoney, 0, 1e9, 0);
         out.heavyWeaponPurchased = !!(prev.heavyWeaponPurchased || incoming.heavyWeaponPurchased);
         out.categoryKills = {};
         const previousCategories = prev.categoryKills && typeof prev.categoryKills === 'object' ? prev.categoryKills : {};
