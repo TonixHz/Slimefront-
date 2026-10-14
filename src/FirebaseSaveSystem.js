@@ -261,9 +261,8 @@ const SaveSystem = {
         try {
             const snap = await _db.collection(PLAYERS_COLLECTION).doc(uid).get();
             if (!snap.exists) {
-                // La cuenta es nueva: el progreso local de invitado se conserva y
-                // _ensureRemoteDocument lo sube después del primer login.
-                return;
+                // Documento nuevo confirmado: es seguro subir el progreso local.
+                return true;
             }
             const data = snap.data();
             const changedKeys = [];
@@ -278,8 +277,10 @@ const SaveSystem = {
             });
             if (changedKeys.length) this._notifyRemote(changedKeys);
             if (this._dirty.size) this._scheduleSync();
+            return true;
         } catch (e) {
-            console.warn('[FirebaseSaveSystem] No se pudo descargar el progreso de la nube, se sigue con la caché local:', e.code || e);
+            console.warn('[FirebaseSaveSystem] No se pudo descargar el progreso de la nube; se aplaza la sincronización inicial para evitar sobrescribir datos remotos:', e.code || e);
+            return false;
         }
     },
 
@@ -346,10 +347,17 @@ const SaveSystem = {
         _auth.onAuthStateChanged(async user => {
             this._uid = user ? user.uid : null;
             if (user) {
-                await this._pullRemote(user.uid);
-                // FIX: garantiza que el doc en /players/{uid} exista siempre,
-                // aunque el usuario todavía no haya jugado nada.
-                await this._ensureRemoteDocument();
+                const pulled = await this._pullRemote(user.uid);
+                if (pulled) {
+                    this._initialSyncPendingUid = null;
+                    // Solo subimos el estado local después de confirmar que la
+                    // lectura remota funcionó (o que el documento aún no existe).
+                    await this._ensureRemoteDocument();
+                } else {
+                    // Si falló la lectura, NO subir caché potencialmente vieja.
+                    // Se reintentará al recuperar la conexión.
+                    this._initialSyncPendingUid = user.uid;
+                }
                 document.dispatchEvent(new CustomEvent('savesystem:login', { detail: { uid: user.uid, user } }));
             } else {
                 document.dispatchEvent(new CustomEvent('savesystem:logout'));
@@ -358,7 +366,18 @@ const SaveSystem = {
         });
         window.addEventListener('beforeunload', () => { this._pushDirty(); });
         // Reintenta apenas vuelve la conexión, en vez de esperar al próximo set().
-        window.addEventListener('online', () => { if (this._dirty.size > 0) this._pushDirty(); });
+        window.addEventListener('online', async () => {
+            if (this._uid && this._initialSyncPendingUid === this._uid) {
+                const uid = this._uid;
+                const pulled = await this._pullRemote(uid);
+                if (pulled && this._uid === uid) {
+                    this._initialSyncPendingUid = null;
+                    await this._ensureRemoteDocument();
+                    return;
+                }
+            }
+            if (this._dirty.size > 0) this._pushDirty();
+        });
         window.addEventListener('offline', () => this._setStatus('offline'));
     }
 };
