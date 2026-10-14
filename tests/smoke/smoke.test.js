@@ -91,3 +91,16 @@ test('smoke: build.js existe y su SRC_ORDER no está vacío', () => {
     const buildJs = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
     assert.match(buildJs, /SRC_ORDER\s*=\s*\[/);
 });
+
+test('smoke: los controles móviles están conectados y sus dependencias existen', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const mobile = fs.readFileSync(path.join(SRC_DIR, 'mobile.js'), 'utf8');
+    const buildJs = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    ['mobile-controls', 'joystick-zone', 'joystick-knob', 'aim-zone', 'mobile-dash-btn', 'mobile-reload-btn'].forEach(id => {
+        assert.ok(html.includes(`id="${id}"`), `falta el elemento táctil #${id} en index.html`);
+    });
+    assert.ok(html.includes('src="src/mobile.js"'), 'index.html debe cargar mobile.js en desarrollo');
+    assert.ok(buildJs.includes("'mobile.js'"), 'build.js debe incluir mobile.js en el bundle de producción');
+    assert.match(mobile, /g\.player\.dash\(\)/, 'el botón de dash debe invocar el método de Player');
+    assert.match(mobile, /g\.reload\(\)/, 'el botón de recarga debe invocar el método de recarga del juego');
+});
