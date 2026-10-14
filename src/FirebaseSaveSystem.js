@@ -325,27 +325,28 @@ const SaveSystem = {
     // ================= BORRADO TOTAL DE PROGRESO =================
     async clearProgress() {
         const keys = ['profile', 'progression', 'achv_stats', 'achv_state'];
-        keys.forEach(k => {
-            delete this._cache[k];
-            this._dirty.delete(k);
-            try { localStorage.removeItem(_LOCAL_PREFIX + k); } catch (e) {}
-        });
         clearTimeout(this._pushTimer);
         // Esperar cualquier escritura ya iniciada antes de borrar en la nube;
         // de lo contrario una respuesta tardía podría restaurar datos viejos.
         if (this._pushPromise) {
             try { await this._pushPromise; } catch (e) { /* el borrado remoto decide el resultado final */ }
         }
+        // No tocar la copia local hasta confirmar el borrado remoto. Si falla
+        // la red, el jugador conserva su progreso local y puede volver a intentar.
         if (this._uid) {
             try {
                 await _clearProgressFn();
             } catch (e) {
-                // No ocultar el fallo: la UI debe evitar resetear/recrear progreso
-                // local si la copia remota todavía no se pudo borrar.
                 console.error('[FirebaseSaveSystem] No se pudo borrar el progreso en la nube:', e.code || e);
                 throw e;
             }
         }
+        clearTimeout(this._pushTimer);
+        keys.forEach(k => {
+            delete this._cache[k];
+            this._dirty.delete(k);
+            try { localStorage.removeItem(_LOCAL_PREFIX + k); } catch (e) {}
+        });
     },
 
     // ================= AUTENTICACIÓN =================
