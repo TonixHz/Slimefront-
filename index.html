@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="description" content="SLIMEFRONT v0.9 - Juego de defensa contra olas de zombies slime. Dispara, mejora, sobrevive. ¿Hasta qué ola llegas?">
     <meta name="theme-color" content="#050505">
-    <meta name="apple-mobile-web-app-capable" content="yes">\n    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta property="og:title" content="SLIMEFRONT">
     <meta property="og:description" content="Un juego de acción en tiempo real. Defiéndete contra olas infinitas de slimes mutantes.">
     <meta property="og:type" content="website">
@@ -237,7 +238,16 @@
         </div>
     </div>
 
-    <div id="mobile-controls" aria-label="Controles táctiles">\n        <div id="joystick-zone" aria-label="Mover jugador"><div class="mobile-stick-ring"><div id="joystick-knob"></div></div></div>\n        <div id="aim-zone" aria-label="Mantener para apuntar y disparar"></div>\n        <div class="mobile-action-buttons">\n            <button id="mobile-reload-btn" type="button" aria-label="Recargar">↻<span>RECARGAR</span></button>\n            <button id="mobile-dash-btn" type="button" aria-label="Dash">⚡<span>DASH</span></button>\n        </div>\n    </div>\n\n    <canvas id="gameCanvas"></canvas>
+    <div id="mobile-controls" aria-label="Controles táctiles">
+        <div id="joystick-zone" aria-label="Mover jugador"><div class="mobile-stick-ring"><div id="joystick-knob"></div></div></div>
+        <div id="aim-zone" aria-label="Mantener para apuntar y disparar"></div>
+        <div class="mobile-action-buttons">
+            <button id="mobile-reload-btn" type="button" aria-label="Recargar">↻<span>RECARGAR</span></button>
+            <button id="mobile-dash-btn" type="button" aria-label="Dash">⚡<span>DASH</span></button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
 
     <!-- MODAL DE CRÉDITOS (oculto por defecto) -->
     <div id="credits-screen" class="menu-screen" style="display:none;">
@@ -358,6 +368,7 @@
 <script src="src/progression.js"></script>
 <script src="src/achievements.js"></script>
 <script src="src/auth-ui.js"></script>
-<script src="src/boot.js"></script>\n<script src="src/mobile.js"></script>
+<script src="src/boot.js"></script>
+<script src="src/mobile.js"></script>
 </body>
 </html>
