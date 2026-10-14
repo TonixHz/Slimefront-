@@ -91,7 +91,7 @@ const VALIDATORS = {
             'healthPackUses', 'dashUses', 'proWavesCleared', 'moneyEarned', 'lowHpClears', 'pendingMoney'];
         numFields.forEach(f => {
             const prevV = clampNum(prev[f], 0, 1e12, 0);
-            out[f] = clampNum(incoming[f], 0, prevV + 100000, prevV);
+            out[f] = Math.max(prevV, clampNum(incoming[f], 0, prevV + 100000, prevV));
         });
         out.heavyWeaponPurchased = !!(prev.heavyWeaponPurchased || incoming.heavyWeaponPurchased);
         out.categoryKills = {};
