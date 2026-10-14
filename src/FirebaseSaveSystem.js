@@ -294,8 +294,12 @@ const SaveSystem = {
         }
         if (key === 'profile') {
             const merged = { ...remote, ...local };
-            ['level', 'xp', 'playTimeSec', 'kills', 'deaths', 'shotsFired', 'shotsHit', 'distance', 'bestWave', 'diamonds']
+            ['level', 'xp', 'playTimeSec', 'kills', 'deaths', 'shotsFired', 'shotsHit', 'distance', 'bestWave']
                 .forEach(field => { merged[field] = mergeMax(local[field], remote[field]); });
+            // Currency is not a cumulative statistic: the server balance wins.
+            merged.diamonds = Number.isFinite(Number(remote.diamonds))
+                ? Math.max(0, Number(remote.diamonds))
+                : Math.max(0, Number(local.diamonds) || 0);
             merged.weaponUsage = { ...(remote.weaponUsage || {}) };
             Object.entries(local.weaponUsage || {}).forEach(([name, count]) => {
                 merged.weaponUsage[name] = mergeMax(count, merged.weaponUsage[name]);
