@@ -156,3 +156,14 @@ test('smoke: al iniciar sesión se combina el progreso local con el remoto sin p
     assert.match(save, /if \(key === 'achv_state'\)/);
     assert.match(save, /this\._dirty\.add\(k\)/);
 });
+
+
+test('smoke: borrar progreso bloquea reintentos de sync hasta terminar la eliminación remota', () => {
+    const save = fs.readFileSync(path.join(ROOT, 'src', 'FirebaseSaveSystem.js'), 'utf8');
+    assert.match(save, /_clearingProgress: false/);
+    assert.match(save, /if \(!this\._clearingProgress\) this\._scheduleSync\(\)/);
+    assert.match(save, /_scheduleSync\(\) \{\s*if \(this\._clearingProgress\) return;/);
+    assert.match(save, /if \(!this\._clearingProgress && this\._uid && this\._dirty\.size > 0/);
+    assert.match(save, /this\._clearingProgress = true;[\s\S]*?await _clearProgressFn\(\)/);
+    assert.match(save, /finally \{\s*this\._clearingProgress = false;/);
+});
