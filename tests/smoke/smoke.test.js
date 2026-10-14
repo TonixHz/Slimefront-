@@ -109,3 +109,15 @@ test('smoke: los controles móviles están conectados y sus dependencias existen
     assert.match(mobile, /gameover-screen/, 'los controles deben ocultarse en Game Over');
     assert.match(mobile, /esc-menu/, 'los controles deben ocultarse al abrir el menú de pausa');
 });
+
+
+test('smoke: el zoom de cámara móvil se adapta a horizontal y no afecta PC', () => {
+    const main = fs.readFileSync(path.join(SRC_DIR, 'main.js'), 'utf8');
+    const effects = fs.readFileSync(path.join(SRC_DIR, 'effects.js'), 'utf8');
+    assert.match(main, /pointer: coarse.*orientation: landscape/);
+    assert.match(main, /mobileLandscape \? 0\.58/);
+    assert.match(main, /ctx\.scale\(worldZoom, worldZoom\)/);
+    assert.match(main, /ctx\.restore\(\); \/\/ El HUD y los overlays permanecen/);
+    assert.match(effects, /const viewWidth = canvas\.width \/ zoom/);
+    assert.match(effects, /const viewHeight = canvas\.height \/ zoom/);
+});
