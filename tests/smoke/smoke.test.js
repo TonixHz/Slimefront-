@@ -217,3 +217,11 @@ test('smoke: resetting one account preserves other accounts’ queued diamond op
     assert.match(save, /const clearingUid = this\._uid/);
     assert.match(save, /this\._diamondQueue = clearingUid[\s\S]*?this\._diamondQueue\.filter\(op => op\.uid !== clearingUid\)/);
 });
+
+
+test('smoke: deleting progress captures the original account and preserves cache after account switch', () => {
+    const save = fs.readFileSync(path.join(ROOT, 'src', 'FirebaseSaveSystem.js'), 'utf8');
+    assert.match(save, /async clearProgress\(\) \{[\s\S]*?const clearingUid = this\._uid/);
+    assert.match(save, /if \(this\._uid !== clearingUid\) throw new Error/);
+    assert.match(save, /if \(this\._uid !== clearingUid\) return;[\s\S]*?keys\.forEach/);
+});
