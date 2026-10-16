@@ -408,6 +408,7 @@ const SaveSystem = {
     // ================= BORRADO TOTAL DE PROGRESO =================
     async clearProgress() {
         const keys = ['profile', 'progression', 'achv_stats', 'achv_state'];
+        const clearingUid = this._uid;
         // Bloquear nuevos timers mientras esperamos y borramos. Si no, el
         // finally de una sincronización pendiente podría subir datos antiguos
         // justo después de que la Cloud Function eliminara el documento.
@@ -420,18 +421,24 @@ const SaveSystem = {
             }
             clearTimeout(this._pushTimer);
 
+            // If the account changed while an earlier save was finishing, do
+            // not clear the newly signed-in account's remote or local progress.
+            if (this._uid !== clearingUid) throw new Error('La cuenta cambió durante el borrado. Volvé a intentarlo.');
+
             // No tocar la copia local hasta confirmar el borrado remoto. Si falla
             // la red, se conserva el progreso local y se puede volver a intentar.
-            if (this._uid) await _clearProgressFn();
+            if (clearingUid) await _clearProgressFn();
 
             clearTimeout(this._pushTimer);
             // Clear only this account's pending currency operations. A device
             // may have queued work for another signed-in account while offline.
-            const clearingUid = this._uid;
             this._diamondQueue = clearingUid
                 ? this._diamondQueue.filter(op => op.uid !== clearingUid)
                 : this._diamondQueue;
             this._saveDiamondQueue();
+            // The account could switch while the remote deletion was in flight.
+            // In that case, preserve the new account's local cache.
+            if (this._uid !== clearingUid) return;
             keys.forEach(k => {
                 delete this._cache[k];
                 this._dirty.delete(k);
