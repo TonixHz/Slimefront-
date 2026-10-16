@@ -114,16 +114,16 @@ const SaveSystem = {
 
     // Currency operations are queued durably and applied by a Firestore
     // transaction. operationId makes retries idempotent across reconnects.
-    changeDiamonds(delta) {
-        delta = Math.trunc(Number(delta));
-        if (!Number.isSafeInteger(delta) || delta === 0) return Promise.resolve(false);
+    changeDiamonds(rewardLevel) {
+        rewardLevel = Number(rewardLevel);
+        if (![10, 25, 50].includes(rewardLevel)) return Promise.resolve(false);
         // Never attach guest rewards (or another account's pending rewards) to
         // whichever account happens to log in later. Only queue for the active UID.
         if (!this._uid) return Promise.resolve(false);
         const operationId = (typeof crypto !== 'undefined' && crypto.randomUUID)
             ? crypto.randomUUID().replace(/-/g, '')
             : ('op' + Date.now().toString(36) + Math.random().toString(36).slice(2, 18));
-        this._diamondQueue.push({ operationId, delta, uid: this._uid });
+        this._diamondQueue.push({ operationId, rewardLevel, uid: this._uid });
         this._saveDiamondQueue();
         return this._flushDiamondQueue();
     },
@@ -137,7 +137,7 @@ const SaveSystem = {
             this._diamondQueue = Array.isArray(parsed) ? parsed.filter(op =>
                 op && typeof op.operationId === 'string' &&
                 typeof op.uid === 'string' && op.uid.length > 0 &&
-                Number.isSafeInteger(op.delta)) : [];
+                [10, 25, 50].includes(Number(op.rewardLevel))) : [];
             this._saveDiamondQueue();
         } catch (e) { this._diamondQueue = []; }
     },
@@ -161,7 +161,7 @@ const SaveSystem = {
                 try {
                     const response = await _changeDiamondsFn({
                         operationId: operation.operationId,
-                        delta: operation.delta
+                        rewardLevel: operation.rewardLevel
                     });
                     const balance = Number(response && response.data && response.data.balance);
                     if (!Number.isFinite(balance)) throw new Error('El servidor no devolvió el saldo.');
