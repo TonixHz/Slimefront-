@@ -425,7 +425,12 @@ const SaveSystem = {
             if (this._uid) await _clearProgressFn();
 
             clearTimeout(this._pushTimer);
-            this._diamondQueue = [];
+            // Clear only this account's pending currency operations. A device
+            // may have queued work for another signed-in account while offline.
+            const clearingUid = this._uid;
+            this._diamondQueue = clearingUid
+                ? this._diamondQueue.filter(op => op.uid !== clearingUid)
+                : this._diamondQueue;
             this._saveDiamondQueue();
             keys.forEach(k => {
                 delete this._cache[k];
