@@ -186,16 +186,17 @@ test('smoke: diamond currency changes are server-transactional and idempotent', 
     const cloud = fs.readFileSync(path.join(ROOT, 'functions', 'index.js'), 'utf8');
     const save = fs.readFileSync(path.join(ROOT, 'src', 'FirebaseSaveSystem.js'), 'utf8');
     const level = fs.readFileSync(path.join(ROOT, 'src', 'level.js'), 'utf8');
-    assert.match(cloud, /exports\.changeDiamonds = functions\.https\.onCall/);
-    assert.match(cloud, /playerRef\.collection\('currencyOperations'\)\.doc\(operationId\)/);
-    assert.match(cloud, /if \(operationSnap\.exists\) return \{ ok: true, balance, duplicate: true \}/);
-    assert.match(cloud, /profile: \{ \.\.\.profile, diamonds: nextBalance \}/);
-    assert.match(save, /_changeDiamondsFn = _functions\.httpsCallable\('changeDiamonds'\)/);
+    assert.match(cloud, /exports\\.changeDiamonds = functions\\.https\\.onCall/);
+    assert.match(cloud, /playerRef\\.collection\\('currencyOperations'\\)\\.doc\\(operationId\\)/);
+    assert.match(cloud, /if \\(operationSnap\\.exists \\|\\| rewardSnap\\.exists\\)/);
+    assert.match(cloud, /const rewardAmounts = \\{ 10: 20, 25: 50, 50: 100 \\}/);
+    assert.match(cloud, /playerRef\\.collection\\('diamondRewards'\\)/);
+    assert.match(cloud, /profile: \\{ \.\\.\\.profile, diamonds: nextBalance \\}/);
+    assert.match(save, /_changeDiamondsFn = _functions\\.httpsCallable\\('changeDiamonds'\\)/);
     assert.match(save, /_diamondQueue/);
-    assert.match(level, /SaveSystem\.changeDiamonds\(rewardLevel\)/);
-    assert.match(cloud, /out\.diamonds = clampNum\(prev\.diamonds/);
+    assert.match(save, /SaveSystem\\.changeDiamonds\\(rewardLevel\\)/);
+    assert.match(cloud, /out\\.diamonds = clampNum\\(prev\\.diamonds/);
 });
-
 
 test('smoke: queued diamond rewards are bound to the account that earned them', () => {
     const save = fs.readFileSync(path.join(ROOT, 'src', 'FirebaseSaveSystem.js'), 'utf8');
