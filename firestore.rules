@@ -2,17 +2,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Progreso del jugador: cada usuario SOLO puede leer/escribir su propio documento.
+    // El cliente puede leer su propio progreso, pero NO escribirlo directamente.
+    // Las escrituras pasan por syncProgress/clearProgress (Cloud Functions),
+    // que valida los campos antes de persistirlos usando Admin SDK.
     match /players/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
     }
 
-    // Preparado para rankings online a futuro: cualquiera puede LEER el leaderboard
-    // (para mostrar una tabla de posiciones pública), pero cada usuario solo puede
-    // escribir su propia entrada.
+    // El ranking es público de lectura. Solo Cloud Functions puede actualizarlo.
     match /leaderboard/{uid} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
     }
   }
 }

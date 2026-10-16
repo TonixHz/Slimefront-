@@ -1,0 +1,30 @@
+name: Validate Slimefront
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, fix/mobile-and-audit]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test
+      - name: Build production bundle
+        run: npm run build
+      - name: Verify mobile controls are included in the production HTML
+        run: |
+          grep -q 'src="bundle.min.js"' dist/index.html
+          grep -q 'id="mobile-controls"' dist/index.html
+          test -s dist/bundle.min.js

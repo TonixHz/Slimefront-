@@ -71,6 +71,8 @@ const _db = firebase.firestore();
 const _functions = firebase.functions();
 const _syncProgressFn = _functions.httpsCallable('syncProgress');
 const _clearProgressFn = _functions.httpsCallable('clearProgress');
+const _changeDiamondsFn = _functions.httpsCallable('changeDiamonds');
+const _DIAMOND_QUEUE_KEY = 'slime_diamond_ops';
 
 // Analytics: instancia diferida hasta que haya consentimiento explícito (ver
 // window.__initAnalyticsIfNeeded más abajo). Antes se llamaba acá mismo sin
@@ -103,9 +105,85 @@ const SaveSystem = {
     _uid: null,
     _dirty: new Set(),
     _pushTimer: null,
+    _clearingProgress: false,
     _remoteListeners: [],
+    _diamondQueue: [],
+    _diamondQueuePromise: null,
     ready: null,
     _readyResolve: null,
+
+    // Currency operations are queued durably and applied by a Firestore
+    // transaction. operationId makes retries idempotent across reconnects.
+    changeDiamonds(rewardLevel) {
+        rewardLevel = Number(rewardLevel);
+        if (![10, 25, 50].includes(rewardLevel)) return Promise.resolve(false);
+        // Never attach guest rewards (or another account's pending rewards) to
+        // whichever account happens to log in later. Only queue for the active UID.
+        if (!this._uid) return Promise.resolve(false);
+        const operationId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID().replace(/-/g, '')
+            : ('op' + Date.now().toString(36) + Math.random().toString(36).slice(2, 18));
+        this._diamondQueue.push({ operationId, rewardLevel, uid: this._uid });
+        this._saveDiamondQueue();
+        return this._flushDiamondQueue();
+    },
+
+    _loadDiamondQueue() {
+        try {
+            const raw = localStorage.getItem(_DIAMOND_QUEUE_KEY);
+            const parsed = raw ? JSON.parse(raw) : [];
+            // Legacy entries have no owner UID and are intentionally discarded:
+            // their original account cannot be established safely.
+            this._diamondQueue = Array.isArray(parsed) ? parsed.filter(op =>
+                op && typeof op.operationId === 'string' &&
+                typeof op.uid === 'string' && op.uid.length > 0 &&
+                [10, 25, 50].includes(Number(op.rewardLevel))) : [];
+            this._saveDiamondQueue();
+        } catch (e) { this._diamondQueue = []; }
+    },
+
+    _saveDiamondQueue() {
+        try { localStorage.setItem(_DIAMOND_QUEUE_KEY, JSON.stringify(this._diamondQueue)); } catch (e) {}
+    },
+
+    async _flushDiamondQueue() {
+        if (this._diamondQueuePromise) return this._diamondQueuePromise;
+        if (!this._uid || (typeof navigator !== 'undefined' && navigator.onLine === false)) return false;
+        this._diamondQueuePromise = (async () => {
+            while (this._uid && this._diamondQueue.length &&
+                !(typeof navigator !== 'undefined' && navigator.onLine === false)) {
+                const uid = this._uid;
+                // Skip operations belonging to other accounts instead of letting
+                // one stale queue entry block the active account forever.
+                const index = this._diamondQueue.findIndex(op => op.uid === uid);
+                if (index === -1) break;
+                const operation = this._diamondQueue[index];
+                try {
+                    const response = await _changeDiamondsFn({
+                        operationId: operation.operationId,
+                        rewardLevel: operation.rewardLevel
+                    });
+                    const balance = Number(response && response.data && response.data.balance);
+                    if (!Number.isFinite(balance)) throw new Error('El servidor no devolvió el saldo.');
+                    // Auth may have changed while the request was in flight. Keep
+                    // the item queued; retrying is safe because operationId is idempotent.
+                    if (this._uid !== uid) return false;
+                    this._diamondQueue.splice(index, 1);
+                    this._saveDiamondQueue();
+                    const profile = this.get('profile', {});
+                    profile.diamonds = balance;
+                    this.set('profile', profile);
+                    this._notifyRemote(['profile']);
+                } catch (e) {
+                    console.warn('[FirebaseSaveSystem] Operación de diamantes pendiente; se reintentará:', e.code || e);
+                    return false;
+                }
+            }
+            return true;
+        })();
+        try { return await this._diamondQueuePromise; }
+        finally { this._diamondQueuePromise = null; }
+    },
 
     // ================= LECTURA / ESCRITURA =================
 
@@ -126,7 +204,7 @@ const SaveSystem = {
         this._cache[key] = value;
         try { localStorage.setItem(_LOCAL_PREFIX + key, JSON.stringify(value)); } catch (e) { /* cuota llena, modo privado, etc. */ }
         this._dirty.add(key);
-        this._scheduleSync();
+        if (!this._clearingProgress) this._scheduleSync();
     },
 
     // ================= SUSCRIPCIÓN A DATOS REMOTOS =================
@@ -147,6 +225,7 @@ const SaveSystem = {
 
     // ================= SINCRONIZACIÓN (nunca bloquea, nunca rompe) =================
     _scheduleSync() {
+        if (this._clearingProgress) return;
         clearTimeout(this._pushTimer);
         // Debounce propio: NO pasa por TimerManager a propósito. Este timer
         // sincroniza progreso con la nube independientemente de que haya una
@@ -155,7 +234,23 @@ const SaveSystem = {
         this._pushTimer = setTimeout(() => this._pushDirty(), _SYNC_DEBOUNCE_MS);
     },
 
+    // Evita dos sincronizaciones simultáneas que puedan enviar snapshots viejos
+    // y pisar cambios más recientes. Si entran escrituras durante un envío, el
+    // finally programa otro ciclo para las keys que sigan dirty.
     async _pushDirty() {
+        if (this._pushPromise) return this._pushPromise;
+        this._pushPromise = this._pushDirtyImpl();
+        try {
+            return await this._pushPromise;
+        } finally {
+            this._pushPromise = null;
+            if (!this._clearingProgress && this._uid && this._dirty.size > 0 && !(typeof navigator !== 'undefined' && navigator.onLine === false)) {
+                this._scheduleSync();
+            }
+        }
+    },
+
+    async _pushDirtyImpl() {
         if (!this._uid || this._dirty.size === 0) return;
 
         if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -194,21 +289,97 @@ const SaveSystem = {
     },
 
     // ================= CARGA INICIAL AL INICIAR SESIÓN =================
+    // Combina progreso local de invitado con el remoto sin perder máximos ni
+    // desbloqueos al iniciar sesión en un dispositivo que ya tenía progreso.
+    _mergeProgress(key, local, remote) {
+        if (!local || typeof local !== 'object') return remote;
+        if (!remote || typeof remote !== 'object') return local;
+        const mergeMax = (a, b) => Math.max(Number(a) || 0, Number(b) || 0);
+        const mergeArrays = (a, b, id) => {
+            const result = new Map();
+            [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])].forEach(item => {
+                const key = id(item);
+                if (key !== undefined && key !== null) result.set(String(key), item);
+            });
+            return [...result.values()];
+        };
+
+        if (key === 'progression') {
+            const levels = { ...(remote.levels || {}) };
+            Object.entries(local.levels || {}).forEach(([name, level]) => {
+                levels[name] = mergeMax(level, levels[name]);
+            });
+            return { ...remote, ...local, levels };
+        }
+        if (key === 'profile') {
+            const merged = { ...remote, ...local };
+            ['level', 'xp', 'playTimeSec', 'kills', 'deaths', 'shotsFired', 'shotsHit', 'distance', 'bestWave']
+                .forEach(field => { merged[field] = mergeMax(local[field], remote[field]); });
+            // Currency is not a cumulative statistic: the server balance wins.
+            merged.diamonds = Number.isFinite(Number(remote.diamonds))
+                ? Math.max(0, Number(remote.diamonds))
+                : Math.max(0, Number(local.diamonds) || 0);
+            merged.weaponUsage = { ...(remote.weaponUsage || {}) };
+            Object.entries(local.weaponUsage || {}).forEach(([name, count]) => {
+                merged.weaponUsage[name] = mergeMax(count, merged.weaponUsage[name]);
+            });
+            merged.unlocks = mergeArrays(local.unlocks, remote.unlocks,
+                item => item && [item.level, item.type].join(':'));
+            merged.shotsHit = Math.min(merged.shotsHit, merged.shotsFired);
+            return merged;
+        }
+        if (key === 'achv_stats') {
+            const merged = { ...remote, ...local };
+            Object.keys({ ...remote, ...local }).forEach(field => {
+                const a = local[field], b = remote[field];
+                if (typeof a === 'number' || typeof b === 'number') merged[field] = mergeMax(a, b);
+                else if (Array.isArray(a) || Array.isArray(b)) {
+                    merged[field] = mergeArrays(a, b, item => typeof item === 'object' ? JSON.stringify(item) : item);
+                } else if (a && typeof a === 'object' && b && typeof b === 'object') {
+                    merged[field] = { ...b, ...a };
+                    Object.keys({ ...a, ...b }).forEach(k => { merged[field][k] = mergeMax(a[k], b[k]); });
+                }
+            });
+            merged.heavyWeaponPurchased = !!(local.heavyWeaponPurchased || remote.heavyWeaponPurchased);
+            return merged;
+        }
+        if (key === 'achv_state') {
+            const merged = { ...remote };
+            Object.entries(local).forEach(([id, state]) => {
+                merged[id] = {
+                    notified: !!(state && state.notified) || !!(merged[id] && merged[id].notified),
+                    claimed: !!(state && state.claimed) || !!(merged[id] && merged[id].claimed)
+                };
+            });
+            return merged;
+        }
+        return remote;
+    },
+
     async _pullRemote(uid) {
         try {
             const snap = await _db.collection(PLAYERS_COLLECTION).doc(uid).get();
-            if (!snap.exists) return;
+            if (!snap.exists) {
+                // Documento nuevo confirmado: es seguro subir el progreso local.
+                return true;
+            }
             const data = snap.data();
             const changedKeys = [];
             Object.keys(data).forEach(k => {
                 if (k === '_updatedAt') return;
-                this._cache[k] = data[k];
-                try { localStorage.setItem(_LOCAL_PREFIX + k, JSON.stringify(data[k])); } catch (e) {}
+                const local = this.get(k, undefined);
+                const merged = this._mergeProgress(k, local, data[k]);
+                this._cache[k] = merged;
+                try { localStorage.setItem(_LOCAL_PREFIX + k, JSON.stringify(merged)); } catch (e) {}
+                if (JSON.stringify(merged) !== JSON.stringify(data[k])) this._dirty.add(k);
                 changedKeys.push(k);
             });
             if (changedKeys.length) this._notifyRemote(changedKeys);
+            if (this._dirty.size) this._scheduleSync();
+            return true;
         } catch (e) {
-            console.warn('[FirebaseSaveSystem] No se pudo descargar el progreso de la nube, se sigue con la caché local:', e.code || e);
+            console.warn('[FirebaseSaveSystem] No se pudo descargar el progreso de la nube; se aplaza la sincronización inicial para evitar sobrescribir datos remotos:', e.code || e);
+            return false;
         }
     },
 
@@ -237,17 +408,51 @@ const SaveSystem = {
     // ================= BORRADO TOTAL DE PROGRESO =================
     async clearProgress() {
         const keys = ['profile', 'progression', 'achv_stats', 'achv_state'];
-        keys.forEach(k => {
-            delete this._cache[k];
-            this._dirty.delete(k);
-            try { localStorage.removeItem(_LOCAL_PREFIX + k); } catch (e) {}
-        });
+        const clearingUid = this._uid;
+        // Bloquear nuevos timers mientras esperamos y borramos. Si no, el
+        // finally de una sincronización pendiente podría subir datos antiguos
+        // justo después de que la Cloud Function eliminara el documento.
+        this._clearingProgress = true;
         clearTimeout(this._pushTimer);
-        if (this._uid) {
-            try {
-                await _clearProgressFn();
-            } catch (e) {
-                console.warn('[FirebaseSaveSystem] No se pudo borrar el progreso en la nube:', e.code || e);
+        try {
+            // Esperar cualquier escritura ya iniciada antes de borrar en la nube.
+            if (this._pushPromise) {
+                try { await this._pushPromise; } catch (e) { /* el borrado remoto decide el resultado final */ }
+            }
+            clearTimeout(this._pushTimer);
+
+            // If the account changed while an earlier save was finishing, do
+            // not clear the newly signed-in account's remote or local progress.
+            if (this._uid !== clearingUid) throw new Error('La cuenta cambió durante el borrado. Volvé a intentarlo.');
+
+            // No tocar la copia local hasta confirmar el borrado remoto. Si falla
+            // la red, se conserva el progreso local y se puede volver a intentar.
+            if (clearingUid) await _clearProgressFn();
+
+            clearTimeout(this._pushTimer);
+            // Clear only this account's pending currency operations. A device
+            // may have queued work for another signed-in account while offline.
+            this._diamondQueue = clearingUid
+                ? this._diamondQueue.filter(op => op.uid !== clearingUid)
+                : this._diamondQueue;
+            this._saveDiamondQueue();
+            // The account could switch while the remote deletion was in flight.
+            // In that case, preserve the new account's local cache.
+            if (this._uid !== clearingUid) return;
+            keys.forEach(k => {
+                delete this._cache[k];
+                this._dirty.delete(k);
+                try { localStorage.removeItem(_LOCAL_PREFIX + k); } catch (e) {}
+            });
+        } catch (e) {
+            console.error('[FirebaseSaveSystem] No se pudo borrar el progreso en la nube:', e.code || e);
+            throw e;
+        } finally {
+            this._clearingProgress = false;
+            // Si falló el borrado, el progreso local sigue intacto y puede
+            // volver a sincronizarse; nunca reintentar tras un borrado exitoso.
+            if (this._dirty.size > 0 && this._uid && !(typeof navigator !== 'undefined' && navigator.onLine === false)) {
+                this._scheduleSync();
             }
         }
     },
@@ -274,11 +479,20 @@ const SaveSystem = {
         let firstCheck = true;
         _auth.onAuthStateChanged(async user => {
             this._uid = user ? user.uid : null;
+            this._loadDiamondQueue();
             if (user) {
-                await this._pullRemote(user.uid);
-                // FIX: garantiza que el doc en /players/{uid} exista siempre,
-                // aunque el usuario todavía no haya jugado nada.
-                await this._ensureRemoteDocument();
+                const pulled = await this._pullRemote(user.uid);
+                if (pulled) {
+                    this._initialSyncPendingUid = null;
+                    // Solo subimos el estado local después de confirmar que la
+                    // lectura remota funcionó (o que el documento aún no existe).
+                    await this._ensureRemoteDocument();
+                    await this._flushDiamondQueue();
+                } else {
+                    // Si falló la lectura, NO subir caché potencialmente vieja.
+                    // Se reintentará al recuperar la conexión.
+                    this._initialSyncPendingUid = user.uid;
+                }
                 document.dispatchEvent(new CustomEvent('savesystem:login', { detail: { uid: user.uid, user } }));
             } else {
                 document.dispatchEvent(new CustomEvent('savesystem:logout'));
@@ -287,7 +501,19 @@ const SaveSystem = {
         });
         window.addEventListener('beforeunload', () => { this._pushDirty(); });
         // Reintenta apenas vuelve la conexión, en vez de esperar al próximo set().
-        window.addEventListener('online', () => { if (this._dirty.size > 0) this._pushDirty(); });
+        window.addEventListener('online', async () => {
+            if (this._uid && this._initialSyncPendingUid === this._uid) {
+                const uid = this._uid;
+                const pulled = await this._pullRemote(uid);
+                if (pulled && this._uid === uid) {
+                    this._initialSyncPendingUid = null;
+                    await this._ensureRemoteDocument();
+                    return;
+                }
+            }
+            if (this._dirty.size > 0) this._pushDirty();
+            this._flushDiamondQueue();
+        });
         window.addEventListener('offline', () => this._setStatus('offline'));
     }
 };

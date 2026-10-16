@@ -67,7 +67,8 @@ const SRC_ORDER = [
     'progression.js',
     'achievements.js',
     'auth-ui.js',
-    'boot.js'
+    'boot.js',
+    'mobile.js'
 ];
 
 function rmrf(p) {
@@ -114,13 +115,13 @@ async function main() {
     console.log('[build] Generando dist/index.html de producción...');
     let html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
-    // Reemplaza el bloque de <script src="src/FirebaseSaveSystem.js"> ... <script src="src/boot.js">
+    // Reemplaza el bloque de <script src="src/FirebaseSaveSystem.js"> ... <script src="src/mobile.js">
     // por un único <script src="bundle.min.js">. Se hace con un recorte de línea
     // a línea (no regex frágil) para no depender de que el HTML no cambie de forma.
     // firebase-config.js NO se toca: es el mismo archivo en dev y en dist/.
     const lines = html.split('\n');
     const startMarker = '<script src="src/FirebaseSaveSystem.js"></script>';
-    const endMarker = '<script src="src/boot.js"></script>';
+    const endMarker = '<script src="src/mobile.js"></script>';
     const startIdx = lines.findIndex(l => l.includes(startMarker));
     const endIdx = lines.findIndex(l => l.includes(endMarker));
     if (startIdx === -1 || endIdx === -1) {

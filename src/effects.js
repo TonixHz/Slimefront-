@@ -59,7 +59,10 @@ const SFX = {
 };
 
 const sfxPools = {};
-const SFX_POOL_SIZE = 14;
+// En móviles, crear 14 Audio por cada efecto y llamar load() a todos podía
+// disparar decenas de cargas/decodificaciones justo al disparar o hacer dash.
+// Mantenemos una reserva pequeña y dejamos los canales secundarios bajo demanda.
+const SFX_POOL_SIZE = window.matchMedia('(pointer: coarse)').matches ? 3 : 14;
 const _missingSfxWarned = new Set();
 
 function getSfxPool(key) {
@@ -71,17 +74,19 @@ function getSfxPool(key) {
         return null;
     }
     if (!sfxPools[key]) {
-        sfxPools[key] = Array.from({ length: SFX_POOL_SIZE }, () => {
+        sfxPools[key] = Array.from({ length: SFX_POOL_SIZE }, (_, index) => {
             const a = new Audio(SFX[key]);
             a.preservesPitch = false;
-            a.preload = 'auto';
+            // Precarga solo el primer canal. Los demás se cargan si hace falta
+            // superponer sonidos, evitando multiplicar las peticiones por efecto.
+            a.preload = index === 0 ? 'auto' : 'none';
             a.onerror = () => {
                 if (!_missingSfxWarned.has(key)) {
                     console.warn(`[Audio] No se pudo cargar el sonido local: ${SFX[key]}`);
                     _missingSfxWarned.add(key);
                 }
             };
-            a.load();
+            if (index === 0) a.load();
             return a;
         });
         sfxPools[key].cursor = 0;
@@ -258,8 +263,17 @@ const AmbientAudio = {
 
 function isVisible(x, y, radius, cam) {
     const padding = 50;
-    return (x + radius + padding > cam.x && x - radius - padding < cam.x + canvas.width &&
-            y + radius + padding > cam.y && y - radius - padding < cam.y + canvas.height);
+    const mobileLandscape = window.matchMedia('(pointer: coarse) and (orientation: landscape)').matches;
+    const mobilePortrait = window.matchMedia('(pointer: coarse) and (orientation: portrait)').matches;
+    const zoom = mobileLandscape ? 0.58 : (mobilePortrait ? 0.72 : 1);
+    // El mundo se dibuja escalado desde el centro de la pantalla, así que el área
+    // visible en coordenadas del mapa crece inversamente al zoom.
+    const viewWidth = canvas.width / zoom;
+    const viewHeight = canvas.height / zoom;
+    const left = cam.x + (canvas.width - viewWidth) / 2;
+    const top = cam.y + (canvas.height - viewHeight) / 2;
+    return (x + radius + padding > left && x - radius - padding < left + viewWidth &&
+            y + radius + padding > top && y - radius - padding < top + viewHeight);
 }
 
 class Trail {

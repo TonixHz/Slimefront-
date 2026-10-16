@@ -52,18 +52,21 @@ game.grantXP = function(amount) {
     PlayerProfile.save();
 };
 
-game.grantDiamonds = function(amount) {
+game.grantDiamonds = function(amount, rewardLevel) {
     amount = Math.floor(amount);
     if (amount <= 0) return;
+    // Optimistic UI update; the authoritative balance is committed by a
+    // server transaction and reconciled when the operation succeeds.
     PlayerProfile.diamonds += amount;
     PlayerProfile.save();
+    if (typeof SaveSystem.changeDiamonds === 'function' && rewardLevel) SaveSystem.changeDiamonds(rewardLevel);
 };
 
 game.applyLevelReward = function(level) {
     const reward = LEVEL_REWARDS[level];
     if (!reward) return;
     if (reward.type === 'money' && game.player) game.player.money += reward.amount;
-    if (reward.type === 'diamonds') game.grantDiamonds(reward.amount);
+    if (reward.type === 'diamonds') game.grantDiamonds(reward.amount, level);
     PlayerProfile.unlocks.push({ level, type: reward.type, label: reward.label });
 };
 
