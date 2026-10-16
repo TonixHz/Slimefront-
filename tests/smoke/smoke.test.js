@@ -195,3 +195,18 @@ test('smoke: diamond currency changes are server-transactional and idempotent', 
     assert.match(level, /SaveSystem\.changeDiamonds\(amount\)/);
     assert.match(cloud, /out\.diamonds = clampNum\(prev\.diamonds/);
 });
+
+
+test('smoke: queued diamond rewards are bound to the account that earned them', () => {
+    const save = fs.readFileSync(path.join(ROOT, 'src', 'FirebaseSaveSystem.js'), 'utf8');
+    assert.match(save, /if \(!this\._uid\) return Promise\.resolve\(false\)/,
+        'guest rewards must not be queued for a future login');
+    assert.match(save, /this\._diamondQueue\.push\(\{ operationId, delta, uid: this\._uid \}\)/,
+        'each queued reward must store its owner UID');
+    assert.match(save, /typeof op\.uid === 'string'/,
+        'legacy operations without an owner must be discarded');
+    assert.match(save, /findIndex\(op => op\.uid === uid\)/,
+        'only the active account may drain its own operations');
+    assert.match(save, /if \(this\._uid !== uid\) return false/,
+        'an account switch during a request must not mutate the new account balance');
+});
