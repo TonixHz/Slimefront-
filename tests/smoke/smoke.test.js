@@ -202,7 +202,7 @@ test('smoke: queued diamond rewards are bound to the account that earned them', 
     const save = fs.readFileSync(path.join(ROOT, 'src', 'FirebaseSaveSystem.js'), 'utf8');
     assert.match(save, /if \(!this\._uid\) return Promise\.resolve\(false\)/,
         'guest rewards must not be queued for a future login');
-    assert.match(save, /this\._diamondQueue\.push\(\{ operationId, delta, uid: this\._uid \}\)/,
+    assert.match(save, /this\._diamondQueue\.push\(\{ operationId, rewardLevel, uid: this\._uid \}\)/,
         'each queued reward must store its owner UID');
     assert.match(save, /typeof op\.uid === 'string'/,
         'legacy operations without an owner must be discarded');
