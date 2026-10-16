@@ -185,33 +185,48 @@ exports.changeDiamonds = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('unauthenticated', 'Se requiere iniciar sesión.');
     }
     const operationId = typeof data?.operationId === 'string' ? data.operationId : '';
-    const delta = Number(data?.delta);
-    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(operationId) || !Number.isSafeInteger(delta) || delta === 0 || Math.abs(delta) > 100000) {
-        throw new functions.https.HttpsError('invalid-argument', 'Operación de diamantes inválida.');
+    const rewardLevel = Number(data?.rewardLevel);
+    const rewardAmounts = { 10: 20, 25: 50, 50: 100 };
+    const delta = rewardAmounts[rewardLevel];
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(operationId) || !Number.isInteger(rewardLevel) || !delta) {
+        throw new functions.https.HttpsError('invalid-argument', 'Recompensa de diamantes inválida.');
     }
 
     const uid = context.auth.uid;
     const playerRef = db.collection('players').doc(uid);
     const operationRef = playerRef.collection('currencyOperations').doc(operationId);
+    const rewardRef = playerRef.collection('diamondRewards').doc('level_' + rewardLevel);
     return db.runTransaction(async transaction => {
         const operationSnap = await transaction.get(operationRef);
+        const rewardSnap = await transaction.get(rewardRef);
         const playerSnap = await transaction.get(playerRef);
         const playerData = playerSnap.exists ? playerSnap.data() : {};
         const profile = playerData.profile && typeof playerData.profile === 'object' ? playerData.profile : {};
         const balance = clampNum(profile.diamonds, 0, 1e9, 0);
-        if (operationSnap.exists) return { ok: true, balance, duplicate: true };
+        if (operationSnap.exists || rewardSnap.exists) {
+            return { ok: true, balance, duplicate: true };
+        }
+        if (clampNum(profile.level, 1, 5000, 1) < rewardLevel) {
+            throw new functions.https.HttpsError('failed-precondition', 'Todavía no alcanzaste ese nivel.');
+        }
 
         const nextBalance = balance + delta;
-        if (nextBalance < 0 || nextBalance > 1e9) {
-            throw new functions.https.HttpsError('failed-precondition', 'Saldo de diamantes insuficiente o fuera de rango.');
+        if (nextBalance > 1e9) {
+            throw new functions.https.HttpsError('failed-precondition', 'Saldo de diamantes fuera de rango.');
         }
         transaction.set(playerRef, {
             profile: { ...profile, diamonds: nextBalance },
             _updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
         transaction.create(operationRef, {
+            rewardLevel,
             delta,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        transaction.create(rewardRef, {
+            operationId,
+            delta,
+            claimedAt: admin.firestore.FieldValue.serverTimestamp()
         });
         return { ok: true, balance: nextBalance, duplicate: false };
     });
