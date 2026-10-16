@@ -192,7 +192,7 @@ test('smoke: diamond currency changes are server-transactional and idempotent', 
     assert.match(cloud, /profile: \{ \.\.\.profile, diamonds: nextBalance \}/);
     assert.match(save, /_changeDiamondsFn = _functions\.httpsCallable\('changeDiamonds'\)/);
     assert.match(save, /_diamondQueue/);
-    assert.match(level, /SaveSystem\.changeDiamonds\(amount\)/);
+    assert.match(level, /SaveSystem\.changeDiamonds\(rewardLevel\)/);
     assert.match(cloud, /out\.diamonds = clampNum\(prev\.diamonds/);
 });
 
