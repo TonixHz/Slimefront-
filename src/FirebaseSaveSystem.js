@@ -117,10 +117,13 @@ const SaveSystem = {
     changeDiamonds(delta) {
         delta = Math.trunc(Number(delta));
         if (!Number.isSafeInteger(delta) || delta === 0) return Promise.resolve(false);
+        // Never attach guest rewards (or another account's pending rewards) to
+        // whichever account happens to log in later. Only queue for the active UID.
+        if (!this._uid) return Promise.resolve(false);
         const operationId = (typeof crypto !== 'undefined' && crypto.randomUUID)
             ? crypto.randomUUID().replace(/-/g, '')
             : ('op' + Date.now().toString(36) + Math.random().toString(36).slice(2, 18));
-        this._diamondQueue.push({ operationId, delta });
+        this._diamondQueue.push({ operationId, delta, uid: this._uid });
         this._saveDiamondQueue();
         return this._flushDiamondQueue();
     },
@@ -129,8 +132,13 @@ const SaveSystem = {
         try {
             const raw = localStorage.getItem(_DIAMOND_QUEUE_KEY);
             const parsed = raw ? JSON.parse(raw) : [];
+            // Legacy entries have no owner UID and are intentionally discarded:
+            // their original account cannot be established safely.
             this._diamondQueue = Array.isArray(parsed) ? parsed.filter(op =>
-                op && typeof op.operationId === 'string' && Number.isSafeInteger(op.delta)) : [];
+                op && typeof op.operationId === 'string' &&
+                typeof op.uid === 'string' && op.uid.length > 0 &&
+                Number.isSafeInteger(op.delta)) : [];
+            this._saveDiamondQueue();
         } catch (e) { this._diamondQueue = []; }
     },
 
@@ -144,12 +152,23 @@ const SaveSystem = {
         this._diamondQueuePromise = (async () => {
             while (this._uid && this._diamondQueue.length &&
                 !(typeof navigator !== 'undefined' && navigator.onLine === false)) {
-                const operation = this._diamondQueue[0];
+                const uid = this._uid;
+                // Skip operations belonging to other accounts instead of letting
+                // one stale queue entry block the active account forever.
+                const index = this._diamondQueue.findIndex(op => op.uid === uid);
+                if (index === -1) break;
+                const operation = this._diamondQueue[index];
                 try {
-                    const response = await _changeDiamondsFn(operation);
+                    const response = await _changeDiamondsFn({
+                        operationId: operation.operationId,
+                        delta: operation.delta
+                    });
                     const balance = Number(response && response.data && response.data.balance);
                     if (!Number.isFinite(balance)) throw new Error('El servidor no devolvió el saldo.');
-                    this._diamondQueue.shift();
+                    // Auth may have changed while the request was in flight. Keep
+                    // the item queued; retrying is safe because operationId is idempotent.
+                    if (this._uid !== uid) return false;
+                    this._diamondQueue.splice(index, 1);
                     this._saveDiamondQueue();
                     const profile = this.get('profile', {});
                     profile.diamonds = balance;
