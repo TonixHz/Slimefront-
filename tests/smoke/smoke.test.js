@@ -210,3 +210,10 @@ test('smoke: queued diamond rewards are bound to the account that earned them', 
     assert.match(save, /if \(this\._uid !== uid\) return false/,
         'an account switch during a request must not mutate the new account balance');
 });
+
+
+test('smoke: resetting one account preserves other accounts’ queued diamond operations', () => {
+    const save = fs.readFileSync(path.join(ROOT, 'src', 'FirebaseSaveSystem.js'), 'utf8');
+    assert.match(save, /const clearingUid = this\._uid/);
+    assert.match(save, /this\._diamondQueue = clearingUid[\s\S]*?this\._diamondQueue\.filter\(op => op\.uid !== clearingUid\)/);
+});
