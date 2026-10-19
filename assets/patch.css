@@ -76,3 +76,143 @@ body.colorblind-mode {
     padding: 6px 14px; font-size: 15px; cursor: pointer; min-width: 90px; text-align: center;
 }
 .keybind-row .keybind-key.listening { border-color: #2ecc71; color: #2ecc71; animation: pulse 0.8s infinite; }
+
+
+/* ==========================================================================
+   SLIMEFRONT // PIXEL HUD PASS — lobby, opciones y novedades
+   ========================================================================== */
+:root {
+    --lf-pixel-green: #68f58b;
+    --lf-pixel-bg: #080d12;
+    --lf-pixel-panel: rgba(8, 16, 22, .96);
+    --lf-pixel-border: #365064;
+}
+.lobby-screen-v2 {
+    gap: 18px !important;
+    padding: clamp(14px, 2.2vw, 30px) !important;
+    background: linear-gradient(90deg, rgba(3,8,13,.94), rgba(3,8,13,.48) 53%, rgba(3,8,13,.88));
+}
+.lobby-logo-title, .menu-title {
+    font-family: 'Press Start 2P', monospace !important;
+    font-size: clamp(24px, 3.4vw, 42px) !important;
+    letter-spacing: 0 !important;
+    line-height: 1.5 !important;
+    color: var(--lf-pixel-green) !important;
+    text-shadow: 4px 4px 0 #142b22, 6px 6px 0 #000 !important;
+}
+.lobby-logo-eyebrow, .panel-eyebrow {
+    font-family: 'Press Start 2P', monospace !important;
+    font-size: 8px !important;
+    line-height: 1.8;
+    letter-spacing: .5px !important;
+}
+.lobby-logo-sub { font-size: 15px !important; color: #9eafbc !important; }
+.nav-card, .quickbar-btn, .glass-panel, .menu-panel, .option-btn, .menu-btn,
+.settings-group, .novedades-panel {
+    border-radius: 0 !important;
+}
+.nav-card, .quickbar-btn {
+    border: 2px solid var(--lf-pixel-border) !important;
+    box-shadow: 4px 4px 0 #020406 !important;
+    background: rgba(8, 17, 25, .94) !important;
+}
+.nav-card-primary { background: rgba(16, 54, 35, .96) !important; border-color: #4acb73 !important; }
+.nav-card:hover, .quickbar-btn:hover {
+    transform: translate(-2px,-2px) !important;
+    box-shadow: 6px 6px 0 #020406 !important;
+}
+.nav-card-icon, .pixel-avatar {
+    border-radius: 0 !important;
+    image-rendering: pixelated;
+    box-shadow: 3px 3px 0 #020406 !important;
+}
+.glass-panel {
+    background: var(--lf-pixel-panel) !important;
+    border: 2px solid var(--lf-pixel-border) !important;
+    box-shadow: 4px 4px 0 rgba(0,0,0,.72) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 14px !important;
+}
+.glass-panel:hover { transform: none !important; border-color: #54778e !important; }
+.panel-eyebrow { color: #f2ce68 !important; }
+.panel-eyebrow::before { animation: none !important; }
+.lf-stat-row { border-bottom: 1px dashed #263c4b !important; }
+.lf-stat-row span:last-child { color: var(--lf-pixel-green) !important; }
+.news-entry {
+    appearance: none; width: 100%; color: inherit; text-align: left;
+    cursor: pointer; display: flex; flex-direction: column; gap: 5px;
+    font-family: 'Teko', sans-serif; transition: border-color .12s, transform .12s;
+}
+.news-entry:hover, .news-entry:focus-visible { border-color: var(--lf-pixel-green) !important; outline: none; }
+.news-entry .panel-title { display: block; margin: 0; font-family: 'Press Start 2P', monospace; font-size: 14px !important; line-height: 1.8; color: #f4f8fa; }
+.news-arrow { color: var(--lf-pixel-green); }
+.news-entry-copy { font-size: 16px; line-height: 1.35; color: #a9bac6; }
+.news-entry-hint { margin-top: 7px; color: var(--lf-pixel-green); font: 8px/1.8 'Press Start 2P', monospace; }
+.menu-screen { background: rgba(2, 6, 10, .88) !important; backdrop-filter: blur(3px); }
+.menu-panel {
+    background: #0a1118 !important;
+    border: 2px solid #365064 !important;
+    box-shadow: 6px 6px 0 #020406, inset 0 0 0 2px #101e28 !important;
+    max-height: min(88vh, 900px);
+    overflow-y: auto;
+}
+.menu-panel .menu-title { font-size: clamp(18px, 2.4vw, 28px) !important; margin-bottom: 20px !important; }
+.menu-btn, .option-btn {
+    border: 2px solid #365064 !important;
+    border-radius: 0 !important;
+    box-shadow: 3px 3px 0 #020406 !important;
+    font-family: 'Press Start 2P', monospace !important;
+    font-size: 9px !important;
+    line-height: 1.8 !important;
+    padding: 12px 14px !important;
+    min-height: 42px;
+}
+.menu-btn.primary, .option-btn.active {
+    background: #17482d !important; border-color: #68f58b !important; color: #d8ffe2 !important;
+}
+.menu-btn.danger { border-color: #854747 !important; }
+.settings-group {
+    padding: 12px !important; margin: 12px 0 !important;
+    border: 1px solid #2c4353 !important; background: #0d1720 !important;
+}
+.settings-label { color: #68f58b !important; font-family: 'Press Start 2P', monospace !important; font-size: 9px !important; line-height: 1.8; }
+.settings-hint { color: #9eafbc !important; font-size: 15px !important; }
+.settings-options { gap: 8px !important; flex-wrap: wrap; }
+.settings-options .option-btn { flex: 1 1 100px; }
+input[type="range"] { accent-color: #68f58b; }
+input[type="checkbox"] { accent-color: #68f58b; }
+.novedades-overlay { z-index: 180 !important; }
+.novedades-panel {
+    box-sizing: border-box; width: min(560px, calc(100vw - 28px));
+    max-height: 88vh; overflow-y: auto; padding: clamp(18px, 4vw, 34px);
+    color: #e9f2f7; background: #08121a;
+    border: 3px solid #4a6c7d; box-shadow: 7px 7px 0 #020406, inset 0 0 0 3px #142530;
+}
+.novedades-topline { color: #f2ce68; font: 8px/1.8 'Press Start 2P', monospace; letter-spacing: .5px; }
+.novedades-panel h2 { margin: 18px 0; color: var(--lf-pixel-green); font: clamp(16px, 3vw, 24px)/1.7 'Press Start 2P', monospace; text-shadow: 3px 3px #142b22; }
+.novedades-divider { height: 3px; background: repeating-linear-gradient(90deg, #4a6c7d 0 12px, transparent 12px 17px); }
+.novedades-empty { text-align: center; padding: clamp(28px, 7vw, 56px) 8px; }
+.novedades-empty-icon { color: #365064; font: 44px/1 'Press Start 2P', monospace; margin-bottom: 22px; }
+.novedades-empty h3 { color: #f2ce68; font: 10px/1.9 'Press Start 2P', monospace; }
+.novedades-empty p { color: #dce8ed; font-size: 21px; margin: 12px 0 8px; }
+.novedades-empty span { color: #8fa4b1; font-size: 16px; line-height: 1.5; display: block; }
+.novedades-panel > .menu-btn { width: 100%; }
+@media (max-width: 700px) {
+    .lobby-screen-v2 { padding: 12px !important; gap: 12px !important; }
+    .lobby-logo-title { font-size: clamp(20px, 7vw, 30px) !important; }
+    .lobby-logo-eyebrow { font-size: 7px !important; }
+    .lobby-nav { gap: 8px !important; }
+    .nav-card { padding: 10px !important; gap: 10px !important; }
+    .nav-card-icon { width: 36px !important; height: 36px !important; font-size: 18px !important; }
+    .nav-card-title { font-size: 20px !important; }
+    .nav-card-sub { font-size: 12px !important; }
+    .lobby-right { flex-direction: column !important; overflow: visible !important; }
+    .lobby-bottombar { flex-wrap: wrap; gap: 7px !important; }
+    .quickbar-btn { padding: 8px 10px !important; font-size: 15px !important; }
+    .menu-panel { width: calc(100vw - 28px) !important; padding: 18px !important; box-sizing: border-box; }
+    .menu-btn, .option-btn { font-size: 8px !important; padding: 10px 8px !important; overflow-wrap: anywhere; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .nav-card, .glass-panel, .quickbar-btn, .menu-btn { animation: none !important; transition: none !important; }
+}
