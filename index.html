@@ -1,364 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="SLIMEFRONT v0.9 - Juego de defensa contra olas de zombies slime. Dispara, mejora, sobrevive. ¿Hasta qué ola llegas?">
-    <meta name="theme-color" content="#050505">
-    <meta name="apple-mobile-web-app-capable" content="no">
-    <meta property="og:title" content="SLIMEFRONT">
-    <meta property="og:description" content="Un juego de acción en tiempo real. Defiéndete contra olas infinitas de slimes mutantes.">
-    <meta property="og:type" content="website">
-    <title>SLIMEFRONT v0.9</title>
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%232ecc71'/><text x='16' y='20' font-size='20' font-weight='bold' text-anchor='middle' fill='%23050505'>S</text></svg>">
-    <link rel="stylesheet" href="assets/style.css">
-    <link rel="stylesheet" href="assets/patch.css">
-    <style>
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #050505; display: flex; align-items: center; justify-content: center; z-index: 200; flex-direction: column; }
-        .loading-content { text-align: center; color: #2ecc71; }
-        .loading-content h1 { font-size: 60px; margin: 0; font-family: 'Teko', sans-serif; letter-spacing: 3px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); animation: breathe 2s infinite ease-in-out; }
-        .loading-content small { display: block; margin-top: 30px; color: #888; font-size: 12px; }
-        #boot-progress-container { width: 320px; margin: 30px auto 0; }
-        #boot-progress-bar { width: 100%; height: 10px; background: rgba(255,255,255,0.08); border: 1px solid #333; border-radius: 6px; overflow: hidden; }
-        #boot-progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #2ecc71, #27ae60); transition: width 0.25s ease-out; }
-        #boot-progress-pct { margin-top: 6px; font-size: 16px; color: #2ecc71; letter-spacing: 1px; }
-        #boot-progress-label { font-size: 18px; color: #ccc; margin-top: 14px; letter-spacing: 1px; min-height: 22px; }
-    </style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#101a2b"><title>Slimefront — Web MVP</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101a2b;color:#edf5ff;touch-action:none}#wrap{height:100dvh;display:flex;flex-direction:column}header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;background:#17243a;border-bottom:1px solid #2d4260;font-size:13px}header strong{letter-spacing:1.5px;color:#8be9ff}#stats{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.stat{white-space:nowrap;color:#dce8fa}.stat b{color:#fff}#game{display:block;flex:1;min-height:0;width:100%;background:#172c2c;touch-action:none}#overlay{position:fixed;inset:0;display:grid;place-items:center;background:#08111dcc;padding:20px;z-index:5}#panel{max-width:440px;width:100%;background:#17243a;border:1px solid #395372;border-radius:18px;padding:24px;text-align:center;box-shadow:0 15px 60px #0008}h1{margin:0 0 8px;font-size:clamp(27px,7vw,40px);letter-spacing:2px}h1 span{color:#79e7ff}p{color:#b9cbe1;line-height:1.5;font-size:14px}button{border:0;border-radius:11px;padding:12px 18px;background:#79e7ff;color:#071522;font-weight:800;font-size:15px;cursor:pointer}#controls{position:fixed;inset:auto 0 12px;display:none;justify-content:space-between;padding:0 22px;pointer-events:none;z-index:3} .pad{width:112px;height:112px;border:2px solid #ffffff55;border-radius:50%;background:#ffffff12;position:relative;pointer-events:auto;touch-action:none}.nub{position:absolute;width:42px;height:42px;left:33px;top:33px;border-radius:50%;background:#d9f8ff99;border:1px solid #fff8}#fire{pointer-events:auto;align-self:center;border-radius:50%;width:78px;height:78px;background:#ff8a70;color:#27100c;border:2px solid #ffffff66;touch-action:none}#hint{position:fixed;bottom:7px;left:50%;transform:translateX(-50%);font-size:11px;color:#ffffff99;pointer-events:none;white-space:nowrap}@media(pointer:coarse){#controls{display:flex}#hint{bottom:132px}}@media(max-width:500px){header{padding:7px 9px;font-size:11px}#stats{gap:6px}}
+</style>
 </head>
-<body>
-    <!-- PANTALLA DE CARGA -->
-    <div id="loading-screen">
-        <div class="loading-content">
-            <h1>SLIMEFRONT</h1>
-            <div id="boot-progress-container">
-                <div id="boot-progress-bar"><div id="boot-progress-fill"></div></div>
-                <div id="boot-progress-pct">0%</div>
-            </div>
-            <p id="boot-progress-label">Iniciando...</p>
-            <small>v0.9 • PC Only • Optimizado para Chrome/Firefox</small>
-        </div>
-    </div>
-
-    <div id="login-screen" class="menu-screen" style="display:none;">
-        <div class="menu-panel">
-            <h1 class="menu-title">SLIMEFRONT</h1>
-            <p class="menu-subtitle">Inicia sesión para guardar tu progreso</p>
-            <button class="menu-btn primary" id="login-google-btn">🔑 CONTINUAR CON GOOGLE</button>
-            <button class="menu-btn" id="login-guest-btn">👤 CONTINUAR COMO INVITADO</button>
-            <p style="font-size:12px;color:#777;margin-top:16px;line-height:1.5;">
-                Al continuar aceptás nuestros
-                <a href="legal/terms-of-service.html" target="_blank" rel="noopener" style="color:#3498db;">Términos de Servicio</a>
-                y nuestra
-                <a href="legal/privacy-policy.html" target="_blank" rel="noopener" style="color:#3498db;">Política de Privacidad</a>.
-            </p>
-        </div>
-    </div>
-
-    <div id="clickstart-screen" class="menu-screen" style="display:none;">
-        <div class="menu-panel">
-            <h1 class="menu-title">SLIMEFRONT</h1>
-            <p class="menu-subtitle" style="animation: pulse 1.2s infinite;">▶ CLICK PARA EMPEZAR ◀</p>
-        </div>
-    </div>
-
-    <div id="vignette"></div>
-    <div id="damage-overlay"></div>
-    <div id="event-alert" class="event-alert">
-        <div class="event-alert-title"></div>
-        <div class="event-alert-subtitle">PREPÁRATE...</div>
-    </div>
-    <div id="event-badge" class="hud-box" style="display:none; position:absolute; top:20px; right:20px; border-left-color:#8e44ad; z-index:11;"></div>
-    <div id="levelup-toast" class="levelup-toast"></div>
-    <div id="achievement-toast" class="achv-toast"></div>
-    <div id="lobby-toast" class="achv-toast" style="top:220px;"></div>
-
-    <!-- #ui-layer arranca oculto: solo tiene sentido mientras hay una partida en curso.
-         game.init() lo muestra; goToMainMenu() (ui.js) lo vuelve a ocultar. -->
-    <div id="ui-layer" style="display:none;">
-        <div class="stats-top">
-            <div class="hud-box">
-                <div id="health-container">
-                    <div id="health-inner"></div>
-                    <span id="health-text">100 / 100</span>
-                </div>
-            </div>
-            <div class="hud-box level-box">
-                <div id="level-display" class="hud-text">NIVEL 1</div>
-                <div id="xp-container"><div id="xp-inner"></div></div>
-            </div>
-            <div class="hud-box stats-info">
-                <div class="hud-text" id="money-display">CASH: $0</div>
-                <div class="hud-text wave-text" id="wave-display">WAVE: 1</div>
-            </div>
-            <div class="hud-box ammo-box">
-                <div id="ammo-icon">🔫</div>
-                <div id="ammo-hud">--</div>
-            </div>
-        </div>
-
-        <div id="shop-menu">
-            <div class="shop-header">
-                <h2>🚁 REABASTECIMIENTO TÁCTICO</h2>
-                <p>Asegura tu equipo antes de la siguiente oleada</p>
-            </div>
-            <div class="shop-grid" id="shop-items"></div>
-            <div class="shop-actions">
-                <button class="shop-btn heal-btn" onclick="game.buyHealth()">💉 SANAR SLIME ($200)</button>
-                <button class="shop-btn ammo-btn" onclick="game.buyAmmo()">📦 MUNICIÓN FULL ($150)</button>
-            </div>
-            <button class="depart-btn" onclick="game.startNextWave()">⚠️ DESPLEGAR ⚠️</button>
-        </div>
-
-        <div id="hotbar"></div>
-    </div>
-
-    <!-- LOBBY — el contenido de las 3 zonas + barra inferior lo arma main.js
-         (game.buildLobby / game.refreshLobbyPanels), así puede leer datos en
-         vivo de PlayerProfile / Settings / AchievementManager cada vez que se
-         vuelve a mostrar. El fondo es transparente a propósito: el canvas del
-         juego se ve detrás, dibujando la escena viva (ver lobbyscene.js). -->
-    <div id="lobby-screen" class="lobby-screen-v2" style="display:none;"></div>
-
-    <div id="esc-menu" class="menu-screen" style="display:none;">
-        <div class="menu-panel">
-            <h1 class="menu-title">PAUSA</h1>
-            <button class="menu-btn primary" onclick="game.closeEscMenu()">CONTINUAR</button>
-            <button class="menu-btn" onclick="game.openSettings('esc')">AJUSTES</button>
-            <button class="menu-btn danger" onclick="game.goToMainMenu()">VOLVER AL MENÚ</button>
-        </div>
-    </div>
-
-    <div id="gameover-screen" class="menu-screen" style="display:none;">
-        <div class="menu-panel">
-            <h1 class="menu-title">MISIÓN FALLIDA</h1>
-            <div class="gameover-stats">
-                <div class="hud-text">OLEADAS SOBREVIVIDAS: <span id="go-waves">0</span></div>
-                <div class="hud-text">TIEMPO SOBREVIVIDO: <span id="go-time">00:00</span></div>
-                <div class="hud-text" id="go-record" style="color:#f1c40f;"></div>
-            </div>
-            <button class="menu-btn primary" onclick="game.playAgain()">🔁 JUGAR DE NUEVO</button>
-            <button class="menu-btn" onclick="game.goToMainMenu()">🏠 VOLVER AL MENÚ</button>
-        </div>
-    </div>
-
-    <div id="settings-panel" class="menu-screen" style="display:none;">
-        <div class="menu-panel">
-            <h1 class="menu-title">AJUSTES</h1>
-
-            <div class="settings-group">
-                <label class="settings-label">Gráficos</label>
-                <div class="settings-options" id="graphics-options">
-                    <button class="option-btn" data-value="LOW" onclick="game.setGraphics('LOW')">BAJO</button>
-                    <button class="option-btn" data-value="MEDIUM" onclick="game.setGraphics('MEDIUM')">MEDIO</button>
-                    <button class="option-btn" data-value="PRO" onclick="game.setGraphics('PRO')">PRO</button>
-                    <button class="option-btn" data-value="ULTRA" onclick="game.setGraphics('ULTRA')">ULTRA</button>
-                </div>
-                <p class="settings-hint" id="graphics-hint"></p>
-            </div>
-
-            <div class="settings-group">
-                <label class="settings-label">Volumen de efectos (<span id="sfx-vol-value">100</span>)</label>
-                <input type="range" min="0" max="100" id="sfx-vol-slider" oninput="game.setSfxVolume(this.value)">
-            </div>
-
-            <div class="settings-group">
-                <label class="settings-label">Volumen de música (<span id="music-vol-value">100</span>)</label>
-                <input type="range" min="0" max="100" id="music-vol-slider" oninput="game.setMusicVolume(this.value)">
-            </div>
-
-            <div class="settings-group">
-                <label class="settings-label">Accesibilidad</label>
-                <button class="menu-btn" onclick="game.openKeybindPanel()">⌨️ Reconfigurar controles</button>
-                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:16px; color:#ccc;">
-                    <input type="checkbox" id="colorblind-toggle" onchange="game.toggleColorblindMode(this.checked)">
-                    Modo daltónico (filtro de color asistido)
-                </label>
-                <p class="settings-hint">El juego también admite mando/gamepad de forma automática si hay uno conectado.</p>
-            </div>
-
-            <div class="settings-group">
-                <label class="settings-label">Privacidad y estadísticas</label>
-                <p class="settings-hint" id="consent-current-status" style="color:#ccc;">Cargando...</p>
-                <button class="menu-btn" onclick="game.reconsiderConsent()">🔎 Gestionar consentimiento de estadísticas</button>
-            </div>
-
-            <div class="settings-group">
-                <label class="settings-label">Cuenta</label>
-                <button class="menu-btn" onclick="game.openLogoutConfirm()">🚪 CERRAR SESIÓN</button>
-                <button class="menu-btn danger" onclick="game.openDeleteConfirm()">🗑️ BORRAR PROGRESO</button>
-            </div>
-
-            <div class="legal-links-row">
-                <a href="legal/privacy-policy.html" target="_blank" rel="noopener">Privacidad</a>
-                <a href="legal/terms-of-service.html" target="_blank" rel="noopener">Términos</a>
-                <a href="legal/data-deletion.html" target="_blank" rel="noopener">Borrar mis datos</a>
-            </div>
-
-            <button class="menu-btn primary" onclick="game.closeSettings()">VOLVER</button>
-        </div>
-    </div>
-
-    <!-- Modal de reconfiguración de controles (ver game.openKeybindPanel en src/ui.js) -->
-    <div id="keybind-panel" class="menu-screen" style="display:none; z-index:120;"></div>
-
-    <div id="profile-screen" class="menu-screen" style="display:none;">
-        <div class="menu-panel profile-panel">
-            <h1 class="menu-title">PERFIL</h1>
-            <div class="profile-tabs">
-                <button class="option-btn active" id="tab-btn-stats" onclick="game.setProfileTab('stats')">ESTADÍSTICAS</button>
-                <button class="option-btn" id="tab-btn-achv" onclick="game.setProfileTab('achv')">LOGROS</button>
-            </div>
-
-            <div id="profile-tab-stats">
-                <div id="profile-stats" class="shop-grid"></div>
-                <h2 class="upgrades-title">MEJORAS PERMANENTES</h2>
-                <div id="upgrades-list" class="shop-grid"></div>
-            </div>
-
-            <div id="profile-tab-achv" style="display:none;">
-                <div class="achv-filters">
-                    <input type="text" id="achv-search" placeholder="Buscar logro..." oninput="game.renderAchievements()">
-                    <select id="achv-category-filter" onchange="game.renderAchievements()">
-                        <option value="ALL">Todas las categorías</option>
-                    </select>
-                    <select id="achv-status-filter" onchange="game.renderAchievements()">
-                        <option value="ALL">Todos</option>
-                        <option value="UNCLAIMED">Por reclamar</option>
-                        <option value="COMPLETED">Completados</option>
-                        <option value="LOCKED">Bloqueados</option>
-                    </select>
-                </div>
-                <div id="achv-summary"></div>
-                <div id="achv-list" class="achv-list"></div>
-            </div>
-
-            <button class="menu-btn primary" onclick="game.closeProfile()">VOLVER</button>
-        </div>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
-
-    <!-- MODAL DE CRÉDITOS (oculto por defecto) -->
-    <div id="credits-screen" class="menu-screen" style="display:none;">
-        <div class="menu-panel" style="max-height: 80vh; overflow-y: auto; width: 500px;">
-            <h1 class="menu-title">CRÉDITOS</h1>
-            <div style="text-align: left; font-size: 18px; color: #ccc; line-height: 1.8;">
-                <p style="color: #2ecc71; font-weight: bold; margin-bottom: 10px;">SLIMEFRONT v0.9</p>
-                <p>Juego de defensa en tiempo real</p>
-
-                <hr style="border-color: #333; margin: 20px 0;">
-
-                <p style="color: #f1c40f; font-weight: bold;">🎮 DESARROLLO</p>
-                <p>Código y Diseño</p>
-
-                <p style="color: #3498db; font-weight: bold; margin-top: 15px;">🎵 MÚSICA</p>
-                <p>Tetuano - Abyss<br>
-                Pufino - Metal Is Trash<br>
-                Pufino - Digital Mayham<br>
-                Zambolino - Imperator<br>
-                (freetouse.com)</p>
-
-                <p style="color: #9b59b6; font-weight: bold; margin-top: 15px;">🔊 EFECTOS DE SONIDO</p>
-                <p>Google Sounds<br>
-                Freesound.org<br>
-                Zapsplat.com</p>
-
-                <p style="color: #e67e22; font-weight: bold; margin-top: 15px;">🎨 TIPOGRAFÍA</p>
-                <p>Teko (Google Fonts)</p>
-
-                <hr style="border-color: #333; margin: 20px 0;">
-                <p style="color: #888; font-size: 14px; margin-top: 15px;">
-                    Gracias por jugar. <br>
-                    Feedback: usa el botón 👎 en el navegador.
-                </p>
-                <p style="margin-top:10px;">
-                    <a href="legal/privacy-policy.html" target="_blank" rel="noopener" style="color:#3498db;">Privacidad</a> ·
-                    <a href="legal/terms-of-service.html" target="_blank" rel="noopener" style="color:#3498db;">Términos</a> ·
-                    <a href="legal/data-deletion.html" target="_blank" rel="noopener" style="color:#3498db;">Borrar mis datos</a>
-                </p>
-            </div>
-            <button class="menu-btn primary" style="margin-top: 20px;" onclick="game.closeCredits()">VOLVER</button>
-        </div>
-    </div>
-
-<div id="controls-panel" class="menu-screen" style="display:none;"></div>
-
-<div id="confirm-logout-modal" class="menu-screen" style="display:none; z-index:110;">
-    <div class="menu-panel">
-        <h1 class="menu-title" style="font-size:36px;">CERRAR SESIÓN</h1>
-        <p class="menu-subtitle">¿Seguro que deseas cerrar sesión?</p>
-        <button class="menu-btn" onclick="game.closeLogoutConfirm()">CANCELAR</button>
-        <button class="menu-btn danger" onclick="game.confirmLogout()">CERRAR SESIÓN</button>
-    </div>
-</div>
-
-<div id="confirm-delete-modal" class="menu-screen" style="display:none; z-index:110;">
-    <div class="menu-panel">
-        <h1 class="menu-title" style="font-size:30px; color:#e74c3c;">⚠️ BORRAR PROGRESO</h1>
-        <p class="menu-subtitle" style="color:#e74c3c;">Esta acción eliminará permanentemente tu progreso local y en la nube.</p>
-        <button class="menu-btn" onclick="game.closeDeleteConfirm()">CANCELAR</button>
-        <button class="menu-btn danger" onclick="game.confirmDeleteProgress()">ELIMINAR PROGRESO</button>
-    </div>
-</div>
-
-<div id="confirm-exit-modal" class="menu-screen" style="display:none; z-index:110;">
-    <div class="menu-panel">
-        <h1 class="menu-title" style="font-size:36px;">SALIR</h1>
-        <p class="menu-subtitle">¿Seguro que deseas salir de SLIMEFRONT?</p>
-        <button class="menu-btn" onclick="game.closeExitConfirm()">CANCELAR</button>
-        <button class="menu-btn danger" onclick="game.confirmExit()">SALIR</button>
-    </div>
-</div>
-
-<!-- PANTALLA DE ERROR FATAL — la muestra game.showFatalError() (main.js) cuando
-     el game loop atrapa una excepción no controlada, en vez de dejar el canvas
-     congelado sin ninguna explicación. z-index alto (ver style.css) para quedar
-     por encima de cualquier otro modal que estuviera abierto en ese momento. -->
-<div id="fatal-error-screen" class="menu-screen" style="display:none;">
-    <div class="menu-panel">
-        <h1 class="menu-title" style="font-size:34px; color:#e74c3c;">⚠️ ERROR INESPERADO</h1>
-        <p class="menu-subtitle">SLIMEFRONT encontró un problema y no puede continuar de forma segura.</p>
-        <p id="fatal-error-message"></p>
-        <button class="menu-btn primary" onclick="location.reload()">🔁 RECARGAR JUEGO</button>
-    </div>
-</div>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
-
-<!-- Config de Firebase (DEV): build.js sustituye esta línea por
-     firebase-config.prod.js al generar dist/ para publicar. Ver build.js. -->
-<script src="firebase-config.js"></script>
-<script src="src/FirebaseSaveSystem.js"></script>
-
-<!-- Infraestructura transversal: debe cargarse ANTES de main.js, que ya
-     consulta TimerManager/KeyBindings/GamepadInput/I18N en su cuerpo. -->
-<script src="src/timers.js"></script>
-<script src="src/i18n.js"></script>
-<script src="src/i18n/es.js"></script>
-<script src="src/accessibility.js"></script>
-<script src="src/consent.js"></script>
-<script src="src/save-indicator.js"></script>
-
-<script src="src/main.js"></script>
-<script src="src/lobbyscene.js"></script>
-<script src="src/ui.js"></script>
-<script src="src/effects.js"></script>
-<script src="src/events.js"></script>
-<script src="src/world.js"></script>
-<script src="src/weapons.js"></script>
-<script src="src/player.js"></script>
-<script src="src/enemies.js"></script>
-<script src="src/xp-formula.js"></script>
-<script src="src/level.js"></script>
-<script src="src/progression.js"></script>
-<script src="src/achievements.js"></script>
-<script src="src/auth-ui.js"></script>
-<script src="src/boot.js"></script>
-</body>
-</html>
+<body><div id="wrap"><header><strong>SLIMEFRONT</strong><div id="stats"><span class="stat">VIDA <b id="hp">100</b></span><span class="stat">OLEADA <b id="wave">1</b></span><span class="stat">MONEDAS <b id="coins">0</b></span><span class="stat">BAJAS <b id="kills">0</b></span></div></header><canvas id="game" aria-label="Campo de juego Slimefront"></canvas></div>
+<div id="overlay"><div id="panel"><h1><span>SLIME</span>FRONT</h1><p>Sobreviví a las oleadas. Movete, apuntá y dispará. Esta es la base web limpia: sin cuentas, servidores ni instalaciones.</p><p><b>PC:</b> WASD o flechas para moverte · mouse para apuntar y disparar.<br><b>Móvil:</b> joystick izquierdo para moverte · botón derecho para disparar hacia los enemigos.</p><button id="start">JUGAR</button></div></div>
+<div id="controls"><div class="pad" id="movePad"><div class="nub"></div></div><button id="fire">FUEGO</button></div><div id="hint">ESQUIVÁ A LOS ENEMIGOS Y SOBREVIVÍ</div>
+<script>
+(()=>{'use strict';
+const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d',{alpha:false}),overlay=document.querySelector('#overlay');
+const ui={hp:document.querySelector('#hp'),wave:document.querySelector('#wave'),coins:document.querySelector('#coins'),kills:document.querySelector('#kills')};
+let W=0,H=0,last=0,active=false,raf=0,spawnClock=0,shotClock=0,mouse={x:0,y:0,down:false},keys={},joy={x:0,y:0},touchFire=false;
+let player,enemies,bullets,particles,wave,coins,kills;
+const rand=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function resize(){const r=canvas.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,1.5);W=Math.max(1,r.width);H=Math.max(1,r.height);canvas.width=Math.round(W*d);canvas.height=Math.round(H*d);ctx.setTransform(d,0,0,d,0,0);if(player){player.x=Math.min(W-22,Math.max(22,player.x));player.y=Math.min(H-22,Math.max(22,player.y));}draw();}
+function reset(){player={x:W/2,y:H/2,r:13,hp:100,speed:210,angle:0,inv:0};enemies=[];bullets=[];particles=[];wave=1;coins=0;kills=0;spawnClock=.3;shotClock=0;for(let i=0;i<4;i++)spawnEnemy();updateUI();}
+function start(){cancelAnimationFrame(raf);reset();active=true;overlay.style.display='none';last=performance.now();raf=requestAnimationFrame(loop);}
+function gameOver(){active=false;overlay.style.display='grid';document.querySelector('#panel').innerHTML='<h1>FIN DE <span>PARTIDA</span></h1><p>Llegaste a la oleada <b>'+wave+'</b>.<br>Bajas: <b>'+kills+'</b> · Monedas: <b>'+coins+'</b></p><button id="start">VOLVER A JUGAR</button>';document.querySelector('#start').addEventListener('click',start);}
+function spawnEnemy(){if(enemies.length>35)return;let side=Math.floor(Math.random()*4),x=side===0?0:side===1?W:rand(0,W),y=side===2?0:side===3?H:rand(0,H);if(Math.hypot(x-player.x,y-player.y)<Math.min(W,H)*.3){x=x<W/2?0:W;y=y<H/2?0:H;}const tank=wave%5===0&&enemies.length===0;enemies.push({x,y,r:tank?19:rand(10,14),hp:tank?7+wave:1+Math.floor(wave/5),speed:tank?34:rand(48,65)+Math.min(wave*1.8,45),tank,color:tank?'#ff625f':Math.random()<.25?'#655bce':'#64d68c',hit:0});}
+function updateUI(){ui.hp.textContent=Math.max(0,Math.ceil(player?.hp??100));ui.wave.textContent=wave;ui.coins.textContent=coins;ui.kills.textContent=kills;}
+function shoot(angle){const speed=470;bullets.push({x:player.x+Math.cos(angle)*18,y:player.y+Math.sin(angle)*18,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:4,life:.85});}
+function update(dt){if(!active)return;dt=Math.min(dt,.033);player.inv=Math.max(0,player.inv-dt);
+let dx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joy.x,dy=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+joy.y;let mag=Math.hypot(dx,dy);if(mag>1){dx/=mag;dy/=mag;}player.x=Math.max(player.r,Math.min(W-player.r,player.x+dx*player.speed*dt));player.y=Math.max(player.r,Math.min(H-player.r,player.y+dy*player.speed*dt));
+let target=null;if(mouse.down&&!('ontouchstart'in window)){player.angle=Math.atan2(mouse.y-player.y,mouse.x-player.x);}else{for(const e of enemies){if(!target||dist(e,player)<dist(target,player))target=e;}if(target)player.angle=Math.atan2(target.y-player.y,target.x-player.x);}
+shotClock-=dt;if((mouse.down||touchFire||keys.Space)&&shotClock<=0){if(enemies.length){if(mouse.down&&!('ontouchstart'in window))shoot(player.angle);else if(target)shoot(player.angle);}shotClock=.22;}
+spawnClock-=dt;if(spawnClock<=0){if(enemies.length===0){wave++;coins+=10;for(let i=0;i<Math.min(3+wave,9);i++)spawnEnemy();}else if(enemies.length<Math.min(3+wave*2,24)){spawnEnemy();}spawnClock=Math.max(.25,1.25-wave*.045);updateUI();}
+for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.life<=0||b.x<0||b.y<0||b.x>W||b.y>H){bullets.splice(i,1);continue;}let hit=false;for(let j=enemies.length-1;j>=0;j--){const e=enemies[j];if(Math.hypot(b.x-e.x,b.y-e.y)<e.r+b.r){e.hp--;e.hit=.09;bullets.splice(i,1);hit=true;if(e.hp<=0){enemies.splice(j,1);kills++;coins+=e.tank?10:2;for(let k=0;k<5;k++)particles.push({x:e.x,y:e.y,vx:rand(-70,70),vy:rand(-70,70),life:.3,color:e.color});updateUI();}break;}}if(hit)continue;}
+for(const e of enemies){e.hit=Math.max(0,e.hit-dt);const a=Math.atan2(player.y-e.y,player.x-e.x);e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt;if(dist(e,player)<e.r+player.r&&player.inv<=0){player.hp-=e.tank?18:9;player.inv=.55;updateUI();if(player.hp<=0){gameOver();return;}}}
+for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1);}
+}
+function draw(){if(!ctx||!W||!H)return;ctx.fillStyle='#1a302e';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#ffffff0b';ctx.lineWidth=1;for(let x=0;x<W;x+=36){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}for(let y=0;y<H;y+=36){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/.3);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
+for(const b of bullets){ctx.fillStyle='#ffeaa1';ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();}
+for(const e of enemies){ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(e.x,e.y+e.r*.65,e.r*1.1,e.r*.5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=e.hit?'#fff':e.color;ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#10201b';ctx.beginPath();ctx.arc(e.x-e.r*.3,e.y-e.r*.1,2,0,Math.PI*2);ctx.arc(e.x+e.r*.3,e.y-e.r*.1,2,0,Math.PI*2);ctx.fill();if(e.tank){ctx.fillStyle='#250e18';ctx.fillRect(e.x-18,e.y-e.r-9,36,4);ctx.fillStyle='#ff7a72';ctx.fillRect(e.x-18,e.y-e.r-9,36*Math.max(0,e.hp/(7+wave)),4);}}
+if(player){ctx.fillStyle=player.inv>0?'#d8ffff': '#51c9fa';ctx.beginPath();ctx.ellipse(player.x,player.y+5,player.r*1.15,player.r*.95,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#a8f0ff';ctx.beginPath();ctx.arc(player.x-3,player.y-3,player.r*.65,Math.PI,Math.PI*2);ctx.fill();ctx.strokeStyle='#d7fbff';ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(player.x+Math.cos(player.angle)*8,player.y+Math.sin(player.angle)*8);ctx.lineTo(player.x+Math.cos(player.angle)*22,player.y+Math.sin(player.angle)*22);ctx.stroke();ctx.lineCap='butt';}
+if(active){ctx.fillStyle='#ffffff12';ctx.fillRect(12,12,Math.min(170,W-24),5);ctx.fillStyle='#68e0a2';ctx.fillRect(12,12,Math.min(170,W-24)*Math.max(0,player.hp/100),5);}}
+function loop(t){if(!active)return;const dt=(t-last)/1000;last=t;update(dt);draw();if(active)raf=requestAnimationFrame(loop);}
+canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect();mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;});canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'){mouse.down=true;canvas.setPointerCapture(e.pointerId);}});window.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')mouse.down=false;});window.addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();});window.addEventListener('keyup',e=>keys[e.code]=false);
+const pad=document.querySelector('#movePad'),nub=pad.querySelector('.nub');let padId=null;function movePad(e){const r=pad.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let x=(e.clientX-cx)/(r.width*.34),y=(e.clientY-cy)/(r.height*.34),m=Math.hypot(x,y);if(m>1){x/=m;y/=m;}joy.x=x;joy.y=y;nub.style.transform='translate('+x*34+'px,'+y*34+'px)';}
+pad.addEventListener('pointerdown',e=>{padId=e.pointerId;pad.setPointerCapture(e.pointerId);movePad(e);});pad.addEventListener('pointermove',e=>{if(e.pointerId===padId)movePad(e);});function endPad(e){if(e.pointerId===padId){padId=null;joy.x=joy.y=0;nub.style.transform='';}}pad.addEventListener('pointerup',endPad);pad.addEventListener('pointercancel',endPad);
+const fire=document.querySelector('#fire');fire.addEventListener('pointerdown',e=>{e.preventDefault();touchFire=true;fire.setPointerCapture(e.pointerId);});fire.addEventListener('pointerup',()=>touchFire=false);fire.addEventListener('pointercancel',()=>touchFire=false);document.querySelector('#start').addEventListener('click',start);window.addEventListener('resize',resize);resize();
+})();
+</script></body></html>
