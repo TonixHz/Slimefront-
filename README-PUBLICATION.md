@@ -1,160 +1,31 @@
-# SLIMEFRONT — Preparación para publicación pública (itch.io)
+# Publicar SLIMEFRONT sin instalar nada en tu PC
 
-Este documento resume qué se hizo para cada uno de los 8 puntos pedidos,
-qué quedó completo, y qué queda como trabajo de seguimiento explícito (con
-su razón). Todo el código nuevo sigue el mismo estilo del proyecto original:
-scope global, monkey-patching entre archivos, comentarios largos explicando
-el "por qué".
+El juego se sirve directamente desde `index.html` y los archivos de `src/` y `assets/`. No hace falta compilarlo, generar `dist/`, instalar Node.js ni usar la terminal para publicarlo en GitHub Pages.
 
-## 1\. Cumplimiento legal ✅
+## Publicar o actualizar desde un iPhone
 
-* `legal/privacy-policy.html`, `legal/terms-of-service.html`,
-`legal/data-deletion.html` — contenido específico al juego real (Firebase
-Auth/Firestore/Analytics, qué colecciones existen, qué NO se recopila).
-* Enlazados desde: pantalla de login (`index.html`), pie del lobby
-(`game.buildLobby` en `src/main.js`), panel de Ajustes, y Créditos.
-* **Importante**: son un punto de partida técnicamente preciso, no un
-reemplazo de asesoría legal. Antes de publicar, revisalos con un abogado si
-vas a operar en jurisdicciones con requisitos específicos (GDPR/CCPA/LOPD),
-y completá los datos de contacto reales.
+1. Abrí el repositorio: https://github.com/TonixHz/Slimefront-
+2. Entrá en **Settings → Pages**.
+3. En **Build and deployment**, elegí **Deploy from a branch**.
+4. Elegí la rama **main** y la carpeta **/(root)**; guardá los cambios.
+5. Esperá a que GitHub Pages termine de publicar. La URL aparece en esa misma pantalla.
+6. Para actualizar el juego, editá los archivos desde GitHub en Safari y confirmá los cambios en `main`. Pages volverá a publicarlos automáticamente.
 
-## 2\. Consentimiento para Analytics ✅
+Si Pages ya está configurado, no hace falta repetir la configuración.
 
-* `src/consent.js` (`ConsentManager`): banner que aparece en el primer uso,
-recuerda la decisión (`localStorage.slime\_analytics\_consent`), y se puede
-reabrir desde Ajustes → Privacidad → "Gestionar consentimiento".
-* `src/FirebaseSaveSystem.js`: `firebase.analytics()` ya NO se llama al
-cargar la página. Se expone `window.\_\_initAnalyticsIfNeeded()`, invocada
-únicamente si hay consentimiento aceptado.
+## Qué se eliminó de la publicación web
 
-## 3\. Gestión centralizada de timers ✅ (parcial, documentado)
+- No hay un paso de `npm install`.
+- No hay que ejecutar `npm run build`.
+- No hay que generar ni subir una carpeta `dist/`.
+- No hace falta Firebase CLI para publicar los archivos estáticos en GitHub Pages.
 
-* `src/timers.js` (`TimerManager`): registro central de `setTimeout`/
-`setInterval`, con `TimerManager.clearAll()` llamado desde
-`game.goToMainMenu`, `game.playAgain` y el inicio de `game.init()`
-(`src/ui.js`, `src/main.js`).
-* Migrados a `TimerManager`: overlay de daño y recargas/ráfagas
-(`src/player.js`), rayo de la tormenta (`src/events.js`), toasts de logro
-y de nivel (`src/achievements.js`, `src/level.js`).
-* **Dejados fuera a propósito** (documentado en el código, no es un olvido):
-el debounce de sincronización de `FirebaseSaveSystem.js` (cancelarlo
-perdería el último guardado) y los fundidos de `MusicManager`
-(`src/effects.js`) — no referencian estado de partida, y cancelarlos en
-cada transición de menú cortaría la música de forma audible.
+## Importante sobre Firebase
 
-## 4\. Estado visible del guardado en la nube ✅
+La integración del juego con Firebase y sus archivos de configuración no se reemplazan por un servidor local. GitHub Pages solo aloja los archivos web; la autenticación y las funciones de nube siguen dependiendo de que el proyecto Firebase existente esté configurado y disponible. Para publicar el juego web no hay que desplegar Firebase de nuevo.
 
-* `src/save-indicator.js`: píldora discreta abajo a la izquierda, estados
-Guardando/Guardado/Sin conexión/Reintentando/Error, se autooculta tras
-"Guardado".
-* `src/FirebaseSaveSystem.js` dispara `document` → evento
-`savesystem:status` en cada transición real (incluye detección de
-`navigator.onLine`/eventos `online`/`offline`).
+## Antes de compartir públicamente
 
-## 5\. Internacionalización (i18n) ✅ (framework completo, migración parcial)
-
-* `src/i18n.js` (`I18N`) + `src/i18n/es.js`: diccionario centralizado,
-`I18N.t(key, vars)`, `data-i18n` / `applyDOM()` para HTML estático.
-* Migrado: menús principales, HUD (oleada/dinero/nivel), Ajustes, login,
-legal, consentimiento, estado de guardado.
-* **No migrado todavía (a propósito)**: nombres/descripciones de logros y
-mejoras (`src/achievements.js`, `src/progression.js`) y nombres de armas
-(`src/weapons.js`). Ya viven en objetos de configuración centralizados
-propios; el paso siguiente es mecánico (`desc: '...'` → `descKey: '...'`)
-pero se dejó afuera para no arriesgar el contenido/balance del juego en
-esta pasada. Agregar un idioma nuevo hoy ya no requiere tocar HTML/JS de
-UI, solo `src/i18n/<idioma>.js` + una línea en `index.html`.
-
-## 6\. Base de testing automatizado ✅
-
-* `npm test` → `node --test` (sin dependencias externas), 24 tests, todos
-verdes hoy mismo (corridos en este entorno).
-* `tests/unit/`: `xp-formula.test.js`, `i18n.test.js`, `timers.test.js`
-(lógica pura extraída, ver `src/xp-formula.js`).
-* `tests/smoke/smoke.test.js`: sintaxis válida en todo `src/\*.js`, orden de
-`<script>` correcto, elementos de DOM esperados presentes.
-* `tests/README.md` explica el alcance actual y el paso siguiente
-(Playwright para un boot test real de navegador, no agregado por requerir
-`npm install` con red).
-
-## \## 7. Build de producción ✅ (script listo; requiere `npm install` con red)
-
-## \- `build.js`: concatena `src/\*.js` en el mismo orden que `index.html`,
-
-## &#x20; minifica con esbuild y \*\*quita `console.\*`/`debugger`\*\*, genera
-
-## &#x20; `dist/index.html` apuntando a un único `dist/bundle.min.js`, copia
-
-## &#x20; `assets/`, `legal/`, `Sounds/` (si existe) y `firebase-config.js`.
-
-## \- Ya no existe separación dev/prod: hay una \*\*única\*\* `firebase-config.js`
-
-## &#x20; (proyecto `slimefront-f011e`) que se usa tanto en desarrollo como en el
-
-## &#x20; build publicado. \*\*Reemplazá el valor de `apiKey` en `firebase-config.js`
-
-## &#x20; por el real de tu proyecto Firebase antes de publicar\*\* — hoy tiene un
-
-## &#x20; placeholder.8. Accesibilidad ✅ (base funcional, no exhaustiva)
-
-* `src/accessibility.js`:
-
-  * `KeyBindings`: remapeo de teclas persistente (`localStorage`), UI en
-Ajustes → "⌨️ Reconfigurar controles" (`game.openKeybindPanel`,
-`src/ui.js`). `src/main.js` traduce la tecla física configurada al
-código por defecto que el resto del juego ya usa, así **no hizo falta
-tocar** `src/player.js` para que el remapeo funcione en el gameplay real.
-  * Modo daltónico: toggle en Ajustes, filtro CSS global
-(`assets/patch.css`) como primera etapa — no requiere tocar colores
-hardcodeados del HUD/canvas uno por uno.
-  * `GamepadInput`: soporte real (no solo stub) para un mando estándar
-(stick izquierdo = movimiento, stick derecho = apuntado relativo, botón
-A = dash, botón X = recargar, gatillo derecho = disparo), integrado en
-el loop principal (`src/main.js`).
-* **No incluido**: paletas específicas por tipo de daltonismo (solo el
-filtro genérico), remapeo de gamepad (botones fijos por ahora).
-
-## Estructura final del proyecto
-
-```
-index.html                 (desarrollo: <script> sueltos desde src/)
-firebase-config.dev.js     (config Firebase de desarrollo)
-firebase-config.prod.js    (config Firebase de producción — completar antes de publicar)
-build.js                   (genera dist/ para itch.io)
-package.json / package-lock.json
-firebase.json / firestore.rules
-functions/                 (Cloud Functions, sin cambios de contenido)
-assets/style.css           (sin cambios)
-assets/patch.css           (nuevo: consentimiento, indicador de guardado, legal, daltónico)
-legal/                     (nuevo: privacidad, términos, borrado de datos)
-src/                       (todo el código del juego, ver detalle abajo)
-tests/                     (nuevo: unit/ + smoke/, ver tests/README.md)
-```
-
-### Archivos nuevos en `src/`
-
-`timers.js`, `i18n.js`, `i18n/es.js`, `xp-formula.js`, `accessibility.js`,
-`consent.js`, `save-indicator.js`.
-
-### Archivos existentes modificados
-
-`FirebaseSaveSystem.js` (consentimiento + config dev/prod + estado de
-guardado), `main.js` (TimerManager/KeyBindings/GamepadInput/i18n),
-`ui.js` (TimerManager.clearAll, accesibilidad, privacidad),
-`player.js` / `events.js` / `achievements.js` / `level.js` (timers →
-TimerManager).
-
-### Archivos sin cambios de contenido (solo reubicados bajo `src/`)
-
-`lobbyscene.js`, `effects.js`, `world.js`, `weapons.js`, `enemies.js`,
-`progression.js`, `auth-ui.js`, `mobile.js`, `boot.js`.
-
-## Antes de publicar — checklist rápido
-
-1. Completá `firebase-config.prod.js` con los valores reales de tu proyecto
-Firebase de producción (hoy tiene placeholders).
-2. `npm install \&\& npm run build` → subí el contenido de `dist/` a itch.io.
-3. Completá los datos de contacto reales en las 3 páginas de `legal/`.
-4. Revisá los textos legales con criterio propio/asesoría legal si aplica.
-5. `npm test` antes de cada release.
-
+- Probá el enlace publicado en el dispositivo donde vayas a jugar.
+- Revisá los textos y datos de contacto de `legal/`.
+- Si el juego muestra un error de Firebase, eso es un problema de configuración/servicio de Firebase, no un requisito de compilación local.
