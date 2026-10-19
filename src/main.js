@@ -412,17 +412,12 @@ const game = {
                     <div id="lobby-profile-stats"></div>
                 </div>
 
-                <div class="glass-panel panel-news">
-                    <div class="panel-eyebrow">NOTICIAS</div>
-                    <div class="panel-title" style="font-size:20px;">Parche v0.9</div>
-                    <div id="lobby-news-list"></div>
-                </div>
-
-                <div class="glass-panel panel-daily">
-                    <div class="panel-eyebrow">DESAFÍO DIARIO</div>
-                    <div class="daily-goal" id="lobby-daily-goal">Cargando...</div>
-                    <div class="daily-reward" id="lobby-daily-reward"></div>
-                </div>
+                <button class="glass-panel panel-news news-entry" onclick="game.openNovedades()" aria-label="Abrir novedades">
+                    <span class="panel-eyebrow">CENTRO DE INFORMACIÓN</span>
+                    <span class="panel-title">NOVEDADES <span class="news-arrow">↗</span></span>
+                    <span class="news-entry-copy">Consultá acá los cambios y anuncios del juego.</span>
+                    <span class="news-entry-hint">[ ABRIR PANEL ]</span>
+                </button>
 
                 <div class="glass-panel panel-stats">
                     <div class="panel-eyebrow">ESTADÍSTICAS</div>
@@ -472,37 +467,7 @@ const game = {
             achvSub.innerText = `${done}/${defs.length} desbloqueados`;
         }
 
-        // --- Noticias (contenido estático del parche actual) ---
-        const newsList = document.getElementById('lobby-news-list');
-        if (newsList) {
-            const news = [
-                { title: 'Gracias a la banda de Kyu', date: 'v0.9' },
-                { title: 'ZKD Nino es mía', date: 'v0.9' },
-                { title: 'Rojuu te amo', date: 'v0.9' }
-            ];
-            newsList.innerHTML = news.map(n => `
-                <div class="news-item">
-                    <div class="news-item-title">${n.title}</div>
-                    <div class="news-item-date">${n.date}</div>
-                </div>
-            `).join('');
-        }
-
-        // --- Desafío diario (rota una vez por día, determinista por fecha) ---
-        const goalEl = document.getElementById('lobby-daily-goal');
-        const rewardEl = document.getElementById('lobby-daily-reward');
-        if (goalEl) {
-            const goals = [
-                'Sobrevive 10 oleadas usando solo armas cuerpo a cuerpo.',
-                'Elimina 150 slimes sin usar el dash.',
-                'Llega a la oleada 8 sin comprar munición en la tienda.',
-                'Derrota a un jefe con la escopeta recortada.',
-                'Completa una oleada entera durante un evento dinámico.'
-            ];
-            const dayIndex = Math.floor(Date.now() / 86400000) % goals.length;
-            goalEl.innerText = goals[dayIndex];
-            if (rewardEl) rewardEl.innerText = '🎁 Recompensa informativa — sin seguimiento automático todavía';
-        }
+        // Las novedades se muestran únicamente cuando el jugador abre el panel.
 
         // --- Estadísticas ---
         const statsList = document.getElementById('lobby-stats-list');
@@ -523,6 +488,39 @@ const game = {
     openAchievementsFromLobby() {
         this.openProfile();
         this.setProfileTab('achv');
+    },
+
+    openNovedades() {
+        let panel = document.getElementById('novedades-modal');
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = 'novedades-modal';
+            panel.className = 'menu-screen novedades-overlay';
+            panel.style.display = 'none';
+            panel.innerHTML = `
+                <section class="novedades-panel" role="dialog" aria-modal="true" aria-labelledby="novedades-title">
+                    <div class="novedades-topline">SLIMEFRONT // COMUNICADOS</div>
+                    <h2 id="novedades-title">NOVEDADES</h2>
+                    <div class="novedades-divider"></div>
+                    <div class="novedades-empty">
+                        <div class="novedades-empty-icon">▧</div>
+                        <h3>TRANSMISIÓN VACÍA</h3>
+                        <p>No hay novedades por ahora.</p>
+                        <span>Volvé más adelante para ver anuncios y cambios del juego.</span>
+                    </div>
+                    <button class="menu-btn primary" onclick="game.closeNovedades()">VOLVER AL LOBBY</button>
+                </section>`;
+            document.body.appendChild(panel);
+            panel.addEventListener('click', event => {
+                if (event.target === panel) this.closeNovedades();
+            });
+        }
+        panel.style.display = 'flex';
+    },
+
+    closeNovedades() {
+        const panel = document.getElementById('novedades-modal');
+        if (panel) panel.style.display = 'none';
     },
 
     // ---- Barra inferior: Tienda / Colección / Taller (aún no implementados
