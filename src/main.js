@@ -181,6 +181,15 @@ const game = {
         }
 
         this.camera.follow(this.player);
+        // En pantallas táctiles mostramos más terreno para compensar el espacio ocupado por los controles.
+        // El zoom solo afecta al mundo: el HUD queda al tamaño normal de pantalla.
+        const mobileLandscape = window.matchMedia('(pointer: coarse) and (orientation: landscape)').matches;
+        const mobilePortrait = window.matchMedia('(pointer: coarse) and (orientation: portrait)').matches;
+        const worldZoom = mobileLandscape ? 0.58 : (mobilePortrait ? 0.72 : 1);
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.scale(worldZoom, worldZoom);
+        ctx.translate(-canvas.width / 2, -canvas.height / 2);
         // Tiempo Lento: si el evento está activo, solo la mitad de los frames ejecutan lógica de juego
         this._slowToggle = !this._slowToggle;
         const doStep = this.activeEvent !== 'SLOW_TIME' || this._slowToggle;
@@ -191,8 +200,11 @@ const game = {
         for(let i=0; i<this.enemies.length; i++) {
             this.enemies[i]._dist = Math.hypot(this.enemies[i].x - this.player.x, this.enemies[i].y - this.player.y);
         }
-        // Escala global de partículas: baja automáticamente con muchas entidades activas para sostener el framerate
-        this.particleScale = this.enemies.length > 150 ? 0.35 : (this.enemies.length > 80 ? 0.6 : 1);
+        // Limita partículas en móviles para reducir picos de rendimiento al disparar o hacer dash.
+        const entityParticleScale = this.enemies.length > 150 ? 0.35 : (this.enemies.length > 80 ? 0.6 : 1);
+        this.particleScale = window.matchMedia('(pointer: coarse)').matches
+            ? Math.min(entityParticleScale, 0.6)
+            : entityParticleScale;
         // Modo "cacería final": quedan pocos enemigos, se desactiva el sueño de IA y el
 // frame-skipping para que ninguno quede ignorando al jugador lejos del mapa.
 	this.lowEnemyMode = this.enemies.length > 0 && this.enemies.length < LOW_ENEMY_THRESHOLD;
@@ -300,6 +312,7 @@ const game = {
         // Partículas y Textos
         this.particles.forEach(p => { if(p.active) { p.update(); p.draw(this.camera); } });
         this.floatingTexts.forEach(t => { if(t.active) { t.update(); t.draw(this.camera); } });
+        ctx.restore(); // El HUD y los overlays quedan sin zoom.
 
         // Tinte ambiental atardecer: puramente cosmético (no aporta información de juego),
         // se apaga en ULTRA para ahorrarse un fillRect de pantalla completa por frame.
