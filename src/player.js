@@ -99,7 +99,10 @@ class Player {
         let vx = 0, vy = 0;
         if(this.isDashing) {
             vx = this.dashDirX * 18; vy = this.dashDirY * 18;
-            if(Math.random() > 0.3) game.spawnTrail(this.x, this.y, this.radius * 0.9);
+            // En móviles alterna el rastro del dash para reducir carga gráfica.
+            if (Math.random() > 0.3 && (!window.matchMedia('(pointer: coarse)').matches || game._frameCount % 2 === 0)) {
+                game.spawnTrail(this.x, this.y, this.radius * 0.9);
+            }
             this.dashTimer--;
             if(this.dashTimer <= 0) this.isDashing = false;
         } else {
