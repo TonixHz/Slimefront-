@@ -59,7 +59,8 @@ const SFX = {
 };
 
 const sfxPools = {};
-const SFX_POOL_SIZE = 14;
+// Menos canales de audio y precarga limitada en pantallas táctiles para reducir picos.
+const SFX_POOL_SIZE = window.matchMedia('(pointer: coarse)').matches ? 3 : 14;
 const _missingSfxWarned = new Set();
 
 function getSfxPool(key) {
@@ -71,17 +72,17 @@ function getSfxPool(key) {
         return null;
     }
     if (!sfxPools[key]) {
-        sfxPools[key] = Array.from({ length: SFX_POOL_SIZE }, () => {
+        sfxPools[key] = Array.from({ length: SFX_POOL_SIZE }, (_, index) => {
             const a = new Audio(SFX[key]);
             a.preservesPitch = false;
-            a.preload = 'auto';
+            a.preload = index === 0 ? 'auto' : 'none';
             a.onerror = () => {
                 if (!_missingSfxWarned.has(key)) {
                     console.warn(`[Audio] No se pudo cargar el sonido local: ${SFX[key]}`);
                     _missingSfxWarned.add(key);
                 }
             };
-            a.load();
+            if (index === 0) a.load();
             return a;
         });
         sfxPools[key].cursor = 0;
@@ -258,8 +259,15 @@ const AmbientAudio = {
 
 function isVisible(x, y, radius, cam) {
     const padding = 50;
-    return (x + radius + padding > cam.x && x - radius - padding < cam.x + canvas.width &&
-            y + radius + padding > cam.y && y - radius - padding < cam.y + canvas.height);
+    const mobileLandscape = window.matchMedia('(pointer: coarse) and (orientation: landscape)').matches;
+    const mobilePortrait = window.matchMedia('(pointer: coarse) and (orientation: portrait)').matches;
+    const zoom = mobileLandscape ? 0.58 : (mobilePortrait ? 0.72 : 1);
+    const viewWidth = canvas.width / zoom;
+    const viewHeight = canvas.height / zoom;
+    const left = cam.x + (canvas.width - viewWidth) / 2;
+    const top = cam.y + (canvas.height - viewHeight) / 2;
+    return (x + radius + padding > left && x - radius - padding < left + viewWidth &&
+            y + radius + padding > top && y - radius - padding < top + viewHeight);
 }
 
 class Trail {
