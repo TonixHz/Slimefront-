@@ -8,9 +8,8 @@
  *
  *     SaveSystem.get(key, fallback)   -> SIEMPRE síncrono, nunca bloquea el juego
  *     SaveSystem.set(key, value)      -> SIEMPRE síncrono en apariencia (escribe en
- *                                         caché local al toque; el backend se
- *                                         sincroniza solo, en segundo plano, con
- *                                         reintentos)
+ *                                         caché local al toque; la nube se actualiza
+ *                                         únicamente cuando el usuario lo solicita)
  *
  * Toda la comunicación real con Firebase (Auth + Firestore + Functions) vive
  * ÚNICAMENTE acá. Ningún otro archivo importa firebase.* directamente.
@@ -166,14 +165,37 @@ const SaveSystem = {
         try {
             const snap = await _db.collection(PLAYERS_COLLECTION).doc(uid).get();
             if (!snap.exists) return;
+
             const data = snap.data();
             const changedKeys = [];
-            Object.keys(data).forEach(k => {
-                if (k === '_updatedAt') return;
+            // Solo hidratamos datos de progreso conocidos; nunca copiamos metadatos
+            // internos del servidor (_updatedAt, _lastManualSaveAt) al almacenamiento local.
+            ['profile', 'progression', 'achv_stats', 'achv_state'].forEach(k => {
+                if (!(k in data)) return;
+
+                // El guardado en la nube es manual: si ya existe una copia local válida,
+                // preservarla para no perder progreso aún no subido al iniciar sesión.
+                // En un dispositivo sin copia local, se restaura la copia de la nube.
+                let hasValidLocalCopy = false;
+                try {
+                    const localRaw = localStorage.getItem(_LOCAL_PREFIX + k);
+                    if (localRaw !== null) {
+                        const localValue = JSON.parse(localRaw);
+                        if (localValue !== null && typeof localValue === 'object') {
+                            this._cache[k] = localValue;
+                            hasValidLocalCopy = true;
+                        }
+                    }
+                } catch (e) {
+                    // Si la copia local está corrupta, se permite recuperar desde la nube.
+                }
+                if (hasValidLocalCopy) return;
+
                 this._cache[k] = data[k];
                 try { localStorage.setItem(_LOCAL_PREFIX + k, JSON.stringify(data[k])); } catch (e) {}
                 changedKeys.push(k);
             });
+
             if (changedKeys.length) this._notifyRemote(changedKeys);
         } catch (e) {
             console.warn('[FirebaseSaveSystem] No se pudo descargar el progreso de la nube, se sigue con la caché local:', e.code || e);
