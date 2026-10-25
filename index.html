@@ -186,6 +186,8 @@
 
             <div class="settings-group">
                 <label class="settings-label">Cuenta</label>
+                <button class="menu-btn primary" id="save-cloud-btn" onclick="game.saveCloudProgress()">☁️ GUARDAR EN LA NUBE</button>
+                <p class="settings-hint" id="save-cloud-cooldown" aria-live="polite">Guardado manual: disponible al iniciar sesión.</p>
                 <button class="menu-btn" onclick="game.openLogoutConfirm()">🚪 CERRAR SESIÓN</button>
                 <button class="menu-btn danger" onclick="game.openDeleteConfirm()">🗑️ BORRAR PROGRESO</button>
             </div>
