@@ -52,7 +52,6 @@ const SaveIndicator = {
     init() {
         document.addEventListener('savesystem:status', e => this.render(e.detail.status));
         window.addEventListener('offline', () => this.render('offline'));
-        window.addEventListener('online', () => this.render('retrying'));
     }
 };
 
