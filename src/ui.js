@@ -301,6 +301,59 @@ game.closeKeybindPanel = function() {
 };
 
 // ======================================================================
+ // GUARDADO MANUAL EN LA NUBE — cooldown visual de 60 segundos.
+ // El límite real debe validarse también en Cloud Functions.
+ // ======================================================================
+game._cloudSaveCooldownUntil = 0;
+game._cloudSaveCooldownTimer = null;
+
+game._renderCloudSaveCooldown = function() {
+    const btn = document.getElementById('save-cloud-btn');
+    const label = document.getElementById('save-cloud-cooldown');
+    if (!btn || !label) return;
+    const remaining = Math.max(0, Math.ceil((this._cloudSaveCooldownUntil - Date.now()) / 1000));
+    const loggedIn = !!SaveSystem.currentUser;
+    btn.disabled = !loggedIn || remaining > 0;
+    btn.style.opacity = btn.disabled ? '0.65' : '1';
+    label.innerText = !loggedIn
+        ? 'Iniciá sesión con Google para guardar en la nube.'
+        : remaining > 0
+            ? 'Podés volver a guardar en ' + remaining + ' s.'
+            : 'Tu progreso local se conserva automáticamente.';
+    if (remaining > 0) {
+        clearTimeout(this._cloudSaveCooldownTimer);
+        this._cloudSaveCooldownTimer = setTimeout(() => this._renderCloudSaveCooldown(), 1000);
+    }
+};
+
+game.saveCloudProgress = async function() {
+    this._renderCloudSaveCooldown();
+    if (!SaveSystem.currentUser) {
+        if (typeof SaveIndicator !== 'undefined') SaveIndicator.render('error');
+        const label = document.getElementById('save-cloud-cooldown');
+        if (label) label.innerText = 'Iniciá sesión con Google antes de guardar.';
+        return;
+    }
+    if (Date.now() < this._cloudSaveCooldownUntil) return;
+
+    // Empieza el cooldown antes de la solicitud para impedir doble toque/autoclicker.
+    this._cloudSaveCooldownUntil = Date.now() + 60000;
+    this._renderCloudSaveCooldown();
+    try {
+        await SaveSystem.saveToCloud();
+        const label = document.getElementById('save-cloud-cooldown');
+        if (label) label.innerText = '✅ Progreso guardado en la nube. Próximo guardado en 60 s.';
+    } catch (e) {
+        const label = document.getElementById('save-cloud-cooldown');
+        if (label) label.innerText = '❌ No se pudo guardar: ' + (e.message || 'error de conexión') + '. Podés intentar de nuevo en 60 s.';
+    }
+};
+
+document.addEventListener('savesystem:login', () => game._renderCloudSaveCooldown());
+document.addEventListener('savesystem:logout', () => game._renderCloudSaveCooldown());
+window.addEventListener('DOMContentLoaded', () => game._renderCloudSaveCooldown());
+
+// ======================================================================
 // PRIVACIDAD — reabrir el banner de consentimiento de Analytics desde Ajustes.
 // ======================================================================
 game.reconsiderConsent = function() {
