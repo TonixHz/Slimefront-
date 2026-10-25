@@ -125,8 +125,8 @@ const SaveSystem = {
     set(key, value) {
         this._cache[key] = value;
         try { localStorage.setItem(_LOCAL_PREFIX + key, JSON.stringify(value)); } catch (e) { /* cuota llena, modo privado, etc. */ }
-        this._dirty.add(key);
-        this._scheduleSync();
+        // El progreso se guarda solo en localStorage durante el juego.
+        // La nube requiere una acción explícita del usuario.
     },
 
     // ================= SUSCRIPCIÓN A DATOS REMOTOS =================
@@ -219,19 +219,28 @@ const SaveSystem = {
     // de lo que haya en memoria para que /players/{uid} exista desde el
     // primer momento, en vez de esperar al primer .save() real del gameplay.
     async _ensureRemoteDocument() {
+        // No sincronizar automáticamente al iniciar sesión.
+        return;
+
+    },
+
+    async saveToCloud() {
+        if (!this._uid) throw new Error('Iniciá sesión con Google para guardar en la nube.');
+        const patch = {};
+        ['profile', 'progression', 'achv_stats', 'achv_state'].forEach(key => {
+            const value = this.get(key, undefined);
+            if (value !== undefined) patch[key] = JSON.parse(JSON.stringify(value));
+        });
+        if (!Object.keys(patch).length) throw new Error('Todavía no hay progreso para guardar.');
+        this._setStatus('saving');
         try {
-            if (typeof PlayerProfile !== 'undefined' && typeof PlayerProfile.save === 'function') PlayerProfile.save();
-            if (typeof Progression !== 'undefined' && typeof Progression.save === 'function') Progression.save();
-            if (typeof AchievementManager !== 'undefined') {
-                if (typeof AchievementManager.saveStats === 'function') AchievementManager.saveStats();
-                if (typeof AchievementManager.saveState === 'function') AchievementManager.saveState();
-            }
+            await _syncProgressFn(patch);
+            this._setStatus('saved');
+            return true;
         } catch (e) {
-            console.warn('[FirebaseSaveSystem] No se pudo preparar el guardado inicial:', e);
+            this._setStatus('error');
+            throw e;
         }
-        // .save() de arriba ya marcó las keys como dirty vía SaveSystem.set();
-        // acá forzamos que se empuje YA, sin esperar los 2.5s de debounce.
-        await this.flush();
     },
 
     // ================= BORRADO TOTAL DE PROGRESO =================
@@ -278,7 +287,7 @@ const SaveSystem = {
                 await this._pullRemote(user.uid);
                 // FIX: garantiza que el doc en /players/{uid} exista siempre,
                 // aunque el usuario todavía no haya jugado nada.
-                await this._ensureRemoteDocument();
+                // No escribir en la nube al iniciar sesión.
                 document.dispatchEvent(new CustomEvent('savesystem:login', { detail: { uid: user.uid, user } }));
             } else {
                 document.dispatchEvent(new CustomEvent('savesystem:logout'));
