@@ -145,52 +145,20 @@ const SaveSystem = {
         document.dispatchEvent(new CustomEvent('savesystem:status', { detail: { status } }));
     },
 
-    // ================= SINCRONIZACIÓN (nunca bloquea, nunca rompe) =================
-    _scheduleSync() {
-        clearTimeout(this._pushTimer);
-        // Debounce propio: NO pasa por TimerManager a propósito. Este timer
-        // sincroniza progreso con la nube independientemente de que haya una
-        // partida en curso; cancelarlo al volver al menú (TimerManager.clearAll)
-        // arriesgaría perder el último guardado pendiente. Ver src/timers.js.
-        this._pushTimer = setTimeout(() => this._pushDirty(), _SYNC_DEBOUNCE_MS);
-    },
+    // ================= SINCRONIZACIÓN DESACTIVADA =================
+    // El progreso normal se conserva localmente. No hay reintentos, debounce
+    // ni sincronización al volver la conexión. La nube solo se usa en saveToCloud().
+    _scheduleSync() {},
 
     async _pushDirty() {
-        if (!this._uid || this._dirty.size === 0) return;
-
-        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-            this._setStatus('offline');
-            return; // se reintentará en el próximo set() o al volver la conexión (ver online listener abajo)
-        }
-
-        const keys = Array.from(this._dirty);
         this._dirty.clear();
-        const patch = {};
-        keys.forEach(k => {
-            try {
-                patch[k] = JSON.parse(JSON.stringify(this._cache[k]));
-            } catch (e) {
-                console.warn(`[FirebaseSaveSystem] No se pudo serializar la key "${k}", se omite este ciclo de sync:`, e);
-            }
-        });
-
-        this._setStatus(this._retrying ? 'retrying' : 'saving');
-        try {
-            await _syncProgressFn(patch);
-            this._retrying = false;
-            this._setStatus('saved');
-        } catch (e) {
-            console.warn('[FirebaseSaveSystem] No se pudo sincronizar con el servidor, se sigue jugando con la caché local. Reintentará:', e.code || e);
-            keys.forEach(k => this._dirty.add(k));
-            this._retrying = true;
-            this._setStatus('error');
-            this._scheduleSync(); // reintento automático tras el mismo debounce
-        }
+        return;
     },
 
     async flush() {
         clearTimeout(this._pushTimer);
-        await this._pushDirty();
+        this._dirty.clear();
+        return;
     },
 
     // ================= CARGA INICIAL AL INICIAR SESIÓN =================
@@ -294,9 +262,7 @@ const SaveSystem = {
             }
             if (firstCheck) { firstCheck = false; this._readyResolve(); }
         });
-        window.addEventListener('beforeunload', () => { this._pushDirty(); });
-        // Reintenta apenas vuelve la conexión, en vez de esperar al próximo set().
-        window.addEventListener('online', () => { if (this._dirty.size > 0) this._pushDirty(); });
+        // No se registran reintentos automáticos al cerrar o recuperar conexión.
         window.addEventListener('offline', () => this._setStatus('offline'));
     }
 };
