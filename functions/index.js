@@ -111,22 +111,32 @@ exports.syncProgress = functions.https.onCall(async (data, context) => {
     const uid = context.auth.uid;
 
     const docRef = db.collection('players').doc(uid);
-    const snap = await docRef.get();
-    const previous = snap.exists ? snap.data() : {};
-
+    const now = Date.now();
     const patch = {};
-    ALLOWED_KEYS.forEach(key => {
-        if (!(key in data)) return;
-        const clean = VALIDATORS[key](data[key], previous[key]);
-        if (clean !== null) patch[key] = clean;
+    const written = await db.runTransaction(async transaction => {
+        const snap = await transaction.get(docRef);
+        const previous = snap.exists ? snap.data() : {};
+        const lastSaveMs = previous._lastManualSaveAt && typeof previous._lastManualSaveAt.toMillis === 'function'
+            ? previous._lastManualSaveAt.toMillis() : 0;
+        if (lastSaveMs && now - lastSaveMs < 60000) {
+            throw new functions.https.HttpsError('resource-exhausted', 'Esperá 60 segundos entre guardados en la nube.');
+        }
+
+        ALLOWED_KEYS.forEach(key => {
+            if (!(key in data)) return;
+            const clean = VALIDATORS[key](data[key], previous[key]);
+            if (clean !== null) patch[key] = clean;
+        });
+
+        if (Object.keys(patch).length === 0) {
+            throw new functions.https.HttpsError('invalid-argument', 'No hay progreso válido para guardar.');
+        }
+
+        patch._updatedAt = admin.firestore.FieldValue.serverTimestamp();
+        patch._lastManualSaveAt = admin.firestore.FieldValue.serverTimestamp();
+        transaction.set(docRef, patch, { merge: true });
+        return Object.keys(patch).filter(key => key[0] !== '_');
     });
-
-    if (Object.keys(patch).length === 0) {
-        return { ok: true, written: [] };
-    }
-
-    patch._updatedAt = admin.firestore.FieldValue.serverTimestamp();
-    await docRef.set(patch, { merge: true });
 
     if (patch.profile) {
         await db.collection('leaderboard').doc(uid).set({
@@ -137,7 +147,7 @@ exports.syncProgress = functions.https.onCall(async (data, context) => {
         }, { merge: true });
     }
 
-    return { ok: true, written: Object.keys(patch) };
+    return { ok: true, written };
 });
 
 exports.clearProgress = functions.https.onCall(async (data, context) => {
